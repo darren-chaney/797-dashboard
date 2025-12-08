@@ -66,7 +66,6 @@
     }
     .pill.online { color: var(--teal); border-color: var(--teal); }
     .pill.offline { color: var(--danger); border-color: var(--danger); }
-
     .pill.copper.online { color: var(--copper); border-color: var(--copper); }
 
     .value-area { display: flex; gap: 20px; margin-top: 6px; }
@@ -97,7 +96,7 @@
         <h1>797 Distillery • Fermentation Dashboard</h1>
         <p>Live Tilt telemetry • dual batch monitoring • fermentation curves</p>
       </div>
-      <div class="badge">Realtime</div>
+      <div class="badge">REALTIME</div>
     </header>
 
     <div class="grid">
@@ -217,11 +216,8 @@ function loadSheet(sheet) {
 
 function updateTiles(dataBySheet) {
 
-  const black = dataBySheet["Black Corn"];
-  const green = dataBySheet["Green Corn"];
-
-  updateTile(black, "black");
-  updateTile(green, "green");
+  updateTile(dataBySheet["Black Corn"], "black");
+  updateTile(dataBySheet["Green Corn"], "green");
 }
 
 function updateTile(table, key) {
@@ -246,7 +242,29 @@ function updateTile(table, key) {
 
   tempEl.innerHTML = `${temp.toFixed(1)}<small>°F</small>`;
   gravEl.innerHTML = `${grav.toFixed(3)}<small>SG</small>`;
-  updEl.textContent = "Last update: " + ts;
+
+  // ✔ FIX: Format Google Sheets Date(YYYY,MM,DD,HH,MM,SS)
+  try {
+    const clean = ts.replace("Date(", "").replace(")", "");
+    const parts = clean.split(",");
+    const d = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
+
+    const formatted = d.toLocaleString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "America/Chicago"
+    });
+
+    updEl.textContent = "Last update: " + formatted;
+
+  } catch (e) {
+    updEl.textContent = "Last update: " + ts;
+  }
 
   statusEl.textContent = "Online";
   statusEl.classList.add("online");
