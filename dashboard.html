@@ -28,16 +28,17 @@
       padding: 20px;
     }
 
-    .dashboard { max-width: 1200px; margin: auto; }
+    .dashboard { max-width: 1300px; margin: auto; }
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     header h1 { font-size: 1.6rem; letter-spacing: 0.05em; }
     header p { font-size: 0.9rem; color: var(--muted); }
     .badge {
       padding: 6px 12px; border-radius: 999px;
-      border: 1px solid var(--copper); font-size: .8rem; text-transform: uppercase;
+      border: 1px solid var(--copper); font-size: .8rem;
+      text-transform: uppercase;
     }
 
-    .grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
 
     .card {
       background: linear-gradient(135deg, #171d24, #10141b);
@@ -47,9 +48,17 @@
       border: 1px solid rgba(255,255,255,0.05);
     }
 
-    #gravity_chart { width: 100%; height: 340px; margin-top: 10px; }
+    #gravity_chart { width: 100%; height: 370px; margin-top: 10px; }
 
-    .sensor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .sensor-block {
+      margin-bottom: 28px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .sensor-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
     .sensor-name { font-size: 1.2rem; font-weight: 500; }
     .pill {
       padding: 4px 10px; border-radius: 999px; border: 1px solid;
@@ -58,6 +67,8 @@
     .pill.online { color: var(--teal); border-color: var(--teal); }
     .pill.offline { color: var(--danger); border-color: var(--danger); }
 
+    .pill.copper.online { color: var(--copper); border-color: var(--copper); }
+
     .value-area { display: flex; gap: 20px; margin-top: 6px; }
     .value-block { flex: 1; }
     .value-label { font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
@@ -65,8 +76,14 @@
     .value small { font-size: .8rem; color: var(--muted); }
 
     .chip-row { display: flex; gap: 8px; margin-top: 10px; }
-    .chip { background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 999px; font-size: .75rem; }
-    .chip strong { color: var(--copper); }
+    .chip {
+      background: rgba(255,255,255,0.05);
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: .75rem;
+    }
+    .chip strong.copper { color: var(--copper); }
+    .chip strong.teal { color: var(--teal); }
 
     .footer-note { margin-top: 10px; text-align: right; color: var(--muted); font-size: .75rem; }
   </style>
@@ -78,47 +95,75 @@
     <header>
       <div>
         <h1>797 Distillery • Fermentation Dashboard</h1>
-        <p>Live Tilt telemetry • gravity tracking • fermentation health</p>
+        <p>Live Tilt telemetry • dual batch monitoring • fermentation curves</p>
       </div>
       <div class="badge">Realtime</div>
     </header>
 
     <div class="grid">
 
-      <!-- CHART AREA -->
+      <!-- CHART -->
       <div class="card">
-        <h2 style="font-size:1rem; margin-bottom:4px;">Gravity Trend (Black Corn)</h2>
+        <h2 style="font-size:1rem; margin-bottom:4px;">Gravity Trend (Black & Green)</h2>
         <p style="color:var(--muted); font-size:.85rem;">Last 200 readings</p>
         <div id="gravity_chart"></div>
       </div>
 
-      <!-- SENSOR TILE -->
+      <!-- SENSOR PANEL -->
       <div class="card">
-        <div class="sensor-header">
-          <div class="sensor-name">Black Tilt</div>
-          <div id="blackStatus" class="pill offline">Offline</div>
+
+        <!-- BLACK TILT -->
+        <div class="sensor-block">
+          <div class="sensor-header">
+            <div class="sensor-name">Black Tilt</div>
+            <div id="blackStatus" class="pill copper offline">Offline</div>
+          </div>
+
+          <div class="value-area">
+            <div class="value-block">
+              <div class="value-label">Gravity</div>
+              <div id="blackGravity" class="value">--<small>SG</small></div>
+            </div>
+            <div class="value-block">
+              <div class="value-label">Temperature</div>
+              <div id="blackTemp" class="value">--<small>°F</small></div>
+            </div>
+          </div>
+
+          <div class="chip-row">
+            <div class="chip">Batch: <strong class="copper">Black Corn</strong></div>
+            <div id="blackUpdated" class="chip">Last update: --</div>
+          </div>
         </div>
 
-        <div class="value-area">
-          <div class="value-block">
-            <div class="value-label">Gravity</div>
-            <div id="blackGravity" class="value">--<small>SG</small></div>
+        <!-- GREEN TILT -->
+        <div class="sensor-block">
+          <div class="sensor-header">
+            <div class="sensor-name">Green Tilt</div>
+            <div id="greenStatus" class="pill online" style="border-color:var(--teal); color:var(--teal);">Offline</div>
           </div>
-          <div class="value-block">
-            <div class="value-label">Temperature</div>
-            <div id="blackTemp" class="value">--<small>°F</small></div>
-          </div>
-        </div>
 
-        <div class="chip-row">
-          <div class="chip">Batch: <strong>Black Corn</strong></div>
-          <div id="blackUpdated" class="chip">Last update: --</div>
+          <div class="value-area">
+            <div class="value-block">
+              <div class="value-label">Gravity</div>
+              <div id="greenGravity" class="value">--<small>SG</small></div>
+            </div>
+            <div class="value-block">
+              <div class="value-label">Temperature</div>
+              <div id="greenTemp" class="value">--<small>°F</small></div>
+            </div>
+          </div>
+
+          <div class="chip-row">
+            <div class="chip">Batch: <strong class="teal">Green Corn</strong></div>
+            <div id="greenUpdated" class="chip">Last update: --</div>
+          </div>
         </div>
       </div>
+
     </div>
 
     <div class="footer-note">Auto-refresh every 20 seconds</div>
-
   </div>
 
 <script>
@@ -126,7 +171,10 @@ google.charts.load("current", {packages:["corechart"]});
 google.charts.setOnLoadCallback(initDashboard);
 
 const SHEET_ID = "1cV8POWA9l0hlAyZPB1RYLYaqa4T4pXIRzQ3e6C9qkE8";
-const SHEET_NAME = "Black Corn";
+const DATASETS = [
+  { sheet: "Black Corn", color: "#d8843e", key: "black" },
+  { sheet: "Green Corn", color: "#00c9a7", key: "green" }
+];
 
 function initDashboard() {
   updateDashboard();
@@ -134,73 +182,127 @@ function initDashboard() {
 }
 
 function updateDashboard() {
-  const queryString = `select A,B,C where A is not null order by A`;
-  const url =
-    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tq=${encodeURIComponent(queryString)}`;
 
-  new google.visualization.Query(url).send(response => {
-    if (response.isError()) {
-      console.error("ERROR loading data:", response.getMessage());
-      return;
-    }
+  Promise.all(DATASETS.map(ds => loadSheet(ds.sheet)))
+    .then(results => {
 
-    const data = response.getDataTable();
-    updateTile(data);
-    drawChart(data);
+      let dataBySheet = {};
+      DATASETS.forEach((ds, i) => dataBySheet[ds.sheet] = results[i]);
+
+      updateTiles(dataBySheet);
+      drawChart(dataBySheet);
+
+    })
+    .catch(err => console.error("Load error:", err));
+}
+
+function loadSheet(sheet) {
+  return new Promise((resolve, reject) => {
+
+    const queryString =
+      `select A,B,C where A is not null order by A`;
+
+    const url =
+      `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet)}&tq=${encodeURIComponent(queryString)}`;
+
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        const json = JSON.parse(text.substr(47).slice(0, -2));
+        resolve(json.table);
+      })
+      .catch(err => reject(err));
   });
 }
 
-function updateTile(data) {
-  const rows = data.getNumberOfRows();
-  if (rows === 0) return;
+function updateTiles(dataBySheet) {
 
-  const last = rows - 1;
+  const black = dataBySheet["Black Corn"];
+  const green = dataBySheet["Green Corn"];
 
-  const ts = data.getValue(last, 0);
-  const temp = data.getValue(last, 1);
-  const grav = data.getValue(last, 2);
-
-  document.getElementById("blackTemp").innerHTML = `${temp.toFixed(1)}<small>°F</small>`;
-  document.getElementById("blackGravity").innerHTML = `${grav.toFixed(3)}<small>SG</small>`;
-  document.getElementById("blackUpdated").textContent = `Last update: ${ts}`;
-
-  document.getElementById("blackStatus").textContent = "Online";
-  document.getElementById("blackStatus").classList.remove("offline");
-  document.getElementById("blackStatus").classList.add("online");
+  updateTile(black, "black");
+  updateTile(green, "green");
 }
 
-function drawChart(data) {
-  const rows = data.getNumberOfRows();
-  const start = Math.max(0, rows - 200);
+function updateTile(table, key) {
 
-  const chartData = new google.visualization.DataTable();
-  chartData.addColumn("string", "Time");
-  chartData.addColumn("number", "Gravity");
+  const statusEl = document.getElementById(`${key}Status`);
+  const tempEl = document.getElementById(`${key}Temp`);
+  const gravEl = document.getElementById(`${key}Gravity`);
+  const updEl = document.getElementById(`${key}Updated`);
 
-  const out = [];
-
-  for (let r = start; r < rows; r++) {
-    out.push([
-      String(data.getValue(r, 0)),
-      parseFloat(data.getValue(r, 2))
-    ]);
+  if (!table || !table.rows || table.rows.length === 0) {
+    statusEl.textContent = "Offline";
+    statusEl.classList.remove("online");
+    statusEl.classList.add("offline");
+    return;
   }
 
-  chartData.addRows(out);
+  const last = table.rows[table.rows.length - 1].c;
+
+  const ts = last[0].v;
+  const temp = last[1].v;
+  const grav = last[2].v;
+
+  tempEl.innerHTML = `${temp.toFixed(1)}<small>°F</small>`;
+  gravEl.innerHTML = `${grav.toFixed(3)}<small>SG</small>`;
+  updEl.textContent = "Last update: " + ts;
+
+  statusEl.textContent = "Online";
+  statusEl.classList.add("online");
+  statusEl.classList.remove("offline");
+}
+
+function drawChart(dataBySheet) {
+
+  let data = new google.visualization.DataTable();
+  data.addColumn("string", "Time");
+  data.addColumn("number", "Black Corn");
+  data.addColumn("number", "Green Corn");
+
+  const black = dataBySheet["Black Corn"];
+  if (!black || !black.rows) return;
+
+  const rows = black.rows.length;
+  const start = Math.max(0, rows - 200);
+
+  for (let i = start; i < rows; i++) {
+
+    const ts = black.rows[i].c[0].v;
+
+    const blackVal = black.rows[i].c[2].v;
+    let greenVal = null;
+
+    const green = dataBySheet["Green Corn"];
+    if (green && green.rows && green.rows[i])
+      greenVal = green.rows[i].c[2].v;
+
+    data.addRow([String(ts), blackVal, greenVal]);
+  }
 
   const options = {
     backgroundColor: "transparent",
-    legend: { position: "none" },
-    hAxis: { textStyle: { color: "#9aa4b2" }, slantedText: true, slantedTextAngle: 45 },
-    vAxis: { textStyle: { color: "#9aa4b2" }, gridlines: { color: "#222" } },
-    series: {
-      0: { color: "#d8843e", lineWidth: 3 }
+    legend: { position: "bottom", textStyle: { color: "#cfd8e3" } },
+    hAxis: {
+      textStyle: { color: "#9aa4b2" },
+      slantedText: true,
+      slantedTextAngle: 45
     },
-    chartArea: { left: 50, right: 10, top: 20, bottom: 60 }
+    vAxis: {
+      textStyle: { color: "#9aa4b2" },
+      gridlines: { color: "#1e2530" }
+    },
+    chartArea: { left: 60, top: 20, right: 30, bottom: 70 },
+    series: {
+      0: { color: "#d8843e", lineWidth: 3 },
+      1: { color: "#00c9a7", lineWidth: 3 }
+    }
   };
 
-  const chart = new google.visualization.LineChart(document.getElementById("gravity_chart"));
-  chart.draw(chartData, options);
+  const chart = new google.visualization.LineChart(
+    document.getElementById("gravity_chart")
+  );
+  chart.draw(data, options);
 }
 </script>
 
