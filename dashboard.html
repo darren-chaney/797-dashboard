@@ -237,25 +237,28 @@ function updateRangeLabel() {
 }
 
 function updateDashboard() {
+
   Promise.all(DATASETS.map(ds => loadSheet(ds.sheet)))
     .then(results => {
+
       let dataBySheet = {};
       DATASETS.forEach((ds, i) => dataBySheet[ds.sheet] = results[i]);
 
       updateTiles(dataBySheet);
       drawChart(dataBySheet);
+
     })
     .catch(err => console.error("Load error:", err));
 }
 
-// ----------------- SHEET LOADING -----------------
 function loadSheet(sheet) {
   return new Promise((resolve, reject) => {
-    const queryString = `select A,B,C where A is not null order by A`;
+
+    const queryString =
+      `select A,B,C where A is not null order by A`;
+
     const url =
-      `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq` +
-      `?tqx=out:json&sheet=${encodeURIComponent(sheet)}` +
-      `&tq=${encodeURIComponent(queryString)}`;
+      `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet)}&tq=${encodeURIComponent(queryString)}`;
 
     fetch(url)
       .then(r => r.text())
@@ -282,15 +285,12 @@ function toDate(raw) {
       const parts = clean.split(",").map(Number);
       return new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
     }
-    // Already formatted string: we can't turn back into Date reliably
-    // so just return "now" for ordering, value still shows formatted.
     const d = new Date(raw);
     if (!isNaN(d.getTime())) return d;
     return new Date();
   }
 
   if (typeof raw === "number") {
-    // Google serial date: days since 1899-12-30
     const base = new Date(Date.UTC(1899, 11, 30));
     return new Date(base.getTime() + raw * 86400000);
   }
@@ -337,13 +337,15 @@ function parseTimestamp(raw) {
   return String(raw ?? "");
 }
 
-// ----------------- TILES (ONLINE/OFFLINE + LAST VALUE) -----------------
+// ----------------- TILE LOGIC -----------------
 function updateTiles(dataBySheet) {
+
   updateTile(dataBySheet["Black Corn"], "black");
   updateTile(dataBySheet["Green Corn"], "green");
 }
 
 function updateTile(table, key) {
+
   const statusEl = document.getElementById(`${key}Status`);
   const tempEl = document.getElementById(`${key}Temp`);
   const gravEl = document.getElementById(`${key}Gravity`);
@@ -359,7 +361,6 @@ function updateTile(table, key) {
     return;
   }
 
-  // Walk backwards to find the last row with valid A,B,C
   let lastRow = null;
   for (let i = table.rows.length - 1; i >= 0; i--) {
     const c = table.rows[i].c;
@@ -390,7 +391,7 @@ function updateTile(table, key) {
   statusEl.classList.remove("offline");
 }
 
-// ----------------- CHART (MERGED SERIES + RANGE FILTER) -----------------
+// ----------------- CHART (HOURLY LABELS + MERGED SERIES) -----------------
 function extractSeries(table) {
   if (!table || !table.rows) return [];
   const series = [];
@@ -410,17 +411,14 @@ function extractSeries(table) {
 }
 
 function drawChart(dataBySheet) {
-  const blackTable = dataBySheet["Black Corn"];
-  const greenTable = dataBySheet["Green Corn"];
 
-  const blackSeries = extractSeries(blackTable);
-  const greenSeries = extractSeries(greenTable);
+  const blackSeries = extractSeries(dataBySheet["Black Corn"]);
+  const greenSeries = extractSeries(dataBySheet["Green Corn"]);
 
   const rangeDays = getRangeDays();
   const now = new Date();
   const cutoffMs = now.getTime() - rangeDays * 86400000;
 
-  // Merge points by timestamp
   const map = new Map();
 
   function addPoints(series, keyName) {
@@ -439,37 +437,44 @@ function drawChart(dataBySheet) {
   addPoints(blackSeries, "black");
   addPoints(greenSeries, "green");
 
-  const merged = Array.from(map.values());
-  merged.sort((a, b) => a.time - b.time);
+  const merged = Array.from(map.values()).sort((a, b) => a.time - b.time);
 
-  // Limit to last 200 combined points
   if (merged.length > 200) {
     merged.splice(0, merged.length - 200);
   }
 
   const data = new google.visualization.DataTable();
-  data.addColumn("string", "Time");
+  data.addColumn("datetime", "Time");
   data.addColumn("number", "Black Corn");
   data.addColumn("number", "Green Corn");
 
   merged.forEach(p => {
-    const label = p.time.toLocaleString("en-US", {
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true
-    });
-    data.addRow([label, p.black, p.green]);
+    data.addRow([p.time, p.black, p.green]);
   });
+
+  // HOURLY axis ticks
+  const ticks = [];
+  if (merged.length > 0) {
+    const first = merged[0].time;
+    const last = merged[merged.length - 1].time;
+
+    let tick = new Date(first);
+    tick.setMinutes(0, 0, 0);
+
+    while (tick <= last) {
+      ticks.push(new Date(tick));
+      tick.setHours(tick.getHours() + 1);
+    }
+  }
 
   const options = {
     backgroundColor: "transparent",
     legend: { position: "bottom", textStyle: { color: "#cfd8e3" } },
     hAxis: {
       textStyle: { color: "#9aa4b2" },
-      slantedText: true,
-      slantedTextAngle: 45
+      gridlines: { color: "#1e2530" },
+      ticks: ticks,
+      format: "h a"
     },
     vAxis: {
       textStyle: { color: "#9aa4b2" },
