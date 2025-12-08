@@ -98,7 +98,7 @@
     .value-area { display: flex; gap: 20px; margin-top: 6px; }
     .value-block { flex: 1; }
     .value-label { font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
-    .value { font-size: 1.8rem; font-weight: 600; }
+    .value { font-size: 1.6rem; font-weight: 600; }
     .value small { font-size: .8rem; color: var(--muted); }
 
     .chip-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
@@ -160,18 +160,17 @@
           <div class="value-area">
             <div class="value-block">
               <div class="value-label">Gravity</div>
-                <div id="blackGravity" class="value">--<small>SG</small></div>
+              <div id="blackGravity" class="value">--<small>SG</small></div>
             </div>
             <div class="value-block">
-              <div class="value-label">Temperature</div>
+              <div class="value-label">Temp</div>
               <div id="blackTemp" class="value">--<small>°F</small></div>
             </div>
-          <div class="value-block">
-            <div class="value-label">ABV</div>
+            <div class="value-block">
+              <div class="value-label">ABV</div>
               <div id="blackABV" class="value">--<small>%</small></div>
+            </div>
           </div>
-          </div>
-
 
           <div class="chip-row">
             <div class="chip">Batch: <strong class="copper">Black Corn</strong></div>
@@ -190,25 +189,24 @@
             <div class="value-block">
               <div class="value-label">Gravity</div>
               <div id="greenGravity" class="value">--<small>SG</small></div>
-          </div>
-            <div class="value-block">
-              <div class="value-label">Temperature</div>
-                <div id="greenTemp" class="value">--<small>°F</small></div>
-          </div>
-            <div class="value-block">
-            <div class="value-label">ABV</div>
-            <div id="greenABV" class="value">--<small>%</small></div>
             </div>
-        </div>
-
+            <div class="value-block">
+              <div class="value-label">Temp</div>
+              <div id="greenTemp" class="value">--<small>°F</small></div>
+            </div>
+            <div class="value-block">
+              <div class="value-label">ABV</div>
+              <div id="greenABV" class="value">--<small>%</small></div>
+            </div>
+          </div>
 
           <div class="chip-row">
             <div class="chip">Batch: <strong class="teal">Green Corn</strong></div>
             <div id="greenUpdated" class="chip">Last update: --</div>
           </div>
         </div>
-      </div>
 
+      </div>
     </div>
 
     <div class="footer-note">Auto-refresh every 20 seconds</div>
@@ -219,14 +217,15 @@ google.charts.load("current", {packages:["corechart"]});
 google.charts.setOnLoadCallback(initDashboard);
 
 const SHEET_ID = "1cV8POWA9l0hlAyZPB1RYLYaqa4T4pXIRzQ3e6C9qkE8";
+const OG = 1.086;
+
 const DATASETS = [
   { sheet: "Black Corn", key: "black" },
   { sheet: "Green Corn", key: "green" }
 ];
 
 function initDashboard() {
-  const rangeSelect = document.getElementById("rangeSelect");
-  rangeSelect.addEventListener("change", () => {
+  document.getElementById("rangeSelect").addEventListener("change", () => {
     updateRangeLabel();
     updateDashboard();
   });
@@ -240,64 +239,43 @@ function getRangeDays() {
 }
 
 function updateRangeLabel() {
-  const label = document.getElementById("rangeLabel");
   const days = getRangeDays();
-  if (days === 1) label.textContent = "Today";
-  else label.textContent = `Last ${days} days`;
+  document.getElementById("rangeLabel").textContent =
+    days === 1 ? "Today" : `Last ${days} days`;
 }
 
 function updateDashboard() {
-
   Promise.all(DATASETS.map(ds => loadSheet(ds.sheet)))
-    .then(results => {
-
-      let dataBySheet = {};
-      DATASETS.forEach((ds, i) => dataBySheet[ds.sheet] = results[i]);
-
-      updateTiles(dataBySheet);
-      drawChart(dataBySheet);
-
-    })
-    .catch(err => console.error("Load error:", err));
+    .then(res => {
+      let obj = {};
+      DATASETS.forEach((ds, i) => obj[ds.sheet] = res[i]);
+      updateTiles(obj);
+      drawChart(obj);
+    });
 }
 
 function loadSheet(sheet) {
-  return new Promise((resolve, reject) => {
+  const q = "select A,B,C where A is not null order by A";
+  const url =
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet)}&tq=${encodeURIComponent(q)}`;
 
-    const queryString =
-      `select A,B,C where A is not null order by A`;
-
-    const url =
-      `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet)}&tq=${encodeURIComponent(queryString)}`;
-
-    fetch(url)
-      .then(r => r.text())
-      .then(text => {
-        const json = JSON.parse(text.substr(47).slice(0, -2));
-        resolve(json.table);
-      })
-      .catch(err => reject(err));
-  });
+  return fetch(url)
+    .then(r => r.text())
+    .then(t => JSON.parse(t.substr(47).slice(0, -2)).table);
 }
 
-// ----------------- TIMESTAMP HELPERS -----------------
+// TIMESTAMP HELPERS
 function toDate(raw) {
-  if (raw && typeof raw === "object") {
+  if (!raw) return new Date();
+
+  if (typeof raw === "object") {
     if ("v" in raw) raw = raw.v;
     else if ("f" in raw) raw = raw.f;
   }
 
-  if (raw instanceof Date) return raw;
-
-  if (typeof raw === "string") {
-    if (raw.includes("Date(")) {
-      const clean = raw.replace("Date(", "").replace(")", "");
-      const parts = clean.split(",").map(Number);
-      return new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
-    }
-    const d = new Date(raw);
-    if (!isNaN(d.getTime())) return d;
-    return new Date();
+  if (typeof raw === "string" && raw.includes("Date(")) {
+    const p = raw.replace("Date(", "").replace(")", "").split(",").map(Number);
+    return new Date(p[0], p[1], p[2], p[3], p[4], p[5]);
   }
 
   if (typeof raw === "number") {
@@ -305,175 +283,130 @@ function toDate(raw) {
     return new Date(base.getTime() + raw * 86400000);
   }
 
-  return new Date();
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? new Date() : d;
 }
 
-function parseTimestamp(raw) {
-  if (raw && typeof raw === "object") {
-    if ("f" in raw && raw.f) return raw.f;
-    if ("v" in raw) raw = raw.v;
-  }
-
-  if (typeof raw === "string" && !raw.includes("Date(")) {
-    return raw;
-  }
-
-  if (typeof raw === "string" && raw.includes("Date(")) {
-    const d = toDate(raw);
-    return d.toLocaleString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "America/Chicago"
-    });
-  }
-
-  if (typeof raw === "number") {
-    const d = toDate(raw);
-    return d.toLocaleString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "America/Chicago"
-    });
-  }
-
-  return String(raw ?? "");
+function parseTS(raw) {
+  const d = toDate(raw);
+  return d.toLocaleString("en-US", {
+    month: "short", day: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+    hour12: true, timeZone: "America/Chicago"
+  });
 }
 
-// ----------------- TILE LOGIC -----------------
-function updateTiles(dataBySheet) {
+// ABV CALC
+function calcABV(sg) {
+  if (!sg || sg <= 0) return null;
+  return (OG - sg) * 131.25;
+}
 
-  updateTile(dataBySheet["Black Corn"], "black");
-  updateTile(dataBySheet["Green Corn"], "green");
+// TILES
+function updateTiles(data) {
+  updateTile(data["Black Corn"], "black");
+  updateTile(data["Green Corn"], "green");
 }
 
 function updateTile(table, key) {
+  const s = id => document.getElementById(id);
 
-  const statusEl = document.getElementById(`${key}Status`);
-  const tempEl = document.getElementById(`${key}Temp`);
-  const gravEl = document.getElementById(`${key}Gravity`);
-  const updEl = document.getElementById(`${key}Updated`);
-
-  if (!table || !table.rows || table.rows.length === 0) {
-    statusEl.textContent = "Offline";
-    statusEl.classList.remove("online");
-    statusEl.classList.add("offline");
-    tempEl.innerHTML = `--<small>°F</small>`;
-    gravEl.innerHTML = `--<small>SG</small>`;
-    updEl.textContent = "Last update: --";
+  if (!table || !table.rows.length) {
+    setOffline(key);
     return;
   }
 
-  let lastRow = null;
+  let row = null;
   for (let i = table.rows.length - 1; i >= 0; i--) {
     const c = table.rows[i].c;
-    if (c && c[0] && c[1] && c[2] &&
-        c[0].v != null && c[1].v != null && c[2].v != null) {
-      lastRow = c;
-      break;
-    }
+    if (c && c[0] && c[1] && c[2]) { row = c; break; }
   }
+  if (!row) return setOffline(key);
 
-  if (!lastRow) {
-    statusEl.textContent = "Offline";
-    statusEl.classList.remove("online");
-    statusEl.classList.add("offline");
-    return;
-  }
+  const ts = row[0].v;
+  const temp = Number(row[1].v);
+  const sg = Number(row[2].v);
 
-  const tsRaw = lastRow[0].v;
-  const tempRaw = Number(lastRow[1].v);
-  const gravRaw = Number(lastRow[2].v);
+  s(`${key}Temp`).innerHTML = `${temp.toFixed(1)}<small>°F</small>`;
+  s(`${key}Gravity`).innerHTML = `${sg.toFixed(3)}<small>SG</small>`;
+  s(`${key}Updated`).textContent = "Last update: " + parseTS(ts);
 
-  tempEl.innerHTML = `${tempRaw.toFixed(1)}<small>°F</small>`;
-  gravEl.innerHTML = `${gravRaw.toFixed(3)}<small>SG</small>`;
-  updEl.textContent = "Last update: " + parseTimestamp(tsRaw);
+  const abv = calcABV(sg);
+  s(`${key}ABV`).innerHTML = abv ? `${abv.toFixed(2)}<small>%</small>` : `--<small>%</small>`;
 
-  statusEl.textContent = "Online";
-  statusEl.classList.add("online");
-  statusEl.classList.remove("offline");
+  s(`${key}Status`).textContent = "Online";
+  s(`${key}Status`).classList.add("online");
+  s(`${key}Status`).classList.remove("offline");
 }
 
-// ----------------- CHART (HOURLY LABELS + MERGED SERIES) -----------------
+function setOffline(key) {
+  const s = id => document.getElementById(id);
+  s(`${key}Status`).textContent = "Offline";
+  s(`${key}Status`).classList.remove("online");
+  s(`${key}Status`).classList.add("offline");
+  s(`${key}Temp`).innerHTML = `--<small>°F</small>`;
+  s(`${key}Gravity`).innerHTML = `--<small>SG</small>`;
+  s(`${key}ABV`).innerHTML = `--<small>%</small>`;
+  s(`${key}Updated`).textContent = "Last update: --";
+}
+
+// CHART
 function extractSeries(table) {
-  if (!table || !table.rows) return [];
-  const series = [];
+  const out = [];
+  if (!table || !table.rows) return out;
 
-  for (const row of table.rows) {
-    const c = row.c;
-    if (!c || !c[0] || !c[2] || c[0].v == null || c[2].v == null) continue;
+  table.rows.forEach(r => {
+    const c = r.c;
+    if (c && c[0] && c[2]) {
+      const d = toDate(c[0].v);
+      const sg = Number(c[2].v);
+      if (!isNaN(sg)) out.push({ time: d, gravity: sg });
+    }
+  });
 
-    const d = toDate(c[0].v);
-    const g = Number(c[2].v);
-    if (isNaN(g)) continue;
-
-    series.push({ time: d, gravity: g });
-  }
-
-  return series;
+  return out;
 }
 
-function drawChart(dataBySheet) {
+function drawChart(d) {
+  const black = extractSeries(d["Black Corn"]);
+  const green = extractSeries(d["Green Corn"]);
 
-  const blackSeries = extractSeries(dataBySheet["Black Corn"]);
-  const greenSeries = extractSeries(dataBySheet["Green Corn"]);
-
-  const rangeDays = getRangeDays();
+  const days = getRangeDays();
   const now = new Date();
-  const cutoffMs = now.getTime() - rangeDays * 86400000;
+  const cutoff = now.getTime() - days * 86400000;
 
   const map = new Map();
 
-  function addPoints(series, keyName) {
+  function add(series, key) {
     series.forEach(p => {
-      if (p.time.getTime() < cutoffMs) return;
-      const key = p.time.toISOString();
-      let obj = map.get(key);
-      if (!obj) {
-        obj = { time: p.time, black: null, green: null };
-        map.set(key, obj);
-      }
-      obj[keyName] = p.gravity;
+      if (p.time.getTime() < cutoff) return;
+      const k = p.time.toISOString();
+      if (!map.has(k)) map.set(k, { time: p.time, black: null, green: null });
+      map.get(k)[key] = p.gravity;
     });
   }
 
-  addPoints(blackSeries, "black");
-  addPoints(greenSeries, "green");
+  add(black, "black");
+  add(green, "green");
 
   const merged = Array.from(map.values()).sort((a, b) => a.time - b.time);
-
-  if (merged.length > 200) {
-    merged.splice(0, merged.length - 200);
-  }
+  if (merged.length > 200) merged.splice(0, merged.length - 200);
 
   const data = new google.visualization.DataTable();
   data.addColumn("datetime", "Time");
   data.addColumn("number", "Black Corn");
   data.addColumn("number", "Green Corn");
 
-  merged.forEach(p => {
-    data.addRow([p.time, p.black, p.green]);
-  });
+  merged.forEach(p => data.addRow([p.time, p.black, p.green]));
 
-  // HOURLY axis ticks
   const ticks = [];
-  if (merged.length > 0) {
-    const first = merged[0].time;
-    const last = merged[merged.length - 1].time;
-
-    let tick = new Date(first);
-    tick.setMinutes(0, 0, 0);
-
-    while (tick <= last) {
-      ticks.push(new Date(tick));
-      tick.setHours(tick.getHours() + 1);
+  if (merged.length) {
+    let t = new Date(merged[0].time);
+    t.setMinutes(0, 0, 0);
+    const end = merged[merged.length - 1].time;
+    while (t <= end) {
+      ticks.push(new Date(t));
+      t.setHours(t.getHours() + 1);
     }
   }
 
@@ -492,15 +425,14 @@ function drawChart(dataBySheet) {
     },
     chartArea: { left: 60, top: 20, right: 30, bottom: 70 },
     series: {
-      0: { color: "#d8843e", lineWidth: 3 },
-      1: { color: "#00c9a7", lineWidth: 3 }
+      0: { color: "#d8843e", width: 3 },
+      1: { color: "#00c9a7", width: 3 }
     }
   };
 
-  const chart = new google.visualization.LineChart(
+  new google.visualization.LineChart(
     document.getElementById("gravity_chart")
-  );
-  chart.draw(data, options);
+  ).draw(data, options);
 }
 </script>
 
