@@ -68,8 +68,29 @@
       font-size: .85rem;
     }
 
-    /* Chart container */
-    #gravity_chart { width: 100%; height: 370px; margin-top: 10px; }
+    /* ==============================
+       CHART CONTAINERS
+       - #gravity_chart: mobile-only combined chart
+       - #chart_black + #chart_green: desktop-only side-by-side charts
+       ============================== */
+    #gravity_chart,
+    #chart_black,
+    #chart_green {
+      width: 100%;
+      height: 320px;
+      margin-top: 10px;
+    }
+
+    /* Desktop side-by-side chart layout */
+    .desktop-charts {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+    }
+
+    .chart-panel {
+      flex: 1;
+    }
 
     /* Range dropdown styling */
     #rangeSelect {
@@ -118,6 +139,22 @@
     .chip strong.teal { color: var(--teal); }
 
     .footer-note { margin-top: 10px; text-align: right; color: var(--muted); font-size: .75rem; }
+
+    /* ==============================
+       RESPONSIVE BEHAVIOR
+       - Desktop (>= 900px): show TWO charts (black + green), hide combined.
+       - Mobile (< 900px): show ONE combined chart, hide the two.
+       ============================== */
+    @media (min-width: 900px) {
+      #gravity_chart { display: none; }       /* hide mobile chart */
+      .desktop-charts { display: flex; }      /* show side-by-side charts */
+    }
+
+    @media (max-width: 899px) {
+      #gravity_chart { display: block; }      /* show combined chart on mobile */
+      .desktop-charts { display: none; }      /* hide side-by-side charts */
+    }
+
   </style>
 </head>
 
@@ -146,7 +183,7 @@
       <div class="card">
         <div class="chart-header">
           <div>
-            <h2>Gravity Trend (Black & Green)</h2>
+            <h2>Gravity Trend</h2>
             <p>Range: <span id="rangeLabel">Today</span></p>
           </div>
           <div>
@@ -158,7 +195,21 @@
             </select>
           </div>
         </div>
+
+        <!-- MOBILE COMBINED CHART (Black + Green on one chart) -->
         <div id="gravity_chart"></div>
+
+        <!-- DESKTOP SIDE-BY-SIDE CHARTS -->
+        <div class="desktop-charts">
+          <div class="chart-panel">
+            <h3 style="font-size:0.85rem; color:var(--muted); margin-top:4px;">Black Corn</h3>
+            <div id="chart_black"></div>
+          </div>
+          <div class="chart-panel">
+            <h3 style="font-size:0.85rem; color:var(--muted); margin-top:4px;">Green Corn</h3>
+            <div id="chart_green"></div>
+          </div>
+        </div>
       </div>
 
       <!-- ==========
@@ -198,7 +249,6 @@
         <div class="sensor-block">
           <div class="sensor-header">
             <div class="sensor-name">Green Tilt</div>
-            <!-- Note: initial visual state; logic below will flip to Online/Offline -->
             <div id="greenStatus" class="pill online" style="border-color:var(--teal); color:var(--teal);">Offline</div>
           </div>
 
@@ -281,7 +331,7 @@
         let obj = {};
         DATASETS.forEach((ds, i) => obj[ds.sheet] = res[i]);
         updateTiles(obj);
-        drawChart(obj);  // <- chart rendering
+        drawCharts(obj);  // <- draw all charts (mobile + desktop)
       });
   }
 
@@ -414,23 +464,33 @@
   }
 
   // ==========================
-  //  MAIN CHART DRAW FUNCTION
-  //  (Y-axis improved: min = 1.000, max = data max + 0.005)
+  //  DRAW ALL CHARTS (MOBILE + DESKTOP)
   // ==========================
-  function drawChart(d) {
-    const black = extractSeries(d["Black Corn"]);
-    const green = extractSeries(d["Green Corn"]);
-
+  function drawCharts(d) {
     const days = getRangeDays();
     const now = new Date();
-    const cutoff = now.getTime() - days * 86400000; // milliseconds window
+    const cutoff = now.getTime() - days * 86400000;
 
-    // Merge by timestamp so we can draw two lines on one chart
+    const black = extractSeries(d["Black Corn"]).filter(p => p.time.getTime() >= cutoff);
+    const green = extractSeries(d["Green Corn"]).filter(p => p.time.getTime() >= cutoff);
+
+    // MOBILE combined chart
+    drawCombinedChart(black, green);
+
+    // DESKTOP individual charts
+    drawSingleChart(black, "chart_black", "Black Corn", "#d8843e");
+    drawSingleChart(green, "chart_green", "Green Corn", "#00c9a7");
+  }
+
+  // ==========================
+  //  MOBILE COMBINED CHART
+  //  (Black + Green on same chart)
+  // ==========================
+  function drawCombinedChart(black, green) {
     const map = new Map();
 
     function add(series, key) {
       series.forEach(p => {
-        if (p.time.getTime() < cutoff) return;
         const k = p.time.toISOString();
         if (!map.has(k)) map.set(k, { time: p.time, black: null, green: null });
         map.get(k)[key] = p.gravity;
@@ -445,14 +505,12 @@
     // Thin data if needed
     if (merged.length > 200) merged.splice(0, merged.length - 200);
 
-    // If no data, just bail out (nothing to draw)
     if (!merged.length) {
-      const container = document.getElementById("gravity_chart");
-      container.innerHTML = "<div style='color:#9aa4b2; padding-top:40px;'>No data in selected range.</div>";
+      document.getElementById("gravity_chart").innerHTML =
+        "<div style='color:#9aa4b2; padding-top:40px;'>No data in selected range.</div>";
       return;
     }
 
-    // Build DataTable for Google Charts
     const data = new google.visualization.DataTable();
     data.addColumn("datetime", "Time");
     data.addColumn("number", "Black Corn");
@@ -460,81 +518,118 @@
 
     merged.forEach(p => data.addRow([p.time, p.black, p.green]));
 
-    // ==============================
-    //  X-AXIS TICKS (HOURLY)
-    // ==============================
+    // X-axis ticks (hourly)
     const ticks = [];
-    if (merged.length) {
-      let t = new Date(merged[0].time);
-      t.setMinutes(0, 0, 0);
-      const end = merged[merged.length - 1].time;
-      while (t <= end) {
-        ticks.push(new Date(t));       // hourly tick
-        t.setHours(t.getHours() + 1);
-      }
+    let t = new Date(merged[0].time);
+    t.setMinutes(0, 0, 0);
+    const end = merged[merged.length - 1].time;
+    while (t <= end) {
+      ticks.push(new Date(t));
+      t.setHours(t.getHours() + 1);
     }
 
-    // ==============================
-    //  Y-AXIS RANGE (OPTION B + PADDING)
-    //  - Bottom locked at 1.000
-    //  - Top = max SG in data + 0.005
-    // ==============================
+    // Y-axis: min = 1.000, max = maxSG + 0.005
     const allVals = [];
     merged.forEach(p => {
       if (typeof p.black === "number") allVals.push(p.black);
       if (typeof p.green === "number") allVals.push(p.green);
     });
-
-    let maxVal = 1.02; // fallback if weird data
-    if (allVals.length) {
-      maxVal = Math.max(...allVals);
-    }
-
-    // Add padding above the highest gravity so lines don’t hit the top
+    let maxVal = allVals.length ? Math.max(...allVals) : 1.02;
     let yMin = 1.000;
     let yMax = maxVal + 0.005;
+    if (yMax < yMin + 0.01) yMax = yMin + 0.01;
 
-    // Ensure we always have at least a little vertical span
-    if (yMax < yMin + 0.01) {
-      yMax = yMin + 0.01;
-    }
-
-    // ==============================
-    //  CHART OPTIONS (COLORS / GRID / AXES)
-    // ==============================
     const options = {
       backgroundColor: "transparent",
       legend: { position: "bottom", textStyle: { color: "#cfd8e3" } },
-
-      // Smooth curves a bit without going crazy
       curveType: "function",
-
       hAxis: {
         textStyle: { color: "#9aa4b2" },
         gridlines: { color: "#1e2530" },
-        ticks: ticks,           // hourly
+        ticks: ticks,
         format: "h a"
       },
       vAxis: {
         textStyle: { color: "#9aa4b2" },
         gridlines: { color: "#1e2530" },
         viewWindowMode: "explicit",
-        viewWindow: {
-          min: yMin,
-          max: yMax
-        }
+        viewWindow: { min: yMin, max: yMax }
       },
       chartArea: { left: 60, top: 20, right: 30, bottom: 70 },
       series: {
-        0: { color: "#d8843e", width: 3 }, // Black Corn line (copper)
-        1: { color: "#00c9a7", width: 3 }  // Green Corn line (teal)
+        0: { color: "#d8843e", width: 3 },
+        1: { color: "#00c9a7", width: 3 }
       }
     };
 
-    // Draw the chart
     new google.visualization.LineChart(
       document.getElementById("gravity_chart")
     ).draw(data, options);
+  }
+
+  // ==========================
+  //  DESKTOP SINGLE-BATCH CHART
+  //  (used for Black and Green panels)
+  // ==========================
+  function drawSingleChart(series, containerId, label, color) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!series.length) {
+      container.innerHTML =
+        "<div style='color:#9aa4b2; padding-top:40px;'>No data in selected range.</div>";
+      return;
+    }
+
+    // Thin if crazy long
+    const points = series.slice(-200);
+
+    const data = new google.visualization.DataTable();
+    data.addColumn("datetime", "Time");
+    data.addColumn("number", label);
+
+    points.forEach(p => data.addRow([p.time, p.gravity]));
+
+    // Hourly ticks
+    const ticks = [];
+    let t = new Date(points[0].time);
+    t.setMinutes(0, 0, 0);
+    const end = points[points.length - 1].time;
+    while (t <= end) {
+      ticks.push(new Date(t));
+      t.setHours(t.getHours() + 1);
+    }
+
+    // Y-axis range for this batch only
+    const vals = points.map(p => p.gravity);
+    let maxVal = Math.max(...vals);
+    let yMin = 1.000;
+    let yMax = maxVal + 0.005;
+    if (yMax < yMin + 0.01) yMax = yMin + 0.01;
+
+    const options = {
+      backgroundColor: "transparent",
+      legend: { position: "none" },
+      curveType: "function",
+      hAxis: {
+        textStyle: { color: "#9aa4b2", fontSize: 10 },
+        gridlines: { color: "#1e2530" },
+        ticks: ticks,
+        format: "h a"
+      },
+      vAxis: {
+        textStyle: { color: "#9aa4b2", fontSize: 10 },
+        gridlines: { color: "#1e2530" },
+        viewWindowMode: "explicit",
+        viewWindow: { min: yMin, max: yMax }
+      },
+      chartArea: { left: 45, top: 15, right: 10, bottom: 45 },
+      series: {
+        0: { color: color, width: 3 }
+      }
+    };
+
+    new google.visualization.LineChart(container).draw(data, options);
   }
   </script>
 
