@@ -13,18 +13,26 @@
       color: #e5e7eb;
     }
 
-    /* ⭐ HEADER WITH LOGO NEXT TO TITLE */
+    /* ============================================
+       HEADER AREA — TITLE + LOGO INLINE (DESIGNER)
+       ============================================ */
     .header-row {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
+      flex-direction: column;      /* stack: title row + subheading */
+      align-items: flex-start;     /* left-align everything */
+      margin-bottom: 1rem;
     }
 
-    .header-logo {
-      width: 55px;  /* Adjust logo size */
+    .title-with-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;                   /* spacing between text + logo */
+    }
+
+    .header-logo-inline {
+      width: 42px;                /* perfect visual size */
       opacity: 0.95;
-      margin-left: 12px;
+      transform: translateY(-2px); /* optical alignment tweak */
     }
 
     .container {
@@ -48,6 +56,7 @@
       font-size: 0.9rem;
       color: #9ca3af;
       margin-bottom: 1rem;
+      margin-top: 4px; /* tighter visual spacing */
     }
 
     .stats-grid {
@@ -159,8 +168,8 @@
       .stat-card {
         padding: 0.6rem 0.7rem;
       }
-      .header-logo {
-        width: 45px;
+      .header-logo-inline {
+        width: 34px;
       }
     }
   </style>
@@ -170,17 +179,26 @@
 
   <div class="container">
 
-    <!-- ⭐ Title + Logo in Flex Header -->
+    <!-- ============================================
+         HEADER — TITLE + LOGO INLINE (REPLACE THIS)
+         ============================================ -->
     <div class="header-row">
-      <div>
+
+      <div class="title-with-logo">
         <h1>797 Distillery Barrel Dashboard</h1>
-        <div class="subheading">
-          Live view of all barrels from your Google Sheet (Barrel Log).
-        </div>
+
+        <!-- Inline logo next to title -->
+        <img src="websiteLogoGlassWhiteTrans.png"
+             class="header-logo-inline"
+             alt="797 Distillery Logo">
       </div>
 
-      <img src="websiteLogoGlassWhiteTrans.png" class="header-logo" alt="797 Distillery Logo">
+      <div class="subheading">
+        Live view of all barrels from your Google Sheet (Barrel Log).
+      </div>
+
     </div>
+    <!-- END HEADER BLOCK -->
 
     <!-- ⭐ Stats -->
     <div class="stats-grid">
