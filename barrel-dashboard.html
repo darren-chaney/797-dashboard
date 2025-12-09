@@ -12,6 +12,23 @@
       background: #0f172a;
       color: #e5e7eb;
     }
+    .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    }
+
+    .header-logo {
+    width: 90px; /* adjust size as needed */
+    opacity: 0.95;
+    }
+
+    @media (max-width: 640px) {
+    .header-logo {
+      width: 70px;
+      }
+    }
 
     /* ⭐ FIXED LOGO (does NOT push layout down) */
     .logo-fixed {
