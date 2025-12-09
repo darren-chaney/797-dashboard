@@ -12,33 +12,19 @@
       background: #0f172a;
       color: #e5e7eb;
     }
+
+    /* ⭐ HEADER WITH LOGO NEXT TO TITLE */
     .header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
     }
 
     .header-logo {
-    width: 90px; /* adjust size as needed */
-    opacity: 0.95;
-    }
-
-    @media (max-width: 640px) {
-    .header-logo {
-      width: 70px;
-      }
-    }
-
-    /* ⭐ FIXED LOGO (does NOT push layout down) */
-    .logo-fixed {
-      position: fixed;
-      top: 12px;
-      right: 12px;
-      width: 120px;      /* Adjust as needed */
+      width: 55px;  /* Adjust logo size */
       opacity: 0.95;
-      z-index: 999;
-      pointer-events: none; /* clicks pass through */
+      margin-left: 12px;
     }
 
     .container {
@@ -76,7 +62,7 @@
       border-radius: 0.75rem;
       padding: 0.75rem 0.9rem;
       border: 1px solid #1f2937;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
     .stat-label {
@@ -103,7 +89,7 @@
       border-radius: 0.75rem;
       padding: 0.75rem;
       border: 1px solid #1f2937;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
     #age-chart,
@@ -115,13 +101,13 @@
     .tooltip {
       position: absolute;
       pointer-events: none;
-      background: rgba(15, 23, 42, 0.97);
+      background: rgba(15,23,42,0.97);
       color: #f9fafb;
       padding: 0.6rem 0.75rem;
       font-size: 0.8rem;
       border-radius: 0.5rem;
       border: 1px solid #1f2937;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
       opacity: 0;
       transition: opacity 0.12s ease-out, transform 0.12s ease-out;
       transform: translateY(4px);
@@ -173,9 +159,8 @@
       .stat-card {
         padding: 0.6rem 0.7rem;
       }
-
-      .logo-fixed {
-        width: 90px;  /* Slightly smaller on mobile */
+      .header-logo {
+        width: 45px;
       }
     }
   </style>
@@ -183,22 +168,21 @@
 
 <body>
 
-  <!-- ⭐ LOGO THAT DOESN’T PUSH CONTENT DOWN -->
-  <img src="websiteLogoGlassWhiteTrans.png" class="logo-fixed" alt="797 Distillery Logo">
-
   <div class="container">
+
+    <!-- ⭐ Title + Logo in Flex Header -->
     <div class="header-row">
-    <div>
-      <h1>797 Distillery Barrel Dashboard</h1>
-      <div class="subheading">
-        Live view of all barrels from your Google Sheet (Barrel Log).
+      <div>
+        <h1>797 Distillery Barrel Dashboard</h1>
+        <div class="subheading">
+          Live view of all barrels from your Google Sheet (Barrel Log).
+        </div>
       </div>
+
+      <img src="websiteLogoGlassWhiteTrans.png" class="header-logo" alt="797 Distillery Logo">
     </div>
 
-    <img src="websiteLogoGlassWhiteTrans.png" class="header-logo" alt="797 Distillery Logo">
-  </div>
-
-
+    <!-- ⭐ Stats -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Total Barrels</div>
@@ -222,6 +206,7 @@
       </div>
     </div>
 
+    <!-- ⭐ Age Chart -->
     <section>
       <h2>Barrel Aging by Fill Date</h2>
       <div class="chart-card">
@@ -234,6 +219,7 @@
       </div>
     </section>
 
+    <!-- ⭐ Spirit Chart -->
     <section>
       <h2>Proof Gallons by Spirit Type</h2>
       <div class="chart-card">
@@ -243,6 +229,7 @@
         </div>
       </div>
     </section>
+
   </div>
 
   <div id="tooltip" class="tooltip"></div>
