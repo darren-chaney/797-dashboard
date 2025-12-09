@@ -13,6 +13,17 @@
       color: #e5e7eb;
     }
 
+    /* ⭐ FIXED LOGO (does NOT push layout down) */
+    .logo-fixed {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      width: 120px;      /* Adjust as needed */
+      opacity: 0.95;
+      z-index: 999;
+      pointer-events: none; /* clicks pass through */
+    }
+
     .container {
       max-width: 1100px;
       margin: 0 auto;
@@ -145,10 +156,19 @@
       .stat-card {
         padding: 0.6rem 0.7rem;
       }
+
+      .logo-fixed {
+        width: 90px;  /* Slightly smaller on mobile */
+      }
     }
   </style>
 </head>
+
 <body>
+
+  <!-- ⭐ LOGO THAT DOESN’T PUSH CONTENT DOWN -->
+  <img src="YOUR_LOGO_FILENAME.png" class="logo-fixed" alt="797 Distillery Logo">
+
   <div class="container">
     <h1>797 Distillery Barrel Dashboard</h1>
     <div class="subheading">
@@ -183,7 +203,7 @@
       <div class="chart-card">
         <div id="age-chart"></div>
         <div class="note">
-          • Each dot is a barrel. X = fill date, Y = age in years. Color = spirit type.  
+          • Each dot is a barrel. X = fill date, Y = age in years. Color = spirit type.<br>
           • Tap / hover for details. Click a point to open that barrel’s Google Doc.
         </div>
         <div id="age-legend" class="legend"></div>
@@ -205,5 +225,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
   <script src="barrel-dashboard.js"></script>
+
 </body>
 </html>
