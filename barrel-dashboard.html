@@ -17,11 +17,17 @@
        HEADER AREA — TITLE + LOGO INLINE (DESIGNER)
        ============================================ */
     .header-row {
-      display: flex;
-      flex-direction: column;      /* stack: title row + subheading */
-      align-items: flex-start;     /* left-align everything */
-      margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
     }
+
+    .header-logo {
+    width: 75px;   /* adjust size here */
+    opacity: 0.95;
+    }
+
 
     .title-with-logo {
       display: flex;
@@ -183,21 +189,16 @@
          HEADER — TITLE + LOGO INLINE (REPLACE THIS)
          ============================================ -->
     <div class="header-row">
-
-      <div class="title-with-logo">
-        <h1>797 Distillery Barrel Dashboard</h1>
-
-        <!-- Inline logo next to title -->
-        <img src="websiteLogoGlassWhiteTrans.png"
-             class="header-logo-inline"
-             alt="797 Distillery Logo">
-      </div>
-
-      <div class="subheading">
-        Live view of all barrels from your Google Sheet (Barrel Log).
-      </div>
-
+  <div>
+    <h1>797 Distillery Barrel Dashboard</h1>
+    <div class="subheading">
+      Live view of all barrels from your Google Sheet (Barrel Log).
     </div>
+  </div>
+
+  <!-- Right-side logo (original style) -->
+  <img src="websiteLogoGlassWhiteTrans.png" class="header-logo" alt="797 Distillery Logo">
+</div>
     <!-- END HEADER BLOCK -->
 
     <!-- ⭐ Stats -->
