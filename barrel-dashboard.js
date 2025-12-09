@@ -6,7 +6,7 @@
 //   https://docs.google.com/spreadsheets/d/1qz4mr0P31m7LdVaIrGqoeRpue-U6ZsNrdQPybQhEYRg/export?format=csv&gid=0
 
 const SHEET_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWbBULhY5_P3osxXeCsKmV5tHYMl29prcRnEph6hSKQKvjg5bqn-lEtFXlhlVPHwLJX_Yr1i8Hihyv/pub?gid=0&single=true&output=csv";
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWbBULhY5_P3osxXeCsKmV5tHYMl29prcRnEph6hSKQKvjg5bqn-lEtFXlhlVPHwLJX_Yr1i8Hihyv/pubhtml";
 
 // === TOOLTIP HANDLING ===
 const tooltip = document.getElementById("tooltip");
