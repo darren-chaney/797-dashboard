@@ -60,16 +60,6 @@
     button:hover {
       background: #7dd3fc;
     }
-
-    .success {
-      margin-top: 20px;
-      padding: 12px;
-      background: #166534;
-      color: white;
-      border-radius: 6px;
-      text-align: center;
-      display: none;
-    }
   </style>
 </head>
 
@@ -123,8 +113,6 @@
     <button type="submit">Submit Barrel</button>
   </form>
 
-  <div id="successMsg" class="success">Barrel Saved Successfully!</div>
-
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkwpoUpjOEYraywAIYiMxGI8-gJ_r9NqCWFh4wrKHgzW8-SvZ-uJe4T3elSBpK64e1/exec";
 
@@ -146,23 +134,14 @@
         });
 
         const text = await response.text();
-
-        // Normalize response (removes whitespace / hidden characters)
         const clean = text.trim().toUpperCase();
 
-      if (clean === "OK") {
-        const msg = document.getElementById("successMsg");
-        msg.style.display = "block";
-
-        form.reset();
-
-        setTimeout(() => {
-        msg.style.display = "none";
-        }, 2500);
+        if (clean === "OK") {
+          // Redirect to success page
+          window.location.href = "barrel-success.html";
         } else {
-        alert("Unexpected response from server:\n" + text);
-      }
-
+          alert("Unexpected response from server:\n" + text);
+        }
 
       } catch (err) {
         alert("Request Failed: " + err);
