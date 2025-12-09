@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>797 Distillery Barrel Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.25rem;
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .subheading {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      margin-bottom: 1rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: #020617;
+      border-radius: 0.75rem;
+      padding: 0.75rem 0.9rem;
+      border: 1px solid #1f2937;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .stat-sub {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-top: 0.15rem;
+    }
+
+    .chart-card {
+      background: #020617;
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      border: 1px solid #1f2937;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    #age-chart,
+    #spirit-chart {
+      width: 100%;
+      height: 320px;
+    }
+
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(15, 23, 42, 0.97);
+      color: #f9fafb;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.8rem;
+      border-radius: 0.5rem;
+      border: 1px solid #1f2937;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      opacity: 0;
+      transition: opacity 0.12s ease-out, transform 0.12s ease-out;
+      transform: translateY(4px);
+      z-index: 20;
+      max-width: 260px;
+    }
+
+    .tooltip a {
+      color: #38bdf8;
+      text-decoration: none;
+    }
+
+    .tooltip a:hover {
+      text-decoration: underline;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid #020617;
+    }
+
+    .note {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.4rem;
+    }
+
+    @media (max-width: 640px) {
+      h1 {
+        font-size: 1.4rem;
+      }
+      .stat-card {
+        padding: 0.6rem 0.7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>797 Distillery Barrel Dashboard</h1>
+    <div class="subheading">
+      Live view of all barrels from your Google Sheet (Barrel Log).
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Barrels</div>
+        <div id="stat-total-barrels" class="stat-value">–</div>
+        <div id="stat-total-barrels-sub" class="stat-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Proof Gallons (OPG)</div>
+        <div id="stat-total-opg" class="stat-value">–</div>
+        <div id="stat-total-opg-sub" class="stat-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Average Age</div>
+        <div id="stat-avg-age" class="stat-value">–</div>
+        <div id="stat-avg-age-sub" class="stat-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Oldest Barrel</div>
+        <div id="stat-oldest-barrel" class="stat-value">–</div>
+        <div id="stat-oldest-barrel-sub" class="stat-sub"></div>
+      </div>
+    </div>
+
+    <section>
+      <h2>Barrel Aging by Fill Date</h2>
+      <div class="chart-card">
+        <div id="age-chart"></div>
+        <div class="note">
+          • Each dot is a barrel. X = fill date, Y = age in years. Color = spirit type.  
+          • Tap / hover for details. Click a point to open that barrel’s Google Doc.
+        </div>
+        <div id="age-legend" class="legend"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Proof Gallons by Spirit Type</h2>
+      <div class="chart-card">
+        <div id="spirit-chart"></div>
+        <div class="note">
+          Based on the <strong>OPG</strong> column from your sheet.
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="tooltip" class="tooltip"></div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="barrel-dashboard.js"></script>
+</body>
+</html>
