@@ -282,6 +282,229 @@
   <!-- ==========================
        JAVASCRIPT SECTION
        ========================== -->
-<script src="dashboard.js?v=2"></script>
+<script>
+google.charts.load("current", {packages:["corechart"]});
+google.charts.setOnLoadCallback(initDashboard);
+
+const SHEET_ID = "1cV8POWA9l0hlAyZPB1RYLYaqa4T4pXIRzQ3e6C9qkE8";
+const OG = 1.086;
+
+const DATASETS = [
+  { sheet: "Black Corn", key: "black" },
+  { sheet: "Green Corn", key: "green" }
+];
+
+function initDashboard() {
+  document.getElementById("rangeSelect").addEventListener("change", () => {
+    updateRangeLabel();
+    updateDashboard();
+  });
+  updateRangeLabel();
+  updateDashboard();
+  setInterval(updateDashboard, 20000);
+}
+
+function getRangeDays() {
+  return parseInt(document.getElementById("rangeSelect").value || "1", 10);
+}
+
+function updateRangeLabel() {
+  const days = getRangeDays();
+  document.getElementById("rangeLabel").textContent =
+    days === 1 ? "Today" : `Last ${days} days`;
+}
+
+function updateDashboard() {
+  Promise.all(DATASETS.map(ds => loadSheet(ds.sheet)))
+    .then(res => {
+      let obj = {};
+      DATASETS.forEach((ds, i) => obj[ds.sheet] = res[i]);
+      updateTiles(obj);
+      drawChart(obj);
+    });
+}
+
+function loadSheet(sheet) {
+  const q = "select A,B,C where A is not null order by A";
+  const url =
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet)}&tq=${encodeURIComponent(q)}`;
+
+  return fetch(url)
+    .then(r => r.text())
+    .then(t => JSON.parse(t.substr(47).slice(0, -2)).table);
+}
+
+// TIMESTAMP HELPERS
+function toDate(raw) {
+  if (!raw) return new Date();
+
+  if (typeof raw === "object") {
+    if ("v" in raw) raw = raw.v;
+    else if ("f" in raw) raw = raw.f;
+  }
+
+  if (typeof raw === "string" && raw.includes("Date(")) {
+    const p = raw.replace("Date(", "").replace(")", "").split(",").map(Number);
+    return new Date(p[0], p[1], p[2], p[3], p[4], p[5]);
+  }
+
+  if (typeof raw === "number") {
+    const base = new Date(Date.UTC(1899, 11, 30));
+    return new Date(base.getTime() + raw * 86400000);
+  }
+
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
+function parseTS(raw) {
+  const d = toDate(raw);
+  return d.toLocaleString("en-US", {
+    month: "short", day: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+    hour12: true, timeZone: "America/Chicago"
+  });
+}
+
+// ABV CALC
+function calcABV(sg) {
+  if (!sg || sg <= 0) return null;
+  return (OG - sg) * 131.25;
+}
+
+// TILES
+function updateTiles(data) {
+  updateTile(data["Black Corn"], "black");
+  updateTile(data["Green Corn"], "green");
+}
+
+function updateTile(table, key) {
+  const s = id => document.getElementById(id);
+
+  if (!table || !table.rows.length) {
+    setOffline(key);
+    return;
+  }
+
+  let row = null;
+  for (let i = table.rows.length - 1; i >= 0; i--) {
+    const c = table.rows[i].c;
+    if (c && c[0] && c[1] && c[2]) { row = c; break; }
+  }
+  if (!row) return setOffline(key);
+
+  const ts = row[0].v;
+  const temp = Number(row[1].v);
+  const sg = Number(row[2].v);
+
+  s(`${key}Temp`).innerHTML = `${temp.toFixed(1)}<small>°F</small>`;
+  s(`${key}Gravity`).innerHTML = `${sg.toFixed(3)}<small>SG</small>`;
+  s(`${key}Updated`).textContent = "Last update: " + parseTS(ts);
+
+  const abv = calcABV(sg);
+  s(`${key}ABV`).innerHTML = abv ? `${abv.toFixed(2)}<small>%</small>` : `--<small>%</small>`;
+
+  s(`${key}Status`).textContent = "Online";
+  s(`${key}Status`).classList.add("online");
+  s(`${key}Status`).classList.remove("offline");
+}
+
+function setOffline(key) {
+  const s = id => document.getElementById(id);
+  s(`${key}Status`).textContent = "Offline";
+  s(`${key}Status`).classList.remove("online");
+  s(`${key}Status`).classList.add("offline");
+  s(`${key}Temp`).innerHTML = `--<small>°F</small>`;
+  s(`${key}Gravity`).innerHTML = `--<small>SG</small>`;
+  s(`${key}ABV`).innerHTML = `--<small>%</small>`;
+  s(`${key}Updated`).textContent = "Last update: --";
+}
+
+// CHART
+function extractSeries(table) {
+  const out = [];
+  if (!table || !table.rows) return out;
+
+  table.rows.forEach(r => {
+    const c = r.c;
+    if (c && c[0] && c[2]) {
+      const d = toDate(c[0].v);
+      const sg = Number(c[2].v);
+      if (!isNaN(sg)) out.push({ time: d, gravity: sg });
+    }
+  });
+
+  return out;
+}
+
+function drawChart(d) {
+  const black = extractSeries(d["Black Corn"]);
+  const green = extractSeries(d["Green Corn"]);
+
+  const days = getRangeDays();
+  const now = new Date();
+  const cutoff = now.getTime() - days * 86400000;
+
+  const map = new Map();
+
+  function add(series, key) {
+    series.forEach(p => {
+      if (p.time.getTime() < cutoff) return;
+      const k = p.time.toISOString();
+      if (!map.has(k)) map.set(k, { time: p.time, black: null, green: null });
+      map.get(k)[key] = p.gravity;
+    });
+  }
+
+  add(black, "black");
+  add(green, "green");
+
+  const merged = Array.from(map.values()).sort((a, b) => a.time - b.time);
+  if (merged.length > 200) merged.splice(0, merged.length - 200);
+
+  const data = new google.visualization.DataTable();
+  data.addColumn("datetime", "Time");
+  data.addColumn("number", "Black Corn");
+  data.addColumn("number", "Green Corn");
+
+  merged.forEach(p => data.addRow([p.time, p.black, p.green]));
+
+  const ticks = [];
+  if (merged.length) {
+    let t = new Date(merged[0].time);
+    t.setMinutes(0, 0, 0);
+    const end = merged[merged.length - 1].time;
+    while (t <= end) {
+      ticks.push(new Date(t));
+      t.setHours(t.getHours() + 1);
+    }
+  }
+
+  const options = {
+    backgroundColor: "transparent",
+    legend: { position: "bottom", textStyle: { color: "#cfd8e3" } },
+    hAxis: {
+      textStyle: { color: "#9aa4b2" },
+      gridlines: { color: "#1e2530" },
+      ticks: ticks,
+      format: "h a"
+    },
+    vAxis: {
+      textStyle: { color: "#9aa4b2" },
+      gridlines: { color: "#1e2530" }
+    },
+    chartArea: { left: 60, top: 20, right: 30, bottom: 70 },
+    series: {
+      0: { color: "#d8843e", width: 3 },
+      1: { color: "#00c9a7", width: 3 }
+    }
+  };
+
+  new google.visualization.LineChart(
+    document.getElementById("gravity_chart")
+  ).draw(data, options);
+}
+</script>
+
 </body>
 </html>
