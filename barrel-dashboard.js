@@ -1,10 +1,5 @@
 // === CONFIG ===
-// Use the CSV export for your main Barrel Log sheet
-// Your edit URL:
-//   https://docs.google.com/spreadsheets/d/1qz4mr0P31m7LdVaIrGqoeRpue-U6ZsNrdQPybQhEYRg/edit?gid=0#gid=0
-// Becomes CSV:
-//   https://docs.google.com/spreadsheets/d/1qz4mr0P31m7LdVaIrGqoeRpue-U6ZsNrdQPybQhEYRg/export?format=csv&gid=0
-
+// Published CSV URL
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWbBULhY5_P3osxXeCsKmV5tHYMl29prcRnEph6hSKQKvjg5bqn-lEtFXlhlVPHwLJX_Yr1i8Hihyv/pub?output=csv";
 
@@ -38,8 +33,9 @@ d3.csv(SHEET_CSV_URL).then((raw) => {
 
   const barrels = raw
     .map((row) => {
-      const barrelNo = (row["Barrel No."] || "").trim();
-      if (!barrelNo) return null; // skip blanks
+      // *** HEADERS FIXED TO MATCH YOUR SHEET EXACTLY ***
+      const barrelNo = (row["Barrel No"] || "").trim();
+      if (!barrelNo) return null;
 
       const fillDateStr = (row["Fill Date"] || "").trim();
       const spirit = (row["Spirit Type"] || "").trim();
@@ -49,17 +45,20 @@ d3.csv(SHEET_CSV_URL).then((raw) => {
       const lotId = (row["Lot ID"] || "").trim();
       const barrelType = (row["Barrel Type"] || "").trim();
       const rcg = (row["RC-G"] || "").trim();
+
       const opgRaw = row["OPG"];
       let opg = parseFloat(opgRaw);
       if (isNaN(opg) && gallons && entryProof) {
         opg = (gallons * entryProof) / 100.0;
       }
+
       const notes = (row["Notes"] || "").trim();
       const docLink = (row["Barrel Doc Link"] || "").trim();
 
       let fillDate = null;
       let ageDays = null;
       let ageYears = null;
+
       if (fillDateStr) {
         const d = new Date(fillDateStr);
         if (!isNaN(d)) {
@@ -161,7 +160,7 @@ function renderStats(barrels) {
   }
 }
 
-// === AGE CHART (FILL DATE vs AGE) ===
+// === AGE CHART ===
 function renderAgeChart(barrels) {
   const container = document.getElementById("age-chart");
   container.innerHTML = "";
@@ -169,6 +168,7 @@ function renderAgeChart(barrels) {
   const margin = { top: 20, right: 20, bottom: 40, left: 60 };
   const width = container.clientWidth || 800;
   const height = container.clientHeight || 320;
+
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -183,6 +183,7 @@ function renderAgeChart(barrels) {
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   const data = barrels.filter((b) => b.fillDate && b.ageYears != null);
+
   if (!data.length) {
     g.append("text")
       .attr("x", innerWidth / 2)
@@ -196,12 +197,7 @@ function renderAgeChart(barrels) {
   const xExtent = d3.extent(data, (d) => d.fillDate);
   const yMax = d3.max(data, (d) => d.ageYears) || 1;
 
-  const xScale = d3
-    .scaleTime()
-    .domain(xExtent)
-    .range([0, innerWidth])
-    .nice();
-
+  const xScale = d3.scaleTime().domain(xExtent).range([0, innerWidth]).nice();
   const yScale = d3
     .scaleLinear()
     .domain([0, yMax * 1.1])
@@ -212,17 +208,14 @@ function renderAgeChart(barrels) {
   const color = d3.scaleOrdinal(d3.schemeTableau10).domain(spiritSet);
 
   // Axes
-  const xAxis = d3.axisBottom(xScale).ticks(6);
-  const yAxis = d3.axisLeft(yScale).ticks(6);
-
   g.append("g")
     .attr("transform", `translate(0,${innerHeight})`)
-    .call(xAxis)
+    .call(d3.axisBottom(xScale).ticks(6))
     .selectAll("text")
     .style("fill", "#9ca3af");
 
   g.append("g")
-    .call(yAxis)
+    .call(d3.axisLeft(yScale).ticks(6))
     .selectAll("text")
     .style("fill", "#9ca3af");
 
@@ -235,7 +228,6 @@ function renderAgeChart(barrels) {
     .attr("y", innerHeight + 32)
     .attr("text-anchor", "middle")
     .attr("fill", "#9ca3af")
-    .attr("font-size", 11)
     .text("Fill Date");
 
   g.append("text")
@@ -244,58 +236,38 @@ function renderAgeChart(barrels) {
     .attr("transform", "rotate(-90)")
     .attr("text-anchor", "middle")
     .attr("fill", "#9ca3af")
-    .attr("font-size", 11)
     .text("Age (years)");
 
   // Points
-  const pointRadius = 6;
-
-  const points = g
-    .selectAll(".barrel-point")
+  g.selectAll(".barrel-point")
     .data(data, (d) => d.barrelNo)
     .join("circle")
     .attr("class", "barrel-point")
     .attr("cx", (d) => xScale(d.fillDate))
     .attr("cy", (d) => yScale(d.ageYears))
-    .attr("r", pointRadius)
+    .attr("r", 6)
     .attr("fill", (d) => color(d.spirit))
-    .attr("fill-opacity", 0.9)
     .attr("stroke", "#020617")
-    .attr("stroke-width", 1);
-
-  points
+    .attr("stroke-width", 1)
+    .attr("fill-opacity", 0.9)
     .on("mouseenter touchstart", function (event, d) {
       const fmtAge = d3.format(".2f");
       const fmtOPG = d3.format(",.2f");
-      const ageStr =
-        d.ageYears != null ? `${fmtAge(d.ageYears)} years` : "N/A";
 
       const html = `
         <div><strong>Barrel ${d.barrelNo}</strong></div>
         <div>${d.spirit}</div>
         <div style="margin-top:4px;">
           <div>Fill Date: ${d.fillDateStr || "N/A"}</div>
-          <div>Age: ${ageStr}</div>
+          <div>Age: ${fmtAge(d.ageYears)} years</div>
           <div>Gallons: ${d.gallons || 0}</div>
           <div>OPG: ${fmtOPG(d.opg || 0)}</div>
-          ${
-            d.lotId
-              ? `<div>Lot: ${d.lotId}</div>`
-              : ""
-          }
-          ${
-            d.barrelType
-              ? `<div>Barrel: ${d.barrelType}</div>`
-              : ""
-          }
-          ${
-            d.notes
-              ? `<div style="margin-top:4px;">Notes: ${d.notes}</div>`
-              : ""
-          }
+          ${d.lotId ? `<div>Lot: ${d.lotId}</div>` : ""}
+          ${d.barrelType ? `<div>Barrel: ${d.barrelType}</div>` : ""}
+          ${d.notes ? `<div style="margin-top:4px;">Notes: ${d.notes}</div>` : ""}
           ${
             d.docLink
-              ? `<div style="margin-top:4px;"><a href="${d.docLink}" target="_blank" rel="noopener">Open Barrel Doc</a></div>`
+              ? `<div style="margin-top:4px;"><a href="${d.docLink}" target="_blank">Open Barrel Doc</a></div>`
               : ""
           }
         </div>
@@ -305,9 +277,7 @@ function renderAgeChart(barrels) {
     .on("mousemove touchmove", moveTooltip)
     .on("mouseleave touchend touchcancel", hideTooltip)
     .on("click", (event, d) => {
-      if (d.docLink) {
-        window.open(d.docLink, "_blank", "noopener");
-      }
+      if (d.docLink) window.open(d.docLink, "_blank");
     });
 
   // Legend
@@ -336,6 +306,7 @@ function renderSpiritChart(barrels) {
   const margin = { top: 20, right: 20, bottom: 60, left: 80 };
   const width = container.clientWidth || 800;
   const height = container.clientHeight || 320;
+
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -376,22 +347,21 @@ function renderSpiritChart(barrels) {
     .padding(0.25);
 
   const yMax = d3.max(data, (d) => d.opg) || 1;
+
   const yScale = d3
     .scaleLinear()
     .domain([0, yMax * 1.1])
     .range([innerHeight, 0])
     .nice();
 
-  const color = d3.scaleOrdinal(d3.schemeTableau10).domain(
-    data.map((d) => d.spirit)
-  );
+  const color = d3
+    .scaleOrdinal(d3.schemeTableau10)
+    .domain(data.map((d) => d.spirit));
 
-  const xAxis = d3.axisBottom(xScale);
-  const yAxis = d3.axisLeft(yScale).ticks(6);
-
+  // Axes
   g.append("g")
     .attr("transform", `translate(0,${innerHeight})`)
-    .call(xAxis)
+    .call(d3.axisBottom(xScale))
     .selectAll("text")
     .style("fill", "#9ca3af")
     .style("font-size", 11)
@@ -399,10 +369,9 @@ function renderSpiritChart(barrels) {
     .attr("text-anchor", "end");
 
   g.append("g")
-    .call(yAxis)
+    .call(d3.axisLeft(yScale).ticks(6))
     .selectAll("text")
-    .style("fill", "#9ca3af")
-    .style("font-size", 11);
+    .style("fill", "#9ca3af");
 
   g.selectAll(".domain, .tick line")
     .attr("stroke", "#374151")
@@ -413,7 +382,6 @@ function renderSpiritChart(barrels) {
     .attr("y", innerHeight + 46)
     .attr("text-anchor", "middle")
     .attr("fill", "#9ca3af")
-    .attr("font-size", 11)
     .text("Spirit Type");
 
   g.append("text")
@@ -422,7 +390,6 @@ function renderSpiritChart(barrels) {
     .attr("transform", "rotate(-90)")
     .attr("text-anchor", "middle")
     .attr("fill", "#9ca3af")
-    .attr("font-size", 11)
     .text("Proof Gallons (OPG)");
 
   const fmtOPG = d3.format(",.2f");
