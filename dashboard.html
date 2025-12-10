@@ -324,7 +324,7 @@ function updateDashboard() {
       let obj = {};
       DATASETS.forEach((ds, i) => obj[ds.sheet] = res[i]);
       updateTiles(obj);
-      drawChart(obj);
+      drawCharts(obj);
     });
 }
 
@@ -338,14 +338,10 @@ function loadSheet(sheet) {
     .then(t => JSON.parse(t.substr(47).slice(0, -2)).table);
 }
 
-// TIMESTAMP HELPERS
+// TIMESTAMP PARSING
 function toDate(raw) {
   if (!raw) return new Date();
-
-  if (typeof raw === "object") {
-    if ("v" in raw) raw = raw.v;
-    else if ("f" in raw) raw = raw.f;
-  }
+  if (typeof raw === "object") raw = ("v" in raw) ? raw.v : raw.f;
 
   if (typeof raw === "string" && raw.includes("Date(")) {
     const p = raw.replace("Date(", "").replace(")", "").split(",").map(Number);
@@ -357,8 +353,7 @@ function toDate(raw) {
     return new Date(base.getTime() + raw * 86400000);
   }
 
-  const d = new Date(raw);
-  return isNaN(d.getTime()) ? new Date() : d;
+  return new Date(raw);
 }
 
 function parseTS(raw) {
@@ -370,7 +365,6 @@ function parseTS(raw) {
   });
 }
 
-// ABV CALC
 function calcABV(sg) {
   if (!sg || sg <= 0) return null;
   return (OG - sg) * 131.25;
@@ -385,10 +379,7 @@ function updateTiles(data) {
 function updateTile(table, key) {
   const s = id => document.getElementById(id);
 
-  if (!table || !table.rows.length) {
-    setOffline(key);
-    return;
-  }
+  if (!table || !table.rows.length) return setOffline(key);
 
   let row = null;
   for (let i = table.rows.length - 1; i >= 0; i--) {
@@ -424,91 +415,93 @@ function setOffline(key) {
   s(`${key}Updated`).textContent = "Last update: --";
 }
 
-// CHART
+// ================================
+//   FIXED CHART SECTION
+// ================================
 function extractSeries(table) {
-  const out = [];
-  if (!table || !table.rows) return out;
-
-  table.rows.forEach(r => {
+  if (!table || !table.rows) return [];
+  return table.rows.map(r => {
     const c = r.c;
-    if (c && c[0] && c[2]) {
-      const d = toDate(c[0].v);
-      const sg = Number(c[2].v);
-      if (!isNaN(sg)) out.push({ time: d, gravity: sg });
-    }
-  });
-
-  return out;
+    if (!c || !c[0] || !c[2]) return null;
+    return {
+      time: toDate(c[0].v),
+      gravity: Number(c[2].v)
+    };
+  }).filter(x => x && !isNaN(x.gravity));
 }
 
-function drawChart(d) {
-  const black = extractSeries(d["Black Corn"]);
-  const green = extractSeries(d["Green Corn"]);
-
+function drawCharts(d) {
   const days = getRangeDays();
   const now = new Date();
   const cutoff = now.getTime() - days * 86400000;
 
-  const map = new Map();
+  const black = extractSeries(d["Black Corn"]).filter(p => p.time >= cutoff);
+  const green = extractSeries(d["Green Corn"]).filter(p => p.time >= cutoff);
 
-  function add(series, key) {
-    series.forEach(p => {
-      if (p.time.getTime() < cutoff) return;
-      const k = p.time.toISOString();
-      if (!map.has(k)) map.set(k, { time: p.time, black: null, green: null });
-      map.get(k)[key] = p.gravity;
-    });
-  }
+  drawCombinedChart(black, green);
+  drawSingleChart("chart_black", black, "#d8843e");
+  drawSingleChart("chart_green", green, "#00c9a7");
+}
 
-  add(black, "black");
-  add(green, "green");
-
-  const merged = Array.from(map.values()).sort((a, b) => a.time - b.time);
-  if (merged.length > 200) merged.splice(0, merged.length - 200);
-
+function drawCombinedChart(black, green) {
   const data = new google.visualization.DataTable();
   data.addColumn("datetime", "Time");
   data.addColumn("number", "Black Corn");
   data.addColumn("number", "Green Corn");
 
+  const map = new Map();
+
+  black.forEach(p => {
+    const k = p.time.toISOString();
+    if (!map.has(k)) map.set(k, { time: p.time, black: null, green: null });
+    map.get(k).black = p.gravity;
+  });
+
+  green.forEach(p => {
+    const k = p.time.toISOString();
+    if (!map.has(k)) map.set(k, { time: p.time, black: null, green: null });
+    map.get(k).green = p.gravity;
+  });
+
+  const merged = Array.from(map.values()).sort((a, b) => a.time - b.time);
   merged.forEach(p => data.addRow([p.time, p.black, p.green]));
 
-  const ticks = [];
-  if (merged.length) {
-    let t = new Date(merged[0].time);
-    t.setMinutes(0, 0, 0);
-    const end = merged[merged.length - 1].time;
-    while (t <= end) {
-      ticks.push(new Date(t));
-      t.setHours(t.getHours() + 1);
-    }
-  }
+  const options = baseChartOptions();
+  new google.visualization.LineChart(
+    document.getElementById("gravity_chart")
+  ).draw(data, options);
+}
 
-  const options = {
+function drawSingleChart(element, series, color) {
+  const data = new google.visualization.DataTable();
+  data.addColumn("datetime", "Time");
+  data.addColumn("number", "Gravity");
+
+  series.forEach(p => data.addRow([p.time, p.gravity]));
+
+  const opts = baseChartOptions();
+  opts.series = { 0: { color, width: 3 } };
+
+  new google.visualization.LineChart(
+    document.getElementById(element)
+  ).draw(data, opts);
+}
+
+function baseChartOptions() {
+  return {
     backgroundColor: "transparent",
     legend: { position: "bottom", textStyle: { color: "#cfd8e3" } },
     hAxis: {
       textStyle: { color: "#9aa4b2" },
-      gridlines: { color: "#1e2530" },
-      ticks: ticks,
-      format: "h a"
+      gridlines: { color: "#1e2530" }
     },
     vAxis: {
       textStyle: { color: "#9aa4b2" },
       gridlines: { color: "#1e2530" }
     },
-    chartArea: { left: 60, top: 20, right: 30, bottom: 70 },
-    series: {
-      0: { color: "#d8843e", width: 3 },
-      1: { color: "#00c9a7", width: 3 }
-    }
+    chartArea: { left: 60, top: 20, right: 30, bottom: 60 },
   };
-
-  new google.visualization.LineChart(
-    document.getElementById("gravity_chart")
-  ).draw(data, options);
 }
 </script>
-
 </body>
 </html>
