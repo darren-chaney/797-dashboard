@@ -87,13 +87,17 @@
     <input type="text" name="mashBill" placeholder="ex: 80/10/10" />
 
     <label>Entry Proof</label>
-    <input type="number" name="entryProof" required />
+    <input type="number" name="entryProof" id="entryProof" required />
 
     <label>Gallons</label>
-    <input type="number" name="gallons" required />
+    <select name="gallons" id="gallons" required>
+      <option value="">Select...</option>
+      <option value="15">15 Gallon</option>
+      <option value="53">53 Gallon</option>
+    </select>
 
     <label>Lot ID</label>
-    <input type="text" name="lotId" />
+    <input type="text" name="lotId" id="lotId" readonly />
 
     <label>Barrel Type</label>
     <input type="text" name="barrelType" placeholder="ex: 53gal Char #3" />
@@ -101,8 +105,8 @@
     <label>RC-G</label>
     <input type="text" name="rcg" />
 
-    <label>OPG (optional if entry proof + gallons given)</label>
-    <input type="number" step="0.01" name="opg" />
+    <label>OPG (auto calculated)</label>
+    <input type="number" step="0.01" name="opg" id="opg" readonly />
 
     <label>Barrel Doc Link</label>
     <input type="text" name="docLink" />
@@ -114,18 +118,60 @@
   </form>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkwpoUpjOEYraywAIYiMxGI8-gJ_r9NqCWFh4wrKHgzW8-SvZ-uJe4T3elSBpK64e1/exec";
+    const SCRIPT_URL = "YOUR_SCRIPT_URL_HERE";  // <-- replace with your real URL
 
+    // ------------------------------------------------------
+    // AUTO CALCULATE OPG
+    // ------------------------------------------------------
+    const entryProof = document.getElementById("entryProof");
+    const gallons = document.getElementById("gallons");
+    const opg = document.getElementById("opg");
+
+    function updateOPG() {
+      const p = Number(entryProof.value);
+      const g = Number(gallons.value);
+      if (p > 0 && g > 0) {
+        opg.value = ((p * g) / 100).toFixed(2);
+      }
+    }
+
+    entryProof.addEventListener("input", updateOPG);
+    gallons.addEventListener("change", updateOPG);
+
+    // ------------------------------------------------------
+    // AUTO-ASSIGN LOT ID (GET LAST LOT FROM GOOGLE SCRIPT)
+    // ------------------------------------------------------
+    async function loadNextLotId() {
+      try {
+        const res = await fetch(SCRIPT_URL + "?mode=latestLot");
+        const lastLot = (await res.text()).trim();
+
+        let nextLot = "LOT-001";
+
+        if (lastLot.match(/^LOT-\d+$/)) {
+          let num = parseInt(lastLot.split("-")[1]);
+          num++;
+          nextLot = "LOT-" + String(num).padStart(3, "0");
+        }
+
+        document.getElementById("lotId").value = nextLot;
+
+      } catch (err) {
+        console.error("Lot ID fetch failed:", err);
+        document.getElementById("lotId").value = "LOT-001";
+      }
+    }
+
+    loadNextLotId();
+
+    // ------------------------------------------------------
+    // FORM SUBMIT HANDLER
+    // ------------------------------------------------------
     document.getElementById("barrelForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
       const form = e.target;
       const data = Object.fromEntries(new FormData(form));
-
-      // Auto-calc OPG if not entered
-      if (!data.opg && data.entryProof && data.gallons) {
-        data.opg = (Number(data.entryProof) * Number(data.gallons)) / 100;
-      }
 
       try {
         const response = await fetch(SCRIPT_URL, {
@@ -137,7 +183,6 @@
         const clean = text.trim().toUpperCase();
 
         if (clean === "OK") {
-          // Redirect to success page
           window.location.href = "barrel-success.html";
         } else {
           alert("Unexpected response from server:\n" + text);
