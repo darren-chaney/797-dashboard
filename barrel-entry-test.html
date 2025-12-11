@@ -103,7 +103,11 @@
     <input type="text" name="Barrel Type" />
 
     <label>RC-G</label>
-    <input type="text" name="RC-G" />
+    <select name="RC-G">
+      <option value="">-- Select RC-G --</option>
+      <option value="15.0">15.0</option>
+      <option value="53.0">53.0</option>
+    </select>
 
     <label>OPG (Auto Calculated)</label>
     <input type="number" name="OPG" placeholder="Auto" disabled />
@@ -120,13 +124,14 @@
 
   <script>
     const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
-    // Auto-set RC-G based on Gallons selection
-    document.querySelector('select[name="Gallons"]').addEventListener("change", () => {
-    const gallons = document.querySelector('select[name="Gallons"]').value;
-    const rcgField = document.querySelector('select[name="RC-G"]');
+    const API_KEY = "FEwi_w0c$O3rQqyl9RDFq7-BgJM27lUuD-8!ZKscXp1dT1c37PU@8sQkZtWQwCVp";
 
-    if (gallons === "15") rcgField.value = "15.0";
-    if (gallons === "53") rcgField.value = "53.0";
+    // ===== AUTO-SET RC-G WHEN GALLONS CHANGES =====
+    document.querySelector('select[name="Gallons"]').addEventListener("change", () => {
+      const gallons = document.querySelector('select[name="Gallons"]').value;
+      const rcgField = document.querySelector('select[name="RC-G"]');
+      if (gallons === "15") rcgField.value = "15.0";
+      if (gallons === "53") rcgField.value = "53.0";
     });
 
     // ========== LIVE OPG CALCULATION ==========
@@ -142,77 +147,78 @@
 
     document.querySelector('input[name="Entry Proof"]').addEventListener("input", updateOPG);
     document.querySelector('select[name="Gallons"]').addEventListener("change", updateOPG);
-    
 
-    // ===== AUTO-GENERATE LOT ID BASED ON TODAY =====
-  function generateLotID() {
-  const today = new Date();
+    // ===== AUTO-GENERATE LOT ID =====
+    function generateLotID() {
+      const today = new Date();
+      const year = String(today.getFullYear()).slice(-2);
+      const monthIndex = today.getMonth();
+      const day = String(today.getDate()).padStart(2, "0");
 
-  const year = String(today.getFullYear()).slice(-2); // last 2 digits
-  const monthIndex = today.getMonth();                // 0–11
-  const day = String(today.getDate()).padStart(2, "0");
+      const monthLetters = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+      const monthLetter = monthLetters[monthIndex];
 
-  // Cooperage month letters
-  const monthLetters = ["A","B","C","D","E","F","G","H","I","J","K","L"];
-  const monthLetter = monthLetters[monthIndex];
-
-  const lotID = `${year}${monthLetter}${day}`;
-
-  document.querySelector('input[name="Lot ID"]').value = lotID;
-}
-
-generateLotID();
+      const lotID = `${year}${monthLetter}${day}`;
+      document.querySelector('input[name="Lot ID"]').value = lotID;
+    }
+    generateLotID();
 
     // ===== AUTO-FILL NEXT BARREL NUMBER =====
     async function loadNextBarrelNumber() {
-    try {
-      const response = await fetch(API_URL, {
-        method: "GET",
-        headers: {
-        "Accept": "application/json",
-        "X-Api-Key": API_KEY
+      try {
+        const response = await fetch(API_URL, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+            "X-Api-Key": API_KEY
+          }
+        });
+
+        const rows = await response.json();
+
+        if (!Array.isArray(rows) || rows.length === 0) return;
+
+        let lastNum = null;
+
+        // find last valid barrel number
+        for (let i = rows.length - 1; i >= 0; i--) {
+          let val = rows[i]["Barrel No."];
+          let num = parseInt(val);
+          if (!isNaN(num)) {
+            lastNum = num;
+            break;
+          }
+        }
+
+        if (lastNum !== null) {
+          document.querySelector('input[name="Barrel No."]').value = lastNum + 1;
+        }
+
+      } catch (err) {
+        console.error("Error loading next barrel number:", err);
       }
-    });
-
-    const rows = await response.json();
-
-    if (!Array.isArray(rows) || rows.length === 0) return;
-
-    // Get last non-empty Barrel No.
-    let last = rows[rows.length - 1]["Barrel No."];
-
-    // Convert to number
-    let lastNum = parseInt(last);
-
-    if (!isNaN(lastNum)) {
-      document.querySelector('input[name="Barrel No."]').value = lastNum + 1;
     }
 
-  } catch (err) {
-    console.error("Error loading next barrel number:", err);
-  }
-}
+    loadNextBarrelNumber();
 
-loadNextBarrelNumber();
-
-
-    // ========== FORM SUBMISSION ==========
+    // ========== SUBMIT FORM ==========
     document.getElementById("barrelForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
       const form = new FormData(e.target);
       const data = Object.fromEntries(form);
 
-      // force-send the disabled fields too
       data["OPG"] = document.querySelector('input[name="OPG"]').value;
       data["Lot ID"] = document.querySelector('input[name="Lot ID"]').value;
+      data["RC-G"] = document.querySelector('select[name="RC-G"]').value;
 
       try {
         const response = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
+            "X-Api-Key": API_KEY
           },
           body: JSON.stringify(data)
         });
