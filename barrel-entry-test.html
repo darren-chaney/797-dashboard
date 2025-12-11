@@ -223,40 +223,38 @@ async function loadNextBarrelNumber() {
 }
 
 loadNextBarrelNumber();
+// ========== FORM SUBMISSION ==========
+document.getElementById("barrelForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
 
+  const form = new FormData(e.target);
+  const data = Object.fromEntries(form);
 
-    // ========== FORM SUBMISSION ==========
-    document.getElementById("barrelForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
+  // force-send the disabled fields too
+  data["OPG"] = document.querySelector('input[name="OPG"]').value;
+  data["Lot ID"] = document.querySelector('input[name="Lot ID"]').value;
 
-      const form = new FormData(e.target);
-      const data = Object.fromEntries(form);
-
-      // force-send the disabled fields too
-      data["OPG"] = document.querySelector('input[name="OPG"]').value;
-      data["Lot ID"] = document.querySelector('input[name="Lot ID"]').value;
-
-      try {
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          body: JSON.stringify(data)
-        });
-
-        if (response.ok) {
-          alert("Barrel successfully recorded!");
-          location.reload();
-        } else {
-          alert("Error submitting to Sheet.best.");
-        }
-
-      } catch (err) {
-        alert("Request Failed: " + err);
-      }
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(data)
     });
+
+    if (response.ok) {
+      alert("Barrel successfully recorded!");
+      location.reload();
+    } else {
+      alert("Error submitting to Sheet.best.");
+    }
+
+  } catch (err) {
+    alert("Request Failed: " + err);
+  }
+});
   </script>
 
 </body>
