@@ -118,15 +118,21 @@
     <label>Lot ID (Auto – leave blank)</label>
     <input type="text" name="Lot ID" placeholder="Auto" disabled />
 
-    <label>Barrel Type</label>
-    <input type="text" name="Barrel Type" />
+    <select id="barrelType" name="barrelType">
+    <option value="" disabled selected>Please select</option>
+    <option value="15 Gallon New Char #3">15 Gallon New Char #3</option>
+    <option value="15 Gallon Used Char #3">15 Gallon Used Char #3</option>
+    <option value="53 Gallon New Char #3">53 Gallon New Char #3</option>
+    <option value="53 Gallon Used Char #3">53 Gallon Used Char #3</option>
+    </select>
+
 
     <label>RC-G</label>
     <select name="RC-G">
       <option value="" disabled selected>Please select</option>
     <option value="15.0">15.0</option>
     <option value="53.0">53.0</option>
-  </select>
+    </select>
 
     <label>OPG (Auto Calculated)</label>
     <input type="number" name="OPG" placeholder="Auto" disabled />
