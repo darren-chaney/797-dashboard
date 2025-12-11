@@ -119,10 +119,11 @@
   </form>
 
   <script>
-    const SCRIPT_URL = "YOUR_SCRIPT_URL_HERE"; // <-- replace with your deployed Apps Script URL
+    // IMPORTANT: Replace with your *WEB APP* deployment URL ending in /exec
+    const SCRIPT_URL = "YOUR_WEB_APP_URL_HERE";
 
     // ------------------------------------------------------
-    // AUTO CALCULATE OPG
+    // LIVE OPG CALCULATION
     // ------------------------------------------------------
     const entryProof = document.getElementById("entryProof");
     const gallons = document.getElementById("gallons");
@@ -140,7 +141,7 @@
     gallons.addEventListener("change", updateOPG);
 
     // ------------------------------------------------------
-    // AUTO-SUGGEST NEXT LOT ID (BUT STILL EDITABLE)
+    // AUTO-SUGGEST NEXT LOT ID (EDITABLE)
     // ------------------------------------------------------
     async function loadNextLotId() {
       try {
@@ -155,7 +156,6 @@
           nextLot = "LOT-" + String(num).padStart(3, "0");
         }
 
-        // Set the suggested Lot ID, but allow editing
         document.getElementById("lotId").value = nextLot;
 
       } catch (err) {
@@ -167,7 +167,7 @@
     loadNextLotId();
 
     // ------------------------------------------------------
-    // FORM SUBMIT HANDLER
+    // 405-PROOF SUBMISSION HANDLER (POST → GET FALLBACK)
     // ------------------------------------------------------
     document.getElementById("barrelForm").addEventListener("submit", async function(e) {
       e.preventDefault();
@@ -175,6 +175,9 @@
       const form = e.target;
       const data = Object.fromEntries(new FormData(form));
 
+      // --------------------------
+      // TRY POST FIRST
+      // --------------------------
       try {
         const response = await fetch(SCRIPT_URL, {
           method: "POST",
@@ -182,16 +185,35 @@
         });
 
         const text = await response.text();
-        const clean = text.trim().toUpperCase();
 
-        if (clean === "OK") {
+        if (text.trim().toUpperCase() === "OK") {
+          window.location.href = "barrel-success.html";
+          return;
+        }
+
+        console.warn("POST returned unexpected:", text);
+
+      } catch (err) {
+        console.warn("POST failed, trying GET fallback:", err);
+      }
+
+      // --------------------------
+      // GET FALLBACK (NEVER 405)
+      // --------------------------
+      const params = new URLSearchParams({ mode: "submit", ...data });
+
+      try {
+        const response = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+        const text = await response.text();
+
+        if (text.trim().toUpperCase() === "OK") {
           window.location.href = "barrel-success.html";
         } else {
-          alert("Unexpected response from server:\n" + text);
+          alert("Unexpected server response: " + text);
         }
 
       } catch (err) {
-        alert("Request Failed: " + err);
+        alert("Both POST and GET failed: " + err);
       }
     });
   </script>
