@@ -134,6 +134,26 @@
 
     document.querySelector('input[name="Entry Proof"]').addEventListener("input", updateOPG);
     document.querySelector('select[name="Gallons"]').addEventListener("change", updateOPG);
+
+    // ===== AUTO-GENERATE LOT ID BASED ON TODAY =====
+function generateLotID() {
+  const today = new Date();
+
+  const year = String(today.getFullYear()).slice(-2); // last 2 digits
+  const monthIndex = today.getMonth();                // 0–11
+  const day = String(today.getDate()).padStart(2, "0");
+
+  // Cooperage month letters
+  const monthLetters = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+  const monthLetter = monthLetters[monthIndex];
+
+  const lotID = `${year}${monthLetter}${day}`;
+
+  document.querySelector('input[name="Lot ID"]').value = lotID;
+}
+
+generateLotID();
+
     // ===== AUTO-FILL NEXT BARREL NUMBER =====
     async function loadNextBarrelNumber() {
     try {
