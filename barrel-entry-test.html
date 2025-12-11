@@ -96,7 +96,7 @@
       <option value="53">53 Gallon</option>
     </select>
 
-    <label>Lot ID (Auto)</label>
+    <label>Lot ID (Auto – leave blank)</label>
     <input type="text" name="Lot ID" placeholder="Auto" disabled />
 
     <label>Barrel Type</label>
@@ -108,30 +108,43 @@
     <label>OPG (Auto Calculated)</label>
     <input type="number" name="OPG" placeholder="Auto" disabled />
 
-    <label>Notes</label>
-    <textarea name="Notes" rows="3"></textarea>
-
     <label>Barrel Doc Link</label>
     <input type="text" name="Barrel Doc Link" />
 
+    <label>Notes</label>
+    <textarea name="Notes" rows="3"></textarea>
+
     <button type="submit">Submit Barrel</button>
+
   </form>
 
   <script>
     const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
 
+    // ========== LIVE OPG CALCULATION ==========
+    function updateOPG() {
+      const proof = Number(document.querySelector('input[name="Entry Proof"]').value);
+      const gallons = Number(document.querySelector('select[name="Gallons"]').value);
+
+      if (!isNaN(proof) && !isNaN(gallons) && proof > 0 && gallons > 0) {
+        const opg = (proof * gallons) / 100;
+        document.querySelector('input[name="OPG"]').value = opg.toFixed(2);
+      }
+    }
+
+    document.querySelector('input[name="Entry Proof"]').addEventListener("input", updateOPG);
+    document.querySelector('select[name="Gallons"]').addEventListener("change", updateOPG);
+
+    // ========== FORM SUBMISSION ==========
     document.getElementById("barrelForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
-      const data = Object.fromEntries(new FormData(e.target));
+      const form = new FormData(e.target);
+      const data = Object.fromEntries(form);
 
-      // Auto-calc OPG
-      const proof = Number(data["Entry Proof"]);
-      const gallons = Number(data["Gallons"]);
-      data["OPG"] = (proof * gallons) / 100;
-
-      // Sheet.best will auto-fill Lot ID so send empty string
-      data["Lot ID"] = "";
+      // force-send the disabled fields too
+      data["OPG"] = document.querySelector('input[name="OPG"]').value;
+      data["Lot ID"] = "";  // let Sheet.best handle lot assignment if you want
 
       try {
         const response = await fetch(API_URL, {
@@ -147,8 +160,7 @@
           alert("Barrel successfully recorded!");
           location.reload();
         } else {
-          const text = await response.text();
-          alert("Server Error: " + text);
+          alert("Error submitting to Sheet.best.");
         }
 
       } catch (err) {
