@@ -70,13 +70,13 @@
   <form id="barrelForm">
     
     <label>Barrel No.</label>
-    <input type="text" name="BarrelNo" required />
+    <input type="text" name="Barrel No." required />
 
     <label>Fill Date</label>
-    <input type="date" name="FillDate" required />
+    <input type="date" name="Fill Date" required />
 
     <label>Spirit Type</label>
-    <select name="SpiritType" required>
+    <select name="Spirit Type" required>
       <option value="Tennessee Whiskey">Tennessee Whiskey</option>
       <option value="Wheated Whiskey">Wheated Whiskey</option>
       <option value="Rum">Rum</option>
@@ -85,10 +85,10 @@
     </select>
 
     <label>Mash Bill</label>
-    <input type="text" name="MashBill" />
+    <input type="text" name="Mash Bill" />
 
     <label>Entry Proof</label>
-    <input type="number" name="EntryProof" required />
+    <input type="number" name="Entry Proof" required />
 
     <label>Gallons</label>
     <select name="Gallons" required>
@@ -96,69 +96,67 @@
       <option value="53">53 Gallon</option>
     </select>
 
-    <label>Lot ID (Auto Generated)</label>
-    <input type="text" name="LotID" placeholder="Auto" value="" readonly />
+    <label>Lot ID</label>
+    <input type="text" name="Lot ID" placeholder="Auto" value="" readonly />
 
     <label>Barrel Type</label>
-    <input type="text" name="BarrelType" />
+    <input type="text" name="Barrel Type" />
 
     <label>RC-G</label>
-    <input type="text" name="RCG" />
+    <input type="text" name="RC-G" />
 
-    <label>OPG (Auto Calculated)</label>
+    <label>OPG</label>
     <input type="number" name="OPG" placeholder="Auto" value="" readonly />
-
-    <label>Barrel Doc Link</label>
-    <input type="text" name="DocLink" />
 
     <label>Notes</label>
     <textarea name="Notes" rows="3"></textarea>
+
+    <label>Barrel Doc Link</label>
+    <input type="text" name="Barrel Doc Link" />
 
     <button type="submit">Submit Barrel</button>
   </form>
 
   <script>
-  const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
-  const API_KEY = "FEwi_w0c$O3rQqyl9RDFq7-BgJM27lUuD-8!ZKscXp1dT1c37PU@8sQkZtWQwCVp";
+    const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
+    const API_KEY = "FEwi_w0c$O3rQqyl9RDFq7-BgJM27lUuD-8!ZKscXp1dT1c37PU@8sQkZtWQwCVp";
 
-  document.getElementById("barrelForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
+    document.getElementById("barrelForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
 
-    const data = Object.fromEntries(new FormData(e.target));
+      const data = Object.fromEntries(new FormData(e.target));
 
-    // Auto-calc OPG
-    const proof = Number(data.EntryProof);
-    const gallons = Number(data.Gallons);
-    data.OPG = (proof * gallons) / 100;
+      // Auto OPG
+      const proof = Number(data["Entry Proof"]);
+      const gallons = Number(data["Gallons"]);
+      data["OPG"] = (proof * gallons) / 100;
 
-    // Let sheet script assign next LotID
-    data.LotID = "";
+      // Leave Lot ID blank (sheet formula fills it)
+      data["Lot ID"] = "";
 
-    try {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "X-Api-Key": API_KEY
-        },
-        body: JSON.stringify(data)
-      });
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-Api-Key": API_KEY
+          },
+          body: JSON.stringify(data)
+        });
 
-      if (response.ok) {
-        alert("Barrel successfully recorded!");
-        location.reload();
-      } else {
-        const errText = await response.text();
-        alert("Server Error: " + errText);
+        if (response.ok) {
+          alert("Barrel successfully recorded!");
+          location.reload();
+        } else {
+          const txt = await response.text();
+          alert("Server Error: " + txt);
+        }
+      } catch (err) {
+        alert("Request Failed: " + err);
       }
-
-    } catch (err) {
-      alert("Request Failed: " + err);
-    }
-  });
-</script>
-
+    });
+  </script>
 
 </body>
 </html>
