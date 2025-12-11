@@ -119,8 +119,8 @@
   </form>
 
   <script>
-    // IMPORTANT: Replace with your *WEB APP* deployment URL ending in /exec
-    const SCRIPT_URL = "YOUR_WEB_APP_URL_HERE";
+    // 🔴 REPLACE THIS with the Web App URL from Apps Script
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkwpoUpjOEYraywAIYiMxGI8-gJ_r9NqCWFh4wrKHgzW8-SvZ-uJe4T3elSBpK64e1/exec";
 
     // ------------------------------------------------------
     // LIVE OPG CALCULATION
@@ -141,7 +141,7 @@
     gallons.addEventListener("change", updateOPG);
 
     // ------------------------------------------------------
-    // AUTO-SUGGEST NEXT LOT ID (EDITABLE)
+    // LOAD NEXT LOT ID FROM APPS SCRIPT
     // ------------------------------------------------------
     async function loadNextLotId() {
       try {
@@ -167,7 +167,7 @@
     loadNextLotId();
 
     // ------------------------------------------------------
-    // 405-PROOF SUBMISSION HANDLER (POST → GET FALLBACK)
+    // SUBMIT HANDLER (POST JSON TO APPS SCRIPT)
     // ------------------------------------------------------
     document.getElementById("barrelForm").addEventListener("submit", async function(e) {
       e.preventDefault();
@@ -175,45 +175,28 @@
       const form = e.target;
       const data = Object.fromEntries(new FormData(form));
 
-      // --------------------------
-      // TRY POST FIRST
-      // --------------------------
       try {
         const response = await fetch(SCRIPT_URL, {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify(data)
         });
 
         const text = await response.text();
 
         if (text.trim().toUpperCase() === "OK") {
-          window.location.href = "barrel-success.html";
-          return;
-        }
-
-        console.warn("POST returned unexpected:", text);
-
-      } catch (err) {
-        console.warn("POST failed, trying GET fallback:", err);
-      }
-
-      // --------------------------
-      // GET FALLBACK (NEVER 405)
-      // --------------------------
-      const params = new URLSearchParams({ mode: "submit", ...data });
-
-      try {
-        const response = await fetch(`${SCRIPT_URL}?${params.toString()}`);
-        const text = await response.text();
-
-        if (text.trim().toUpperCase() === "OK") {
-          window.location.href = "barrel-success.html";
+          alert("Barrel saved!");
+          form.reset();
+          opg.value = "";
+          loadNextLotId();
         } else {
-          alert("Unexpected server response: " + text);
+          alert("Unexpected response from server:\n" + text);
         }
 
       } catch (err) {
-        alert("Both POST and GET failed: " + err);
+        alert("Request Failed: " + err);
       }
     });
   </script>
