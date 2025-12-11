@@ -68,15 +68,15 @@
   <h1>Enter New Barrel (TEST)</h1>
 
   <form id="barrelForm">
-
+    
     <label>Barrel No.</label>
-    <input type="text" name="barrelNo" required />
+    <input type="text" name="BarrelNo" required />
 
     <label>Fill Date</label>
-    <input type="date" name="fillDate" required />
+    <input type="date" name="FillDate" required />
 
     <label>Spirit Type</label>
-    <select name="spiritType" required>
+    <select name="SpiritType" required>
       <option value="Tennessee Whiskey">Tennessee Whiskey</option>
       <option value="Wheated Whiskey">Wheated Whiskey</option>
       <option value="Rum">Rum</option>
@@ -85,114 +85,66 @@
     </select>
 
     <label>Mash Bill</label>
-    <input type="text" name="mashBill" placeholder="ex: 80/10/10" />
+    <input type="text" name="MashBill" />
 
     <label>Entry Proof</label>
-    <input type="number" name="entryProof" id="entryProof" required />
+    <input type="number" name="EntryProof" required />
 
     <label>Gallons</label>
-    <select name="gallons" id="gallons" required>
-      <option value="">Select...</option>
+    <select name="Gallons" required>
       <option value="15">15 Gallon</option>
       <option value="53">53 Gallon</option>
     </select>
 
-    <label>Lot ID</label>
-    <input type="text" name="lotId" id="lotId" />
+    <label>Lot ID (Auto Generated)</label>
+    <input type="text" name="LotID" placeholder="Auto" disabled />
 
     <label>Barrel Type</label>
-    <input type="text" name="barrelType" placeholder="ex: 53gal Char #3" />
+    <input type="text" name="BarrelType" />
 
     <label>RC-G</label>
-    <input type="text" name="rcg" />
+    <input type="text" name="RCG" />
 
-    <label>OPG (auto calculated)</label>
-    <input type="number" step="0.01" name="opg" id="opg" />
-
-    <label>Notes</label>
-    <textarea name="notes" rows="3"></textarea>
+    <label>OPG (Auto Calculated)</label>
+    <input type="number" name="OPG" placeholder="Auto" disabled />
 
     <label>Barrel Doc Link</label>
-    <input type="text" name="docLink" />
+    <input type="text" name="DocLink" />
+
+    <label>Notes</label>
+    <textarea name="Notes" rows="3"></textarea>
 
     <button type="submit">Submit Barrel</button>
   </form>
 
   <script>
-    // 🔴 REPLACE THIS with the Web App URL from Apps Script
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkwpoUpjOEYraywAIYiMxGI8-gJ_r9NqCWFh4wrKHgzW8-SvZ-uJe4T3elSBpK64e1/exec";
+    const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
 
-    // ------------------------------------------------------
-    // LIVE OPG CALCULATION
-    // ------------------------------------------------------
-    const entryProof = document.getElementById("entryProof");
-    const gallons = document.getElementById("gallons");
-    const opg = document.getElementById("opg");
-
-    function updateOPG() {
-      const p = Number(entryProof.value);
-      const g = Number(gallons.value);
-      if (p > 0 && g > 0) {
-        opg.value = ((p * g) / 100).toFixed(2);
-      }
-    }
-
-    entryProof.addEventListener("input", updateOPG);
-    gallons.addEventListener("change", updateOPG);
-
-    // ------------------------------------------------------
-    // LOAD NEXT LOT ID FROM APPS SCRIPT
-    // ------------------------------------------------------
-    async function loadNextLotId() {
-      try {
-        const res = await fetch(SCRIPT_URL + "?mode=latestLot");
-        const lastLot = (await res.text()).trim();
-
-        let nextLot = "LOT-001";
-
-        if (/^LOT-\d+$/.test(lastLot)) {
-          let num = parseInt(lastLot.replace("LOT-", ""));
-          num++;
-          nextLot = "LOT-" + String(num).padStart(3, "0");
-        }
-
-        document.getElementById("lotId").value = nextLot;
-
-      } catch (err) {
-        console.error("Lot ID lookup failed:", err);
-        document.getElementById("lotId").value = "LOT-001";
-      }
-    }
-
-    loadNextLotId();
-
-    // ------------------------------------------------------
-    // SUBMIT HANDLER (POST JSON TO APPS SCRIPT)
-    // ------------------------------------------------------
     document.getElementById("barrelForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
-      const form = e.target;
-      const data = Object.fromEntries(new FormData(form));
+      const data = Object.fromEntries(new FormData(e.target));
+
+      // OPG auto calculation
+      const proof = Number(data.EntryProof);
+      const gallons = Number(data.Gallons);
+      data.OPG = (proof * gallons) / 100;
+
+      // LotID remains blank (your sheet script fills it in)
+      data.LotID = "";
 
       try {
-        const response = await fetch(SCRIPT_URL, {
+        const response = await fetch(API_URL, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
         });
 
-        const text = await response.text();
-
-        if (text.trim().toUpperCase() === "OK") {
-          alert("Barrel saved!");
-          form.reset();
-          opg.value = "";
-          loadNextLotId();
+        if (response.ok) {
+          alert("Barrel successfully recorded!");
+          location.reload();
         } else {
-          alert("Unexpected response from server:\n" + text);
+          alert("Error: Unable to submit.");
         }
 
       } catch (err) {
