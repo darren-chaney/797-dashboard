@@ -118,40 +118,44 @@
   </form>
 
   <script>
-    const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
+  const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
 
-    document.getElementById("barrelForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
+  document.getElementById("barrelForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
 
-      const data = Object.fromEntries(new FormData(e.target));
+    const data = Object.fromEntries(new FormData(e.target));
 
-      // OPG auto calculation
-      const proof = Number(data.EntryProof);
-      const gallons = Number(data.Gallons);
-      data.OPG = (proof * gallons) / 100;
+    // Auto-calc OPG
+    const proof = Number(data.EntryProof);
+    const gallons = Number(data.Gallons);
+    data.OPG = (proof * gallons) / 100;
 
-      // LotID remains blank (your sheet script fills it in)
-      data.LotID = "";
+    // Let sheet script assign next LotID
+    data.LotID = "";
 
-      try {
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
 
-        if (response.ok) {
-          alert("Barrel successfully recorded!");
-          location.reload();
-        } else {
-          alert("Error: Unable to submit.");
-        }
-
-      } catch (err) {
-        alert("Request Failed: " + err);
+      if (response.ok) {
+        alert("Barrel successfully recorded!");
+        location.reload();
+      } else {
+        alert("Error: Unable to submit.");
       }
-    });
-  </script>
+
+    } catch (err) {
+      alert("Request Failed: " + err);
+    }
+  });
+</script>
+
 
 </body>
 </html>
