@@ -196,7 +196,7 @@ loadNextBarrelNumber();
 
       // force-send the disabled fields too
       data["OPG"] = document.querySelector('input[name="OPG"]').value;
-      data["Lot ID"] = "";  // let Sheet.best handle lot assignment if you want
+      data["Lot ID"] = document.querySelector('input[name="Lot ID"]').value;
 
       try {
         const response = await fetch(API_URL, {
