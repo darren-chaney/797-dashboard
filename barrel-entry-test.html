@@ -168,13 +168,12 @@
 generateLotID();
 
     // ===== AUTO-FILL NEXT BARREL NUMBER =====
-    async function loadNextBarrelNumber() {
-    try {
-      const response = await fetch(API_URL, {
-        method: "GET",
-        headers: {
-        "Accept": "application/json",
-        "X-Api-Key": API_KEY
+async function loadNextBarrelNumber() {
+  try {
+    const response = await fetch(API_URL, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json"
       }
     });
 
