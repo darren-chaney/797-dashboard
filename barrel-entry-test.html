@@ -119,6 +119,7 @@
 
   <script>
   const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
+  const API_KEY = "FEwi_w0c$O3rQqyl9RDFq7-BgJM27lUuD-8!ZKscXp1dT1c37PU@8sQkZtWQwCVp";
 
   document.getElementById("barrelForm").addEventListener("submit", async function(e) {
     e.preventDefault();
@@ -138,7 +139,8 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          "Accept": "application/json",
+          "X-Api-Key": API_KEY
         },
         body: JSON.stringify(data)
       });
@@ -147,7 +149,8 @@
         alert("Barrel successfully recorded!");
         location.reload();
       } else {
-        alert("Error: Unable to submit.");
+        const errText = await response.text();
+        alert("Server Error: " + errText);
       }
 
     } catch (err) {
@@ -155,6 +158,7 @@
     }
   });
 </script>
+
 
 </body>
 </html>
