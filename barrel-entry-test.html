@@ -120,6 +120,14 @@
 
   <script>
     const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
+    // Auto-set RC-G based on Gallons selection
+    document.querySelector('select[name="Gallons"]').addEventListener("change", () => {
+    const gallons = document.querySelector('select[name="Gallons"]').value;
+    const rcgField = document.querySelector('select[name="RC-G"]');
+
+    if (gallons === "15") rcgField.value = "15.0";
+    if (gallons === "53") rcgField.value = "53.0";
+    });
 
     // ========== LIVE OPG CALCULATION ==========
     function updateOPG() {
@@ -134,18 +142,10 @@
 
     document.querySelector('input[name="Entry Proof"]').addEventListener("input", updateOPG);
     document.querySelector('select[name="Gallons"]').addEventListener("change", updateOPG);
-    // ==== RC-G Auto Changes ====
-    // Auto-set RC-G based on Gallons selection
-  document.querySelector('select[name="Gallons"]').addEventListener("change", () => {
-  const gallons = document.querySelector('select[name="Gallons"]').value;
-  const rcgField = document.querySelector('select[name="RC-G"]');
-
-  if (gallons === "15") rcgField.value = "15.0";
-  if (gallons === "53") rcgField.value = "53.0";
-});
+    
 
     // ===== AUTO-GENERATE LOT ID BASED ON TODAY =====
-function generateLotID() {
+  function generateLotID() {
   const today = new Date();
 
   const year = String(today.getFullYear()).slice(-2); // last 2 digits
