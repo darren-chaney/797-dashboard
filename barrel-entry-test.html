@@ -135,17 +135,24 @@
     document.querySelector('input[name="Entry Proof"]').addEventListener("input", updateOPG);
     document.querySelector('select[name="Gallons"]').addEventListener("change", updateOPG);
     // ===== AUTO-FILL NEXT BARREL NUMBER =====
-  async function loadNextBarrelNumber() {
-  try {
-    const response = await fetch(API_URL);
+    async function loadNextBarrelNumber() {
+    try {
+      const response = await fetch(API_URL, {
+        method: "GET",
+        headers: {
+        "Accept": "application/json",
+        "X-Api-Key": API_KEY
+      }
+    });
+
     const rows = await response.json();
 
-    if (rows.length === 0) return; // no data yet
+    if (!Array.isArray(rows) || rows.length === 0) return;
 
-    // Get the last row that has a valid Barrel No.
+    // Get last non-empty Barrel No.
     let last = rows[rows.length - 1]["Barrel No."];
 
-    // Convert to number (handles strings like "420670")
+    // Convert to number
     let lastNum = parseInt(last);
 
     if (!isNaN(lastNum)) {
@@ -157,8 +164,8 @@
   }
 }
 
-// Run at page load
 loadNextBarrelNumber();
+
 
     // ========== FORM SUBMISSION ==========
     document.getElementById("barrelForm").addEventListener("submit", async function(e) {
