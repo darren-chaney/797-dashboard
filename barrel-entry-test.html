@@ -68,7 +68,7 @@
   <h1>Enter New Barrel (TEST)</h1>
 
   <form id="barrelForm">
-    
+
     <label>Barrel No.</label>
     <input type="text" name="Barrel No." required />
 
@@ -96,8 +96,8 @@
       <option value="53">53 Gallon</option>
     </select>
 
-    <label>Lot ID</label>
-    <input type="text" name="Lot ID" placeholder="Auto" value="" readonly />
+    <label>Lot ID (Auto)</label>
+    <input type="text" name="Lot ID" placeholder="Auto" disabled />
 
     <label>Barrel Type</label>
     <input type="text" name="Barrel Type" />
@@ -105,8 +105,8 @@
     <label>RC-G</label>
     <input type="text" name="RC-G" />
 
-    <label>OPG</label>
-    <input type="number" name="OPG" placeholder="Auto" value="" readonly />
+    <label>OPG (Auto Calculated)</label>
+    <input type="number" name="OPG" placeholder="Auto" disabled />
 
     <label>Notes</label>
     <textarea name="Notes" rows="3"></textarea>
@@ -119,19 +119,18 @@
 
   <script>
     const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
-    const API_KEY = "FEwi_w0c$O3rQqyl9RDFq7-BgJM27lUuD-8!ZKscXp1dT1c37PU@8sQkZtWQwCVp";
 
     document.getElementById("barrelForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
       const data = Object.fromEntries(new FormData(e.target));
 
-      // Auto OPG
+      // Auto-calc OPG
       const proof = Number(data["Entry Proof"]);
       const gallons = Number(data["Gallons"]);
       data["OPG"] = (proof * gallons) / 100;
 
-      // Leave Lot ID blank (sheet formula fills it)
+      // Sheet.best will auto-fill Lot ID so send empty string
       data["Lot ID"] = "";
 
       try {
@@ -139,8 +138,7 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json",
-            "X-Api-Key": API_KEY
+            "Accept": "application/json"
           },
           body: JSON.stringify(data)
         });
@@ -149,9 +147,10 @@
           alert("Barrel successfully recorded!");
           location.reload();
         } else {
-          const txt = await response.text();
-          alert("Server Error: " + txt);
+          const text = await response.text();
+          alert("Server Error: " + text);
         }
+
       } catch (err) {
         alert("Request Failed: " + err);
       }
