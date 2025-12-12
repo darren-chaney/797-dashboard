@@ -1,7 +1,7 @@
 // === CONFIG ===
 // Published CSV URL
 const SHEET_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWbBULhY5_P3osxXeCsKmV5tHYMl29prcRnEph6hSKQKvjg5bqn-lEtFXlhlVPHwLJX_Yr1i8Hihyv/pub?output=csv";
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSNyLVIgK_UeIZdZQJaGF3IgiqZ68aCG0tydTzszngpgYhu4-HlLXNHotuGPJOA63CKSs-RkZgGtRpt/pub?output=csv";
 
 // === TOOLTIP HANDLING ===
 const tooltip = document.getElementById("tooltip");
