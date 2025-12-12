@@ -223,54 +223,43 @@ async function loadNextBarrelNumber() {
 }
 
 loadNextBarrelNumber();
-// ========== FORM SUBMISSION (SheetBest + Google Script) ==========
 document.getElementById("barrelForm").addEventListener("submit", async function(e) {
   e.preventDefault();
 
   const form = new FormData(e.target);
   const data = Object.fromEntries(form);
 
-  // Include disabled fields manually
+  // Include disabled fields
   data["OPG"] = document.querySelector('input[name="OPG"]').value;
   data["Lot ID"] = document.querySelector('input[name="Lot ID"]').value;
 
-  // 1️⃣ POST to SheetBest (creates the row)
-  let sheetResponse = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json"
-    },
-    body: JSON.stringify(data)
-  });
-
-  if (!sheetResponse.ok) {
-    alert("Error saving to SheetBest.");
-    return;
-  }
-
-  // 2️⃣ POST to Google Apps Script (creates doc + updates sheet)
-  let scriptResponse = await fetch(
-    "https://script.google.com/macros/s/AKfycbwspxjukuwaMdj5_1uJqALX0asGnKEB4kv2voEqKqtSDEnX5cTr3mqcJfPTRYYuEQudfw/exec",
-    {
+  try {
+    const response = await fetch(API_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Accept": "application/json"
       },
       body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      alert("Error saving barrel.");
+      return;
     }
-  );
 
-  let scriptResult = await scriptResponse.json();
+    // ✅ Immediate success feedback
+    alert("Barrel successfully recorded!");
+    e.target.reset();
 
-  if (scriptResult.status === "SUCCESS") {
-    alert("Barrel successfully recorded and Doc created!");
+    // Optional: reload if you want fresh auto numbers
     location.reload();
-  } else {
-    alert("Barrel saved, but doc creation failed.");
+
+  } catch (err) {
+    console.error(err);
+    alert("Submission failed.");
   }
 });
-
   </script>
 
 </body>
