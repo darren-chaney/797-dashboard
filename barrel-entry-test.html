@@ -134,6 +134,8 @@
     <option value="15 Gallon Used Char #3">15 Gallon Used Char #3</option>
     <option value="53 Gallon New Char #3">53 Gallon New Char #3</option>
     <option value="53 Gallon Used Char #3">53 Gallon Used Char #3</option>
+    <input type="hidden" name="Barrel Type" id="barrelType" />
+
     </select>
     
     <label>RC-G</label>
@@ -229,6 +231,10 @@ async function loadNextBarrelNumber() {
     console.error("Error loading next barrel number:", err);
   }
 }
+// Barrel type
+    document.getElementById("barrelTypeSelect").addEventListener("change", function (e) {
+  document.getElementById("barrelType").value = e.target.value;
+});
 
 loadNextBarrelNumber();
 document.getElementById("barrelForm").addEventListener("submit", async function(e) {
