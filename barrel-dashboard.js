@@ -60,12 +60,26 @@ d3.csv(SHEET_CSV_URL).then((raw) => {
       let ageYears = null;
 
       if (fillDateStr) {
-        const d = new Date(fillDateStr);
-        if (!isNaN(d)) {
-          fillDate = d;
-          ageDays = (today - d) / (1000 * 60 * 60 * 24);
-          ageYears = ageDays / 365.25;
-        }
+      let d = null;
+
+      // Explicit MM/DD/YYYY parsing (Safari-safe)
+      const m = fillDateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) {
+      const month = parseInt(m[1], 10) - 1;
+      const day = parseInt(m[2], 10);
+      const year = parseInt(m[3], 10);
+      d = new Date(year, month, day);
+      } else {
+      // fallback
+      d = new Date(fillDateStr);
+      }
+
+      if (d && !isNaN(d)) {
+      fillDate = d;
+      ageDays = (today - d) / (1000 * 60 * 60 * 24);
+      ageYears = ageDays / 365.25;
+      }
+    }
       }
 
       return {
