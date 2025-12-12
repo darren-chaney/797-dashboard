@@ -26,13 +26,21 @@ function hideTooltip() {
   tooltip.style.opacity = 0;
   tooltip.style.transform = "translateY(4px)";
 }
-
+// === HEADER NORMALIZATION (DO NOT REMOVE) ===
+function normalizeRow(row) {
+  const fixed = {};
+  for (const key in row) {
+    fixed[key.trim().replace(/\.$/, "")] = row[key];
+  }
+  return fixed;
+}
 // === DATA LOAD & TRANSFORM ===
 d3.csv(SHEET_CSV_URL).then((raw) => {
   const today = new Date();
 
   const barrels = raw
     .map((row) => {
+      row = normalizeRow(row);
       const barrelNo = (row["Barrel No"] || "").trim();
       if (!barrelNo) return null;
 
