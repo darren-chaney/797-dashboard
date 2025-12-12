@@ -20,11 +20,20 @@
 
     form {
       max-width: 500px;
+      overflow: hidden; /* 🔑 stops iOS overflow */
       margin: 0 auto;
       background: #1e293b;
       padding: 20px;
       border-radius: 10px;
       border: 1px solid #334155;
+    }
+    @supports (-webkit-touch-callout: none) {
+      input,
+      select,
+      textarea {
+      width: 100%;
+      max-width: 100%;
+      }
     }
 
     label {
