@@ -80,7 +80,6 @@ d3.csv(SHEET_CSV_URL).then((raw) => {
       ageYears = ageDays / 365.25;
       }
     }
-      }
 
       return {
         barrelNo,
