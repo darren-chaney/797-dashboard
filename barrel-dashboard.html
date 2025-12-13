@@ -17,17 +17,16 @@
        HEADER AREA — TITLE + LOGO INLINE (DESIGNER)
        ============================================ */
     .header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
     }
 
     .header-logo {
-    width: 75px;   /* adjust size here */
-    opacity: 0.95;
+      width: 75px;   /* adjust size here */
+      opacity: 0.95;
     }
-
 
     .title-with-logo {
       display: flex;
@@ -107,10 +106,42 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
+    /* Keep chart wrappers flexible */
     #age-chart,
     #spirit-chart {
       width: 100%;
       height: 320px;
+    }
+
+    /* ✅ Zoom controls */
+    .age-controls {
+      display: flex;
+      gap: 8px;
+      margin: 0.25rem 0 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .age-controls button {
+      appearance: none;
+      background: #1e293b;
+      color: #e5e7eb;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .age-controls button:hover {
+      background: #334155;
+    }
+
+    .age-controls button.active {
+      background: #0ea5e9;
+      border-color: #0ea5e9;
+      color: #020617;
+      font-weight: 600;
     }
 
     .tooltip {
@@ -186,19 +217,19 @@
   <div class="container">
 
     <!-- ============================================
-         HEADER — TITLE + LOGO INLINE (REPLACE THIS)
+         HEADER — TITLE + LOGO INLINE
          ============================================ -->
     <div class="header-row">
-  <div>
-    <h1>797 Distillery Barrel Dashboard</h1>
-    <div class="subheading">
-      Live view of all barrels from your Google Sheet (Barrel Log).
-    </div>
-  </div>
+      <div>
+        <h1>797 Distillery Barrel Dashboard</h1>
+        <div class="subheading">
+          Live view of all barrels from your Google Sheet (Barrel Log).
+        </div>
+      </div>
 
-  <!-- Right-side logo (original style) -->
-  <img src="websiteLogoGlassWhiteTrans.png" class="header-logo" alt="797 Distillery Logo">
-</div>
+      <!-- Right-side logo -->
+      <img src="websiteLogoGlassWhiteTrans.png" class="header-logo" alt="797 Distillery Logo">
+    </div>
     <!-- END HEADER BLOCK -->
 
     <!-- ⭐ Stats -->
@@ -228,11 +259,15 @@
     <!-- ⭐ Age Chart -->
     <section>
       <h2>Barrel Aging by Fill Date</h2>
-      <div class="age-controls">
-        <button onclick="setAgeZoom(12)">12 mo</button>
-        <button onclick="setAgeZoom(24)" class="active">24 mo</button>
-        <button onclick="setAgeZoom('ALL')">All</button>
-    </div> 
+
+      <!-- ✅ Controls must be OUTSIDE #age-chart so they don't get wiped -->
+      <div class="age-controls" id="age-controls">
+        <button type="button" data-zoom="12">12 mo</button>
+        <button type="button" data-zoom="24" class="active">24 mo</button>
+        <button type="button" data-zoom="ALL">All</button>
+      </div>
+
+      <div class="chart-card">
         <div id="age-chart"></div>
         <div class="note">
           • Each dot is a barrel. X = fill date, Y = age in years. Color = spirit type.<br>
@@ -259,6 +294,28 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
   <script src="barrel-dashboard.js"></script>
+
+  <!-- ✅ Optional: button wiring without inline onclick (cleaner) -->
+  <script>
+    // If you already use inline onclick in your JS, you can delete this block.
+    // This only sets the active class. Your barrel-dashboard.js should still handle setAgeZoom().
+    const controls = document.getElementById("age-controls");
+    if (controls) {
+      controls.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-zoom]");
+        if (!btn) return;
+
+        controls.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        const val = btn.getAttribute("data-zoom");
+        // call your existing function if present
+        if (typeof window.setAgeZoom === "function") {
+          window.setAgeZoom(val === "ALL" ? "ALL" : Number(val));
+        }
+      });
+    }
+  </script>
 
 </body>
 </html>
