@@ -210,7 +210,7 @@ function renderAgeChart(barrels) {
   g.selectAll("circle")
     .data(data)
     .join("circle")
-    .attr("cx", (d) => x(d.fillDate))
+    .attr("cx", (d, i) => x(d.fillDate) + ((i % 5) - 2) * 4)
     .attr("cy", (d) => y(d.ageYears))
     .attr("r", 6)
     .attr("fill", (d) => color(d.spirit))
