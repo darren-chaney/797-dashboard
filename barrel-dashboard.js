@@ -221,7 +221,7 @@ function renderAgeChart(barrels) {
   return x(d.fillDate) + (idx - (sameDate.length - 1) / 2) * 8;
 })
     .attr("cy", (d) => y(d.ageYears))
-    .attr("r", 12)
+    .attr("r", 4.5)
     .attr("fill", (d) => color(d.spirit))
     .attr("stroke", "#020617")
     .on("mouseenter touchstart", (e, d) => {
