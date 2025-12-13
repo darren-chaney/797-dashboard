@@ -209,6 +209,37 @@
       }
       .qrBox{ border: 2px solid #000; }
     }
+      /* ======================================
+   HEADER SIZE OVERRIDE (PRINT-LABEL ONLY)
+   ====================================== */
+
+/* Constrain header height */
+#headerMount {
+  max-height: 90px;
+  overflow: hidden;
+}
+
+/* Shrink logo inside header */
+#headerMount img {
+  max-height: 48px;
+  width: auto;
+}
+
+/* Reduce header padding */
+#headerMount * {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Optional: tighten nav spacing */
+#headerMount nav,
+#headerMount .nav,
+#headerMount .header,
+#headerMount .header-row {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
   </style>
 </head>
 
@@ -538,37 +569,6 @@
       await loadHeader();
       await loadBarrels();
     })();
-    /* ======================================
-   HEADER SIZE OVERRIDE (PRINT-LABEL ONLY)
-   ====================================== */
-
-/* Constrain header height */
-#headerMount {
-  max-height: 90px;
-  overflow: hidden;
-}
-
-/* Shrink logo inside header */
-#headerMount img {
-  max-height: 48px;
-  width: auto;
-}
-
-/* Reduce header padding */
-#headerMount * {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-/* Optional: tighten nav spacing */
-#headerMount nav,
-#headerMount .nav,
-#headerMount .header,
-#headerMount .header-row {
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
-}
-
   </script>
 </body>
 </html>
