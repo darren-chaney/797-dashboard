@@ -1,3 +1,4 @@
+let AGE_ZOOM_MONTHS = 24; // default view
 // === CONFIG ===
 // Published CSV URL
 const SHEET_CSV_URL =
@@ -177,14 +178,25 @@ function renderAgeChart(barrels) {
   const data = barrels.filter((b) => b.fillDate && b.ageYears != null);
   if (!data.length) return;
 
+  const maxDate = d3.max(data, (d) => d.fillDate);
+
+  let minDate;
+  if (AGE_ZOOM_MONTHS === "ALL") {
+    minDate = d3.min(data, (d) => d.fillDate);
+  } else {
+      minDate = new Date(maxDate);
+  minDate.setMonth(minDate.getMonth() - AGE_ZOOM_MONTHS);
+  }
+  
   const x = d3
-    .scaleTime()
-    .domain(d3.extent(data, (d) => d.fillDate))
-    .range([0, width - margin.left - margin.right]);
+  .scaleTime()
+  .domain([minDate, maxDate])
+  .range([0, width - margin.left - margin.right]);
+
 
   const y = d3
     .scaleLinear()
-    .domain([0, d3.max(data, (d) => d.ageYears) * 1.1])
+    .domain([0, d3.max(data, (d) => d.ageYears) * 1.2])
     .range([height - margin.top - margin.bottom, 0]);
 
   const color = d3.scaleOrdinal(d3.schemeTableau10);
