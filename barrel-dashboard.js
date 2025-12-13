@@ -212,7 +212,7 @@ function renderAgeChart(barrels) {
     .join("circle")
     .attr("cx", (d, i) => x(d.fillDate) + ((i % 5) - 2) * 4)
     .attr("cy", (d) => y(d.ageYears))
-    .attr("r", 6)
+    .attr("r", 12)
     .attr("fill", (d) => color(d.spirit))
     .attr("stroke", "#020617")
     .on("mouseenter touchstart", (e, d) => {
