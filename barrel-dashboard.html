@@ -228,7 +228,11 @@
     <!-- ⭐ Age Chart -->
     <section>
       <h2>Barrel Aging by Fill Date</h2>
-      <div class="chart-card">
+      <div class="age-controls">
+        <button onclick="setAgeZoom(12)">12 mo</button>
+        <button onclick="setAgeZoom(24)" class="active">24 mo</button>
+        <button onclick="setAgeZoom('ALL')">All</button>
+    </div> 
         <div id="age-chart"></div>
         <div class="note">
           • Each dot is a barrel. X = fill date, Y = age in years. Color = spirit type.<br>
