@@ -224,10 +224,13 @@ function renderAgeChart(barrels) {
   .call(
     d3.axisLeft(y)
       .ticks(6)
-      .tickFormat(d => `${Math.round(d * 12)} mo`)
+      .tickFormat(d => {
+        const months = Math.round(d * 12);
+        return months >= 12
+          ? `${(months / 12).toFixed(1)} yr`
+          : `${months} mo`;
+      })
   );
-
-
   // === GROUP BARRELS BY DAY (FOR JITTER) ===
   const byDay = d3.group(data, d => d.fillDate.getTime());
 
