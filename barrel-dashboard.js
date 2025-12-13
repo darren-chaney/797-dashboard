@@ -178,28 +178,33 @@ function renderAgeChart(barrels) {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  const data = barrels.filter((b) => b.fillDate && b.ageYears != null);
+  const data = barrels.filter(b => b.fillDate && b.ageYears != null);
   if (!data.length) return;
 
-  const maxDate = d3.max(data, (d) => d.fillDate);
+  // === X RANGE (ZOOM) ===
+  const maxDate = d3.max(data, d => d.fillDate);
 
   let minDate;
   if (AGE_ZOOM_MONTHS === "ALL") {
-    minDate = d3.min(data, (d) => d.fillDate);
+    minDate = d3.min(data, d => d.fillDate);
   } else {
-      minDate = new Date(maxDate);
-  minDate.setMonth(minDate.getMonth() - AGE_ZOOM_MONTHS);
+    minDate = new Date(maxDate);
+    minDate.setMonth(minDate.getMonth() - AGE_ZOOM_MONTHS);
   }
-  
-  const x = d3
-  .scaleTime()
-  .domain([minDate, maxDate])
-  .range([0, width - margin.left - margin.right]);
 
+  const x = d3
+    .scaleTime()
+    .domain([minDate, maxDate])
+    .range([0, width - margin.left - margin.right]);
+
+  // === ONLY VISIBLE DATA FOR Y SCALE ===
+  const visibleData = data.filter(
+    d => d.fillDate >= minDate && d.fillDate <= maxDate
+  );
 
   const y = d3
     .scaleLinear()
-    .domain([0, d3.max(data, (d) => d.ageYears) * 1.2])
+    .domain([0, d3.max(visibleData, d => d.ageYears) * 1.2])
     .range([height - margin.top - margin.bottom, 0]);
 
   const color = d3.scaleOrdinal(d3.schemeTableau10);
@@ -210,19 +215,20 @@ function renderAgeChart(barrels) {
 
   g.append("g").call(d3.axisLeft(y));
 
+  // === PRE-GROUP BY DAY (FAST + CORRECT) ===
+  const byDay = d3.group(data, d => d.fillDate.getTime());
+
   g.selectAll("circle")
     .data(data)
     .join("circle")
-    .attr("cx", (d) => {
-  const sameDate = data.filter(
-    b => b.fillDate.getTime() === d.fillDate.getTime()
-  );
-  const idx = sameDate.findIndex(b => b.barrelNo === d.barrelNo);
-  return x(d.fillDate) + (idx - (sameDate.length - 1) / 2) * 8;
-})
-    .attr("cy", (d) => y(d.ageYears))
+    .attr("cx", d => {
+      const group = byDay.get(d.fillDate.getTime());
+      const idx = group.findIndex(b => b.barrelNo === d.barrelNo);
+      return x(d.fillDate) + (idx - (group.length - 1) / 2) * 12;
+    })
+    .attr("cy", d => y(d.ageYears))
     .attr("r", 4.5)
-    .attr("fill", (d) => color(d.spirit))
+    .attr("fill", d => color(d.spirit))
     .attr("stroke", "#020617")
     .on("mouseenter touchstart", (e, d) => {
       showTooltip(
