@@ -244,7 +244,7 @@ function renderAgeChart(barrels) {
       return x(d.fillDate) + (idx - (group.length - 1) / 2) * 12;
     })
     .attr("cy", d => y(d.ageYears))
-    .attr("r", 3)
+    .attr("r", 4.5)
     .attr("fill", d => color(d.spirit))
     .attr("stroke", "#020617")
     .attr("stroke-width", 1)
