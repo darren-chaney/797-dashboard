@@ -220,7 +220,13 @@ function renderAgeChart(barrels) {
     .attr("transform", `translate(0,${y.range()[0]})`)
     .call(d3.axisBottom(x).ticks(6));
 
-  g.append("g").call(d3.axisLeft(y));
+  g.append("g")
+  .call(
+    d3.axisLeft(y)
+      .ticks(6)
+      .tickFormat(d => `${Math.round(d * 12)} mo`)
+  );
+
 
   // === GROUP BARRELS BY DAY (FOR JITTER) ===
   const byDay = d3.group(data, d => d.fillDate.getTime());
