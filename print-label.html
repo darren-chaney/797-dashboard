@@ -117,10 +117,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
   height:150px;
 }
 .crest-img {
-  width: 260px;      /* tuned to match your printed label */
-  height: auto;
+  height: 180px;          /* CONTROL BY HEIGHT */
+  width: auto;            /* LET WIDTH FLOAT */
+  max-width: 90%;         /* SAFETY */
   display: block;
-  margin: 6px auto 2px auto;
+  margin: 8px auto 6px auto;
+  object-fit: contain;    /* PREVENT DISTORTION */
 }
 
 /* PRINT */
