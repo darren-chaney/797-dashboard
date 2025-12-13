@@ -263,6 +263,7 @@
 
       <button id="btnGenerate" type="button">Generate Label</button>
       <button id="btnPrint" type="button" disabled>Print Label</button>
+      <button id="btnClear" type="button">Clear</button>
     </div>
 
     <div id="msg" class="previewWrap no-print"></div>
@@ -569,6 +570,20 @@
       await loadHeader();
       await loadBarrels();
     })();
+    document.getElementById("btnClear").addEventListener("click", () => {
+  // Hide label preview
+  document.getElementById("label").style.display = "none";
+
+  // Clear QR code
+  document.getElementById("qrcode").innerHTML = "";
+
+  // Disable print button again
+  document.getElementById("btnPrint").disabled = true;
+
+  // Optional: clear messages
+  setMsg("");
+});
+
   </script>
 </body>
 </html>
