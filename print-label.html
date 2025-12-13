@@ -239,6 +239,88 @@
   padding-top: 6px !important;
   padding-bottom: 6px !important;
 }
+/* ===============================
+   BARREL LABEL – MATCH SAMPLE
+   =============================== */
+
+.label {
+  width: 6in;
+  height: 4in;
+  background: #fff;
+  color: #000;
+  padding: 18px;
+  font-family: Arial, Helvetica, sans-serif;
+  box-sizing: border-box;
+}
+
+.lbl-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.lbl-r {
+  font-size: 92px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.lbl-header-text {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.lbl-title {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.lbl-dsp {
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.lbl-rule {
+  border-top: 3px solid #000;
+  margin: 10px 0;
+}
+
+.lbl-data {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.lbl-data span {
+  display: inline-block;
+  width: 180px;
+  font-weight: 700;
+}
+
+.lbl-crest {
+  text-align: center;
+}
+
+.lbl-crest img {
+  height: 120px;
+}
+
+.lbl-barrel {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.lbl-qr {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.lbl-qr canvas,
+.lbl-qr img {
+  width: 150px;
+  height: 150px;
+}
 
   </style>
 </head>
@@ -271,40 +353,53 @@
     <!-- Label preview -->
     <div class="previewWrap">
       <div id="label" class="label" style="display:none;">
-        <div class="labelTop">
-          <div class="labelHeader">
-            <h2>797 Distillery LLC</h2>
-            <p class="sub">425 E Pleasant Ave. &nbsp; Covington, Tennessee 38019</p>
-            <p class="sub"><span>DSP-TN-21154</span></p>
-          </div>
 
-          <div class="qrBox" aria-label="QR Code">
-            <div id="qrcode"></div>
-          </div>
-        </div>
+  <!-- Header -->
+  <div class="lbl-header">
+    <div class="lbl-r">R</div>
+    <div class="lbl-header-text">
+      <div class="lbl-title">797 Distillery LLC</div>
+      <div>425 E Pleasant Ave</div>
+      <div>Covington, Tennessee 38019</div>
+      <div class="lbl-dsp">DSP-TN-21154</div>
+    </div>
+  </div>
 
-        <div class="labelBody">
-          <div class="field"><div class="k">First Fill Date:</div><div class="v" id="vFillDate">—</div></div>
-          <div class="field"><div class="k">Mash Bill:</div><div class="v" id="vMashBill">—</div></div>
+  <div class="lbl-rule"></div>
 
-          <div class="field"><div class="k">Product Name:</div><div class="v" id="vSpiritType">—</div></div>
-          <div class="field"><div class="k">Entry Proof:</div><div class="v" id="vEntryProof">—</div></div>
+  <!-- Data -->
+  <div class="lbl-data">
+    <div><span>First Fill Date:</span> <b id="vFillDate"></b></div>
+    <div><span>Mash Bill:</span> <b id="vMashBill"></b></div>
+    <div><span>Product Name:</span> <b id="vSpiritType"></b></div>
+    <div><span>Entry Proof:</span> <b id="vEntryProof"></b></div>
+    <div><span>Lot Identification No:</span> <b id="vLotId"></b></div>
+    <div><span>RC-G:</span> <b id="vRCG"></b></div>
+    <div><span>OPG:</span> <b id="vOPG"></b></div>
+    <div><span>Barrel Type:</span> <b id="vBarrelType"></b></div>
+  </div>
 
-          <div class="field"><div class="k">Lot Identification No:</div><div class="v" id="vLotId">—</div></div>
-          <div class="field"><div class="k">RC-G:</div><div class="v" id="vRCG">—</div></div>
+  <div class="lbl-rule"></div>
 
-          <div class="field"><div class="k">OPG:</div><div class="v" id="vOPG">—</div></div>
-          <div class="field"><div class="k">Barrel Type:</div><div class="v" id="vBarrelType">—</div></div>
-        </div>
+  <!-- Crest -->
+  <div class="lbl-crest">
+    <img src="797-crest.png" alt="797 Distillery Crest">
+  </div>
 
-        <div class="barrelNumber">
-          <div class="k">Barrel #</div>
-          <div class="v" id="vBarrelNo">—</div>
-        </div>
+  <div class="lbl-rule"></div>
 
-        <!-- Hidden but kept for debugging if needed -->
-        <div id="vDocLink" style="display:none;"></div>
-      </div>
+  <!-- Barrel Number -->
+  <div class="lbl-barrel">
+    Barrel # <span id="vBarrelNo"></span>
+  </div>
+
+  <div class="lbl-rule"></div>
+
+  <!-- QR -->
+  <div class="lbl-qr">
+    <div id="qrcode"></div>
+  </div>
+  </div>
     </div>
   </div>
 
