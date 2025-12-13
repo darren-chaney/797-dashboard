@@ -166,7 +166,7 @@ function renderAgeChart(barrels) {
 
   const margin = { top: 20, right: 20, bottom: 40, left: 60 };
   const width = container.clientWidth || 800;
-  const height = 320;
+  const height = 280; // tightened height
 
   const svg = d3
     .select(container)
@@ -178,10 +178,11 @@ function renderAgeChart(barrels) {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
+  // --- Filter valid data ---
   const data = barrels.filter(b => b.fillDate && b.ageYears != null);
   if (!data.length) return;
 
-  // === X RANGE (ZOOM) ===
+  // === X RANGE (ZOOM WINDOW) ===
   const maxDate = d3.max(data, d => d.fillDate);
 
   let minDate;
@@ -191,33 +192,40 @@ function renderAgeChart(barrels) {
     minDate = new Date(maxDate);
     minDate.setMonth(minDate.getMonth() - AGE_ZOOM_MONTHS);
   }
+  // --- Visual padding so dots don't hug edges ---
+  const padDays = 20;
 
   const x = d3
     .scaleTime()
-    .domain([minDate, maxDate])
+    .domain([
+      d3.timeDay.offset(minDate, -padDays),
+      d3.timeDay.offset(maxDate, padDays)
+    ])
     .range([0, width - margin.left - margin.right]);
 
-  // === ONLY VISIBLE DATA FOR Y SCALE ===
+  // === ONLY DATA IN VIEW AFFECTS Y SCALE ===
   const visibleData = data.filter(
     d => d.fillDate >= minDate && d.fillDate <= maxDate
   );
 
   const y = d3
     .scaleLinear()
-    .domain([0, d3.max(visibleData, d => d.ageYears) * 1.2])
+    .domain([0, d3.max(visibleData, d => d.ageYears) * 1.1])
     .range([height - margin.top - margin.bottom, 0]);
 
   const color = d3.scaleOrdinal(d3.schemeTableau10);
 
+  // === AXES ===
   g.append("g")
     .attr("transform", `translate(0,${y.range()[0]})`)
     .call(d3.axisBottom(x).ticks(6));
 
   g.append("g").call(d3.axisLeft(y));
 
-  // === PRE-GROUP BY DAY (FAST + CORRECT) ===
+  // === GROUP BARRELS BY DAY (FOR JITTER) ===
   const byDay = d3.group(data, d => d.fillDate.getTime());
 
+  // === DOTS ===
   g.selectAll("circle")
     .data(data)
     .join("circle")
@@ -227,9 +235,10 @@ function renderAgeChart(barrels) {
       return x(d.fillDate) + (idx - (group.length - 1) / 2) * 12;
     })
     .attr("cy", d => y(d.ageYears))
-    .attr("r", 4.5)
+    .attr("r", 3)
     .attr("fill", d => color(d.spirit))
     .attr("stroke", "#020617")
+    .attr("stroke-width", 1)
     .on("mouseenter touchstart", (e, d) => {
       showTooltip(
         `<strong>Barrel ${d.barrelNo}</strong><br>
@@ -251,7 +260,6 @@ function renderAgeChart(barrels) {
       if (d.docLink) window.open(d.docLink, "_blank");
     });
 }
-
 // === SPIRIT CHART ===
 function renderSpiritChart(barrels) {
   const container = document.getElementById("spirit-chart");
