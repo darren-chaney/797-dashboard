@@ -79,11 +79,14 @@ d3.csv(SHEET_CSV_URL).then((raw) => {
         } else {
           d = new Date(fillDateStr);
         }
-
         if (d && !isNaN(d)) {
-          fillDate = d;
-          ageDays = (today - d) / (1000 * 60 * 60 * 24);
-          ageYears = ageDays / 365.25;
+          fillDate = new Date(
+            d.getFullYear(),
+            d.getMonth(),
+            d.getDate()
+        );
+        ageDays = (today - fillDate) / (1000 * 60 * 60 * 24);
+        ageYears = ageDays / 365.25;
         }
       }
 
