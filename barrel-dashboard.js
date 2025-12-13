@@ -244,25 +244,38 @@ function renderAgeChart(barrels) {
       return x(d.fillDate) + (idx - (group.length - 1) / 2) * 12;
     })
     .attr("cy", d => y(d.ageYears))
-    .attr("r", 4.5)
+    .attr("r", 4)
     .attr("fill", d => color(d.spirit))
     .attr("stroke", "#020617")
     .attr("stroke-width", 1)
-    .on("mouseenter touchstart", (e, d) => {
-      showTooltip(
-        `<strong>Barrel ${d.barrelNo}</strong><br>
-         ${d.spirit}<br>
-         Age: ${d.ageYears.toFixed(2)} yrs<br>
-         OPG: ${d.opg.toFixed(2)}<br>
-         ${d.barrelType || ""}<br>
-         ${
-           d.docLink
-             ? `<a href="${d.docLink}" target="_blank">Open Doc</a>`
-             : ""
-         }`,
-        e
-      );
-    })
+    .on("mouseenter touchstart", function (e, d) {
+    // Enlarge dot on hover
+    d3.select(this).attr("r", 6);
+
+    showTooltip(
+    `<strong>Barrel ${d.barrelNo}</strong><br>
+     ${d.spirit}<br>
+     Age: ${d.ageYears.toFixed(2)} yrs<br>
+     OPG: ${d.opg.toFixed(2)}<br>
+     ${d.barrelType || ""}<br>
+     ${
+       d.docLink
+         ? `<a href="${d.docLink}" target="_blank">Open Doc</a>`
+         : ""
+     }`,
+    e
+  );
+})
+.on("mousemove touchmove", moveTooltip)
+.on("mouseleave touchend", function () {
+  // Return dot to normal size
+  d3.select(this).attr("r", 4);
+  hideTooltip();
+})
+.on("click", (_, d) => {
+  if (d.docLink) window.open(d.docLink, "_blank");
+});
+
     .on("mousemove touchmove", moveTooltip)
     .on("mouseleave touchend", hideTooltip)
     .on("click", (_, d) => {
