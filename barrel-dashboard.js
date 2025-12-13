@@ -106,7 +106,7 @@ d3.csv(SHEET_CSV_URL).then((raw) => {
       };
     })
     .filter(Boolean);
-
+  window.__BARRELS__ = barrels;
   renderStats(barrels);
   renderAgeChart(barrels);
   renderSpiritChart(barrels);
@@ -287,3 +287,9 @@ function renderSpiritChart(barrels) {
     .attr("height", (d) => height - 60 - y(d[1]))
     .attr("fill", (d) => d3.schemeTableau10[x.domain().indexOf(d[0])]);
 }
+// This handles the zooming in UI
+function setAgeZoom(months) {
+  AGE_ZOOM_MONTHS = months;
+  renderAgeChart(window.__BARRELS__);
+}
+
