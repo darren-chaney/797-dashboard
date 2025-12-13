@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>797 Distillery - Print Barrel Label</title>
+
+  <!-- QR Code Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#111c33;
+      --border:#334155;
+      --text:#e5e7eb;
+      --muted:#cbd5e1;
+      --accent:#d8843e;
+    }
+
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    .container{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    /* Header mount (we'll inject your shared header.html here) */
+    #headerMount { margin-bottom: 14px; }
+
+    /* Controls */
+    .controls{
+      background: rgba(17,28,51,0.75);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .controls label{
+      display:block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    select{
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0b1222;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+    }
+
+    button{
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0b1222;
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.05s ease;
+      white-space: nowrap;
+    }
+    button:hover{ border-color:#55657a; }
+    button:active{ transform: translateY(1px); }
+
+    .hint{
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    /* Label preview area */
+    .previewWrap{
+      margin-top: 16px;
+      display: grid;
+      gap: 14px;
+      justify-items: start;
+    }
+
+    /* ======== 4x6 Label ======== */
+    .label{
+      width: 6in;
+      height: 4in;
+      background: #fff;
+      color: #000;
+      border: 2px solid #000;
+      border-radius: 10px;
+      box-sizing: border-box;
+      padding: 18px 18px 14px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .labelTop{
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .labelHeader h2{
+      margin: 0 0 6px 0;
+      font-size: 22px;
+      letter-spacing: 0.2px;
+      font-weight: 800;
+    }
+    .labelHeader .sub{
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+    .labelHeader .sub span{ font-weight: 800; }
+
+    .qrBox{
+      width: 140px;
+      height: 140px;
+      border: 2px solid #000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#fff;
+    }
+    #qrcode { width: 130px; height: 130px; }
+
+    .labelBody{
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 24px;
+      font-size: 14px;
+    }
+
+    .field{
+      display: grid;
+      grid-template-columns: 165px 1fr;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .k{
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .v{
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    .barrelNumber{
+      margin-top: 14px;
+      border-top: 2px solid #000;
+      padding-top: 12px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap: 12px;
+    }
+    .barrelNumber .k{
+      font-size: 22px;
+      font-weight: 900;
+    }
+    .barrelNumber .v{
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+
+    .error{
+      background: rgba(220, 38, 38, 0.15);
+      border: 1px solid rgba(220, 38, 38, 0.5);
+      color: #fecaca;
+      padding: 10px 12px;
+      border-radius: 10px;
+      max-width: 700px;
+    }
+
+    /* ===== Print rules ===== */
+    @page{
+      size: 6in 4in;  /* Landscape 4x6 label */
+      margin: 0;
+    }
+
+    @media print {
+      body{ background: #fff; }
+      .no-print{ display:none !important; }
+      .container{ padding:0; margin:0; max-width:none; }
+      .label{
+        border-radius: 0;
+        border: none;     /* many thermal drivers clip borders; keep clean */
+        width: 6in;
+        height: 4in;
+        padding: 0.22in 0.22in 0.18in 0.22in;
+      }
+      .qrBox{ border: 2px solid #000; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <!-- Shared header -->
+    <div id="headerMount" class="no-print"></div>
+
+    <!-- Controls -->
+    <div class="controls no-print">
+      <div>
+        <label for="barrelSelect">Select Barrel No.</label>
+        <select id="barrelSelect">
+          <option value="">Loading barrels…</option>
+        </select>
+        <div class="hint">
+          Tip: you can also open this page like <b>print-label.html?barrel=420670</b> and it will auto-load that label.
+        </div>
+      </div>
+
+      <button id="btnGenerate" type="button">Generate Label</button>
+      <button id="btnPrint" type="button" disabled>Print Label</button>
+    </div>
+
+    <div id="msg" class="previewWrap no-print"></div>
+
+    <!-- Label preview -->
+    <div class="previewWrap">
+      <div id="label" class="label" style="display:none;">
+        <div class="labelTop">
+          <div class="labelHeader">
+            <h2>797 Distillery LLC</h2>
+            <p class="sub">425 E Pleasant Ave. &nbsp; Covington, Tennessee 38019</p>
+            <p class="sub"><span>DSP-TN-21154</span></p>
+          </div>
+
+          <div class="qrBox" aria-label="QR Code">
+            <div id="qrcode"></div>
+          </div>
+        </div>
+
+        <div class="labelBody">
+          <div class="field"><div class="k">First Fill Date:</div><div class="v" id="vFillDate">—</div></div>
+          <div class="field"><div class="k">Mash Bill:</div><div class="v" id="vMashBill">—</div></div>
+
+          <div class="field"><div class="k">Product Name:</div><div class="v" id="vSpiritType">—</div></div>
+          <div class="field"><div class="k">Entry Proof:</div><div class="v" id="vEntryProof">—</div></div>
+
+          <div class="field"><div class="k">Lot Identification No:</div><div class="v" id="vLotId">—</div></div>
+          <div class="field"><div class="k">RC-G:</div><div class="v" id="vRCG">—</div></div>
+
+          <div class="field"><div class="k">OPG:</div><div class="v" id="vOPG">—</div></div>
+          <div class="field"><div class="k">Barrel Type:</div><div class="v" id="vBarrelType">—</div></div>
+        </div>
+
+        <div class="barrelNumber">
+          <div class="k">Barrel #</div>
+          <div class="v" id="vBarrelNo">—</div>
+        </div>
+
+        <!-- Hidden but kept for debugging if needed -->
+        <div id="vDocLink" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /*********************************************************
+     * CONFIG
+     * 1) Put your Barrel Storage CSV URL here
+     *    (the same published CSV you already use elsewhere)
+     *********************************************************/
+    const BARREL_STORAGE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSNyLVIgK_UeIZdZQJaGF3IgiqZ68aCG0tydTzszngpgYhu4-HlLXNHotuGPJOA63CKSs-RkZgGtRpt/pub?output=csv
+";
+
+    /*********************************************************
+     * SHARED HEADER LOADING
+     * Expects header.html to exist alongside this file
+     *********************************************************/
+    async function loadHeader() {
+      const mount = document.getElementById("headerMount");
+      try {
+        const res = await fetch("header.html", { cache: "no-store" });
+        if (!res.ok) throw new Error("header.html not found");
+        mount.innerHTML = await res.text();
+      } catch (err) {
+        // Don’t block page if header fails; show minimal fallback
+        mount.innerHTML = `
+          <div style="padding:12px;border:1px solid #334155;border-radius:12px;background:#111c33;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <div>
+                <div style="font-weight:900;font-size:20px;">797 Distillery</div>
+                <div style="color:#cbd5e1;">Print Barrel Labels</div>
+              </div>
+              <a href="index.html" style="color:#e5e7eb;text-decoration:none;font-weight:800;">Dashboard</a>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    /*********************************************************
+     * CSV PARSER (handles quoted commas)
+     *********************************************************/
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let cur = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+
+        if (ch === '"' && inQuotes && next === '"') {
+          cur += '"';
+          i++;
+          continue;
+        }
+
+        if (ch === '"') {
+          inQuotes = !inQuotes;
+          continue;
+        }
+
+        if (ch === "," && !inQuotes) {
+          row.push(cur);
+          cur = "";
+          continue;
+        }
+
+        if ((ch === "\n" || ch === "\r") && !inQuotes) {
+          if (ch === "\r" && next === "\n") i++;
+          row.push(cur);
+          cur = "";
+          if (row.some(v => v.trim() !== "")) rows.push(row);
+          row = [];
+          continue;
+        }
+
+        cur += ch;
+      }
+
+      // last cell
+      row.push(cur);
+      if (row.some(v => v.trim() !== "")) rows.push(row);
+      return rows;
+    }
+
+    function rowsToObjects(rows) {
+      if (!rows || rows.length < 2) return [];
+      const headers = rows[0].map(h => h.trim());
+      const objs = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        const o = {};
+        for (let c = 0; c < headers.length; c++) {
+          o[headers[c]] = (r[c] ?? "").trim();
+        }
+        objs.push(o);
+      }
+      return objs;
+    }
+
+    function getQueryParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name) || "";
+    }
+
+    function setMsg(html, isError=false) {
+      const msg = document.getElementById("msg");
+      if (!html) { msg.innerHTML = ""; return; }
+      msg.innerHTML = `<div class="${isError ? "error" : ""}">${html}</div>`;
+    }
+
+    /*********************************************************
+     * LABEL RENDERING
+     *********************************************************/
+    let barrelData = [];  // array of objects
+    let barrelIndex = new Map(); // barrelNo -> object
+
+    function clearQR() {
+      const q = document.getElementById("qrcode");
+      q.innerHTML = "";
+    }
+
+    function makeQR(url) {
+      clearQR();
+      if (!url) return;
+
+      // QRCodeJS generates an <img> or <canvas> inside #qrcode
+      new QRCode(document.getElementById("qrcode"), {
+        text: url,
+        width: 128,
+        height: 128,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    function fillLabel(row) {
+      const label = document.getElementById("label");
+      const printBtn = document.getElementById("btnPrint");
+
+      if (!row) {
+        label.style.display = "none";
+        printBtn.disabled = true;
+        return;
+      }
+
+      // Map your sheet columns to label fields
+      const barrelNo   = row["Barrel No."] || "";
+      const fillDate   = row["Fill Date"] || "";
+      const spiritType = row["Spirit Type"] || "";
+      const mashBill   = row["Mash Bill"] || "";
+      const entryProof = row["Entry Proof"] || "";
+      const lotId      = row["Lot ID"] || "";
+      const barrelType = row["Barrel Type"] || "";
+      const rcg        = row["RC-G"] || "";
+      const opg        = row["OPG"] || "";
+      const docLink    = row["Barrel Doc Link"] || "";
+
+      document.getElementById("vBarrelNo").textContent   = barrelNo || "—";
+      document.getElementById("vFillDate").textContent   = fillDate || "—";
+      document.getElementById("vSpiritType").textContent = spiritType || "—";
+      document.getElementById("vMashBill").textContent   = mashBill || "—";
+      document.getElementById("vEntryProof").textContent = entryProof || "—";
+      document.getElementById("vLotId").textContent      = lotId || "—";
+      document.getElementById("vBarrelType").textContent = barrelType || "—";
+      document.getElementById("vRCG").textContent        = rcg || "—";
+      document.getElementById("vOPG").textContent        = opg || "—";
+      document.getElementById("vDocLink").textContent    = docLink || "";
+
+      makeQR(docLink);
+
+      label.style.display = "block";
+      printBtn.disabled = false;
+
+      if (!docLink) {
+        setMsg("Heads up: <b>Barrel Doc Link</b> is blank for this barrel, so the QR code can’t be generated.", true);
+      } else {
+        setMsg("");
+      }
+    }
+
+    /*********************************************************
+     * DATA LOADING
+     *********************************************************/
+    async function loadBarrels() {
+      if (!BARREL_STORAGE_CSV_URL || BARREL_STORAGE_CSV_URL.includes("PASTE_YOUR")) {
+        setMsg("Paste your published <b>Barrel Storage CSV URL</b> into <code>BARREL_STORAGE_CSV_URL</code> at the top of this file.", true);
+        return;
+      }
+
+      setMsg("Loading barrel list…");
+      const res = await fetch(BARREL_STORAGE_CSV_URL, { cache: "no-store" });
+      if (!res.ok) {
+        setMsg("Could not load the Barrel Storage CSV. Check the URL and that it’s published to the web.", true);
+        return;
+      }
+
+      const text = await res.text();
+      const rows = parseCSV(text);
+      const objs = rowsToObjects(rows);
+
+      // Validate required headers exist
+      const needed = ["Barrel No.","Fill Date","Spirit Type","Mash Bill","Entry Proof","Lot ID","Barrel Type","RC-G","OPG","Barrel Doc Link"];
+      const headers = rows[0] ? rows[0].map(h => h.trim()) : [];
+      const missing = needed.filter(h => !headers.includes(h));
+      if (missing.length) {
+        setMsg("CSV is missing required column(s): <b>" + missing.join(", ") + "</b>", true);
+        return;
+      }
+
+      // Index by Barrel No.
+      barrelData = objs.filter(o => (o["Barrel No."] || "").trim() !== "");
+      barrelIndex = new Map();
+      barrelData.forEach(o => barrelIndex.set((o["Barrel No."] || "").trim(), o));
+
+      // Fill dropdown
+      const select = document.getElementById("barrelSelect");
+      const barrelNos = Array.from(barrelIndex.keys())
+        .sort((a,b) => (a.localeCompare(b, undefined, {numeric:true, sensitivity:"base"})));
+
+      select.innerHTML = `<option value="">Select a barrel…</option>` +
+        barrelNos.map(no => `<option value="${escapeHtml(no)}">${escapeHtml(no)}</option>`).join("");
+
+      setMsg("");
+
+      // Auto-load from query param ?barrel=XXXX
+      const qp = getQueryParam("barrel").trim();
+      if (qp && barrelIndex.has(qp)) {
+        select.value = qp;
+        fillLabel(barrelIndex.get(qp));
+      }
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    /*********************************************************
+     * EVENTS
+     *********************************************************/
+    document.getElementById("btnGenerate").addEventListener("click", () => {
+      const sel = document.getElementById("barrelSelect").value.trim();
+      if (!sel) {
+        setMsg("Select a barrel number first.", true);
+        fillLabel(null);
+        return;
+      }
+      const row = barrelIndex.get(sel);
+      fillLabel(row);
+    });
+
+    document.getElementById("btnPrint").addEventListener("click", () => {
+      window.print();
+    });
+
+    // Init
+    (async function init(){
+      await loadHeader();
+      await loadBarrels();
+    })();
+  </script>
+</body>
+</html>
