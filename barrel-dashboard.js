@@ -166,7 +166,7 @@ function renderAgeChart(barrels) {
 
   const margin = { top: 20, right: 20, bottom: 40, left: 60 };
   const width = container.clientWidth || 800;
-  const height = 280; // tightened height
+  const height = 280;
 
   const svg = d3
     .select(container)
@@ -192,7 +192,7 @@ function renderAgeChart(barrels) {
     minDate = new Date(maxDate);
     minDate.setMonth(minDate.getMonth() - AGE_ZOOM_MONTHS);
   }
-  // --- Visual padding so dots don't hug edges ---
+
   const padDays = 20;
 
   const x = d3
@@ -221,16 +221,17 @@ function renderAgeChart(barrels) {
     .call(d3.axisBottom(x).ticks(6));
 
   g.append("g")
-  .call(
-    d3.axisLeft(y)
-      .ticks(6)
-      .tickFormat(d => {
-        const months = Math.round(d * 12);
-        return months >= 12
-          ? `${(months / 12).toFixed(1)} yr`
-          : `${months} mo`;
-      })
-  );
+    .call(
+      d3.axisLeft(y)
+        .ticks(6)
+        .tickFormat(d => {
+          const months = Math.round(d * 12);
+          return months >= 12
+            ? `${(months / 12).toFixed(1)} yr`
+            : `${months} mo`;
+        })
+    );
+
   // === GROUP BARRELS BY DAY (FOR JITTER) ===
   const byDay = d3.group(data, d => d.fillDate.getTime());
 
@@ -249,39 +250,32 @@ function renderAgeChart(barrels) {
     .attr("stroke", "#020617")
     .attr("stroke-width", 1)
     .on("mouseenter touchstart", function (e, d) {
-    // Enlarge dot on hover
-    d3.select(this).attr("r", 6);
+      d3.select(this).attr("r", 6);
 
-    showTooltip(
-    `<strong>Barrel ${d.barrelNo}</strong><br>
-     ${d.spirit}<br>
-     Age: ${d.ageYears.toFixed(2)} yrs<br>
-     OPG: ${d.opg.toFixed(2)}<br>
-     ${d.barrelType || ""}<br>
-     ${
-       d.docLink
-         ? `<a href="${d.docLink}" target="_blank">Open Doc</a>`
-         : ""
-     }`,
-    e
-  );
-})
-.on("mousemove touchmove", moveTooltip)
-.on("mouseleave touchend", function () {
-  // Return dot to normal size
-  d3.select(this).attr("r", 4);
-  hideTooltip();
-})
-.on("click", (_, d) => {
-  if (d.docLink) window.open(d.docLink, "_blank");
-});
-
+      showTooltip(
+        `<strong>Barrel ${d.barrelNo}</strong><br>
+         ${d.spirit}<br>
+         Age: ${d.ageYears.toFixed(2)} yrs<br>
+         OPG: ${d.opg.toFixed(2)}<br>
+         ${d.barrelType || ""}<br>
+         ${
+           d.docLink
+             ? `<a href="${d.docLink}" target="_blank">Open Doc</a>`
+             : ""
+         }`,
+        e
+      );
+    })
     .on("mousemove touchmove", moveTooltip)
-    .on("mouseleave touchend", hideTooltip)
+    .on("mouseleave touchend", function () {
+      d3.select(this).attr("r", 4);
+      hideTooltip();
+    })
     .on("click", (_, d) => {
       if (d.docLink) window.open(d.docLink, "_blank");
     });
 }
+
 // === SPIRIT CHART ===
 function renderSpiritChart(barrels) {
   const container = document.getElementById("spirit-chart");
