@@ -210,7 +210,13 @@ function renderAgeChart(barrels) {
   g.selectAll("circle")
     .data(data)
     .join("circle")
-    .attr("cx", (d, i) => x(d.fillDate) + ((i % 5) - 2) * 4)
+    .attr("cx", (d) => {
+  const sameDate = data.filter(
+    b => b.fillDate.getTime() === d.fillDate.getTime()
+  );
+  const idx = sameDate.findIndex(b => b.barrelNo === d.barrelNo);
+  return x(d.fillDate) + (idx - (sameDate.length - 1) / 2) * 8;
+})
     .attr("cy", (d) => y(d.ageYears))
     .attr("r", 12)
     .attr("fill", (d) => color(d.spirit))
