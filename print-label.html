@@ -7,7 +7,7 @@
 <title>797 Distillery – Print Barrel Label</title>
 
 <!-- APP VERSION -->
-<meta name="app-version" content="Print Label v1.8.3">
+<meta name="app-version" content="Print Label v1.8.4">
 
 <!-- Header CSS (GLOBAL, SHARED) -->
 <link rel="stylesheet" href="header.css?v=1.0.0">
@@ -110,6 +110,24 @@ button:disabled{opacity:.5;cursor:not-allowed}
   display:flex;
   gap:18px;
   align-items:flex-start;
+}
+/* HEADER TEXT BLOCK (RIGHT OF BIG LETTER) */
+.lbl-header-text{
+  font-size: 17px;      /* +3pt-ish from before */
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+/* DISTILLERY NAME */
+.lbl-title{
+  font-size: 20px;
+  font-weight: 900;
+}
+
+/* DSP LINE */
+.lbl-dsp{
+  font-size: 16px;
+  font-weight: 900;
 }
 
 /* PRODUCT LETTER (R / W / etc.) */
@@ -236,15 +254,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <div id="label" class="label">
 
     <div class="lbl-header">
-      <div id="lblSpiritLetter" class="lbl-r">R</div>
-      <div>
-        <div class="lbl-title">797 Distillery LLC</div>
-        <div>425 E Pleasant Ave</div>
-        <div>Covington, Tennessee 38019</div>
-        <div class="lbl-dsp">DSP-TN-21154</div>
-      </div>
-    </div>
-
+  <div class="lbl-r">R</div>
+     <div class="lbl-header-text">
+       <div class="lbl-title">797 Distillery LLC</div>
+       <div>425 E Pleasant Ave</div>
+       <div>Covington, Tennessee 38019</div>
+       <div class="lbl-dsp">DSP-TN-21154</div>
+        </div>
+   </div>
     <div class="lbl-rule"></div>
 
     <div class="lbl-data">
