@@ -7,9 +7,9 @@
 <title>797 Distillery – Print Barrel Label</title>
 
 <!-- APP VERSION -->
-<meta name="app-version" content="Print Label v1.8.4">
+<meta name="app-version" content="Print Label v1.8.5">
 
-<!-- Header CSS (GLOBAL, SHARED) -->
+<!-- Header CSS -->
 <link rel="stylesheet" href="header.css?v=1.0.0">
 
 <!-- QR Code -->
@@ -40,9 +40,7 @@ body{
   padding:16px;
 }
 
-/* =========================
-   VERSION BADGE
-   ========================= */
+/* VERSION BADGE */
 .version-badge{
   font-size:12px;
   font-weight:800;
@@ -50,9 +48,7 @@ body{
   margin-bottom:10px;
 }
 
-/* =========================
-   CONTROLS
-   ========================= */
+/* CONTROLS */
 .controls{
   background:var(--panel);
   border:1px solid var(--border);
@@ -64,26 +60,20 @@ body{
   margin-bottom:14px;
 }
 
-select,
-button{
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: #0b1222;
-  color: var(--text);
-
-  /* 🔑 FIX */
-  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-
-  line-height: 1.2;
-  appearance: none;
-  -webkit-appearance: none;
+select,button{
+  padding:10px 14px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:#0b1222;
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  font-size:15px;
+  font-weight:700;
 }
+
 select option{
-  font-size: 15px;
-  font-weight: 700;
+  font-size:15px;
+  font-weight:700;
 }
 
 button{cursor:pointer}
@@ -103,68 +93,38 @@ button:disabled{opacity:.5;cursor:not-allowed}
   display:none;
 }
 
-/* HEADER BLOCK */
-/* ===== TOP LABEL HEADER ===== */
-
+/* TOP HEADER */
 .lbl-header{
   display:flex;
   gap:18px;
   align-items:flex-start;
 }
-/* HEADER TEXT BLOCK (RIGHT OF BIG LETTER) */
-.lbl-header-text{
-  font-size: 17px;      /* +3pt-ish from before */
-  font-weight: 800;
-  line-height: 1.25;
-}
 
-/* DISTILLERY NAME */
-.lbl-title{
-  font-size: 20px;
-  font-weight: 900;
-}
-
-/* DSP LINE */
-.lbl-dsp{
-  font-size: 16px;
-  font-weight: 900;
-}
-
-/* PRODUCT LETTER (R / W / etc.) */
 .lbl-r{
-  font-size: 96px;        /* height */
-  font-weight: 900;       /* boldness */
-  line-height: 1;
-
-  /* THIS is what pushes text over */
-  min-width: 120px;       /* ⬅ controls horizontal space */
-  text-align: left;
-
-  /* subtle optical weight */
-  letter-spacing: 4px;
-
-  color: #000;
+  font-size:96px;
+  font-weight:900;
+  line-height:1;
+  min-width:120px;
+  letter-spacing:4px;
 }
 
-/* COMPANY NAME */
+.lbl-header-text{
+  font-size:17px;
+  font-weight:800;
+  line-height:1.25;
+}
+
 .lbl-title{
-  font-size: 21px;     /* +3pt */
-  font-weight: 900;
-}
-
-/* ADDRESS + DSP */
-.lbl-header div div{
-  font-size: 15px;     /* +3pt from before */
-  font-weight: 800;
-  line-height: 1.35;
+  font-size:21px;
+  font-weight:900;
 }
 
 .lbl-dsp{
-  font-weight: 900;
-  margin-top: 2px;
+  font-size:16px;
+  font-weight:900;
+  margin-top:2px;
 }
 
-   
 .lbl-rule{
   border-top:3px solid #000;
   margin:8px 0;
@@ -183,13 +143,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 
 /* LOGO */
-.lbl-crest{
-  text-align:center;
-}
+.lbl-crest{text-align:center}
 
 .crest-img{
   height:240px;
-  width:auto;
   max-width:100%;
   display:block;
   margin:4px auto;
@@ -208,25 +165,19 @@ button:disabled{opacity:.5;cursor:not-allowed}
   justify-content:center;
 }
 
-.lbl-qr canvas,
-.lbl-qr img{
+.lbl-qr canvas{
   width:150px;
   height:150px;
 }
 
-/* =========================
-   PRINT
-   ========================= */
-@page{
-  size:6in 4in;
-  margin:0;
-}
+/* PRINT */
+@page{size:6in 4in;margin:0}
 
 @media print{
-  body{background:#fff;}
-  .no-print{display:none!important;}
-  .container{padding:0;margin:0;}
-  .label{display:block;}
+  body{background:#fff}
+  .no-print{display:none!important}
+  .container{padding:0;margin:0}
+  .label{display:block}
 }
 </style>
 </head>
@@ -234,7 +185,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <body>
 <div class="container">
 
-  <!-- GLOBAL HEADER -->
+  <!-- HEADER -->
   <div id="headerMount" class="no-print"></div>
 
   <!-- VERSION -->
@@ -254,14 +205,15 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <div id="label" class="label">
 
     <div class="lbl-header">
-  <div class="lbl-r" id="lblSpiritLetter">R</div>
-     <div class="lbl-header-text">
-       <div class="lbl-title">797 Distillery LLC</div>
-       <div>425 E Pleasant Ave</div>
-       <div>Covington, Tennessee 38019</div>
-       <div class="lbl-dsp">DSP-TN-21154</div>
-        </div>
-   </div>
+      <div class="lbl-r" id="lblSpiritLetter">R</div>
+      <div class="lbl-header-text">
+        <div class="lbl-title">797 Distillery LLC</div>
+        <div>425 E Pleasant Ave</div>
+        <div>Covington, Tennessee 38019</div>
+        <div class="lbl-dsp">DSP-TN-21154</div>
+      </div>
+    </div>
+
     <div class="lbl-rule"></div>
 
     <div class="lbl-data">
@@ -297,15 +249,23 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </div>
 
 <script>
-const APP_VERSION = "Print Label v1.8.1";
+const APP_VERSION = "Print Label v1.8.5";
 const BARREL_STORAGE_CSV_URL =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vSNyLVIgK_UeIZdZQJaGF3IgiqZ68aCG0tydTzszngpgYhu4-HlLXNHotuGPJOA63CKSs-RkZgGtRpt/pub?output=csv";
+
+/* DOM refs */
+const versionBadge = document.getElementById("versionBadge");
+const headerMount = document.getElementById("headerMount");
+const barrelSelect = document.getElementById("barrelSelect");
+const label = document.getElementById("label");
+const qrcode = document.getElementById("qrcode");
+const btnPrint = document.getElementById("btnPrint");
 
 versionBadge.textContent = APP_VERSION;
 
 /* Header */
 async function loadHeader(){
-  const r = await fetch("header.html", { cache: "no-store" });
+  const r = await fetch("header.html", { cache:"no-store" });
   headerMount.innerHTML = await r.text();
 }
 
@@ -335,35 +295,27 @@ function makeQR(url){
   if(url)new QRCode("qrcode",{text:url,width:150,height:150});
 }
 
-function setSpiritLetter(type){
-  const t = (type||"").toLowerCase();
-  lblSpiritLetter.textContent =
-    t.includes("rum") ? "R" :
-    t.includes("whiskey") ? "W" :
-    t.includes("vodka") ? "V" : "S";
+/* Spirit letter */
+function setSpiritLetter(spiritType){
+  const el=document.getElementById("lblSpiritLetter");
+  if(!el)return;
+
+  const s=(spiritType||"").toLowerCase();
+  let letter="R";
+
+  if(s.includes("whiskey")) letter="W";
+  else if(s.includes("vodka")) letter="V";
+  else if(s.includes("moonshine")) letter="M";
+  else if(s.includes("rum")) letter="R";
+
+  el.textContent=letter;
 }
-   function setSpiritLetter(spiritType) {
-  const el = document.getElementById("lblSpiritLetter");
-  if (!el) return;
 
-  const s = (spiritType || "").toLowerCase();
-
-  let letter = "R"; // default
-
-  if (s.includes("whiskey")) letter = "W";
-  else if (s.includes("vodka")) letter = "V";
-  else if (s.includes("moonshine")) letter = "M";
-  else if (s.includes("rum")) letter = "R";
-
-  el.textContent = letter;
-}
-   
 function fillLabel(o){
   vBarrelNo.textContent=o["Barrel No."];
   vFillDate.textContent=o["Fill Date"];
   vMashBill.textContent=o["Mash Bill"];
   vSpiritType.textContent=o["Spirit Type"];
-   setSpiritLetter(o["Spirit Type"]);
   vEntryProof.textContent=o["Entry Proof"];
   vLotId.textContent=o["Lot ID"];
   vRCG.textContent=o["RC-G"];
