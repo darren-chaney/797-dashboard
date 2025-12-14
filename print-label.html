@@ -281,7 +281,7 @@ const label = document.getElementById("label");
 const qrcode = document.getElementById("qrcode");
 const btnPrint = document.getElementById("btnPrint");
 
-versionBadge.textContent = APP_VERSION;
+versionBadge.textContent = APP_VERSION + " • " + new Date().toLocaleTimeString();
 
 /* Header */
 async function loadHeader(){
