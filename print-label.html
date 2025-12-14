@@ -100,31 +100,31 @@ button:disabled{opacity:.5;cursor:not-allowed}
   gap:22px;              /* slightly more breathing room */
 }
 
-/* PRODUCT LETTER — MAXIMUM PRINT WEIGHT */
+/* PRODUCT LETTER — LOCKED MAX PRINT WEIGHT */
 .lbl-r{
   font-size:120px;
-  font-weight:1000;
+  font-weight:900;
   line-height:0.95;
-  min-width:155px;
-   padding-left:10px;
 
+  min-width:165px;        /* spacing control — NOT padding */
   letter-spacing:1px;
+
   transform:scaleX(1.22);
 
-  /* REAL stroke weight */
-  -webkit-text-stroke: 2px #000;
-  text-stroke: 2px #000;
+  /* TRUE stroke weight (Safari / print-safe) */
+  -webkit-text-stroke: 2.5px #000;
+  text-stroke: 2.5px #000;
 
-  /* fill stays solid */
   color:#000;
 
-  /* fallback mass for non-stroke engines */
+  /* insurance for non-stroke renderers */
   text-shadow:
     1px 0   0 #000,
    -1px 0   0 #000,
     0   1px 0 #000,
     0  -1px 0 #000;
 }
+
 
 /* RIGHT TEXT BLOCK */
 .lbl-header-text{
