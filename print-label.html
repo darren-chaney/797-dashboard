@@ -254,7 +254,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <div id="label" class="label">
 
     <div class="lbl-header">
-  <div class="lbl-r">R</div>
+  <div class="lbl-r" id="lblSpiritLetter">R</div>
      <div class="lbl-header-text">
        <div class="lbl-title">797 Distillery LLC</div>
        <div>425 E Pleasant Ave</div>
@@ -342,12 +342,28 @@ function setSpiritLetter(type){
     t.includes("whiskey") ? "W" :
     t.includes("vodka") ? "V" : "S";
 }
+   function setSpiritLetter(spiritType) {
+  const el = document.getElementById("lblSpiritLetter");
+  if (!el) return;
 
+  const s = (spiritType || "").toLowerCase();
+
+  let letter = "R"; // default
+
+  if (s.includes("whiskey")) letter = "W";
+  else if (s.includes("vodka")) letter = "V";
+  else if (s.includes("moonshine")) letter = "M";
+  else if (s.includes("rum")) letter = "R";
+
+  el.textContent = letter;
+}
+   
 function fillLabel(o){
   vBarrelNo.textContent=o["Barrel No."];
   vFillDate.textContent=o["Fill Date"];
   vMashBill.textContent=o["Mash Bill"];
   vSpiritType.textContent=o["Spirit Type"];
+   setSpiritLetter(o["Spirit Type"]);
   vEntryProof.textContent=o["Entry Proof"];
   vLotId.textContent=o["Lot ID"];
   vRCG.textContent=o["RC-G"];
