@@ -13,9 +13,9 @@
   --panel:#111c33;
   --border:#334155;
   --text:#e5e7eb;
-  --muted:#cbd5e1;
 }
 
+/* ================= BASE ================= */
 body{
   margin:0;
   background:var(--bg);
@@ -29,12 +29,12 @@ body{
   padding:18px;
 }
 
-/* HEADER */
+/* ================= HEADER ================= */
 #headerMount{max-height:90px;overflow:hidden}
 #headerMount img{max-height:48px;width:auto}
 #headerMount *{margin:0!important}
 
-/* CONTROLS */
+/* ================= CONTROLS ================= */
 .controls{
   background:#111c33;
   border:1px solid var(--border);
@@ -57,13 +57,17 @@ select,button{
 button{cursor:pointer}
 button:disabled{opacity:.5;cursor:not-allowed}
 
-/* LABEL */
+/* ================= LABEL ================= */
+#printArea{
+  margin-top:16px;
+}
+
 .label{
   width:6in;
   height:4in;
   background:#fff;
   color:#000;
-  padding:18px;
+  padding:0.25in;
   box-sizing:border-box;
   font-family:Arial,Helvetica,sans-serif;
   display:none;
@@ -78,6 +82,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .lbl-r{
   font-size:92px;
   font-weight:900;
+  line-height:1;
 }
 
 .lbl-title{font-size:18px;font-weight:800}
@@ -98,15 +103,27 @@ button:disabled{opacity:.5;cursor:not-allowed}
   font-weight:700;
 }
 
-.lbl-crest{text-align:center}
-.lbl-crest img{height:110px}
+/* ===== LOGO ===== */
+.lbl-crest{
+  text-align:center;
+}
+.crest-img{
+  height:260px;            /* FINAL correct size */
+  width:auto;
+  max-width:100%;
+  display:block;
+  margin:8px auto;
+  object-fit:contain;
+}
 
+/* ===== BARREL ===== */
 .lbl-barrel{
   text-align:center;
   font-size:28px;
   font-weight:900;
 }
 
+/* ===== QR ===== */
 .lbl-qr{
   display:flex;
   justify-content:center;
@@ -116,21 +133,38 @@ button:disabled{opacity:.5;cursor:not-allowed}
   width:150px;
   height:150px;
 }
-.crest-img {
-  height: 240px;   /* ⬅ increase size */
-  width: auto;
-  max-width: 95%;
-  display: block;
-  margin: 6px auto 4px auto;
-  object-fit: contain;
+
+/* ================= PRINT ================= */
+@page{
+  size:6in 4in;
+  margin:0;
 }
-/* PRINT */
-@page{size:6in 4in;margin:0}
+
 @media print{
-  body{background:#fff}
+  html,body{
+    width:6in;
+    height:4in;
+    margin:0;
+    padding:0;
+    overflow:hidden;
+    background:#fff;
+  }
+
+  body *{visibility:hidden}
+
+  #printArea,
+  #printArea *{
+    visibility:visible;
+  }
+
+  #printArea{
+    position:absolute;
+    inset:0;
+    width:6in;
+    height:4in;
+  }
+
   .no-print{display:none!important}
-  .container{padding:0;margin:0}
-  .label{display:block}
 }
 </style>
 </head>
@@ -138,63 +172,66 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <body>
 <div class="container">
 
-<div id="headerMount" class="no-print"></div>
+  <!-- HEADER -->
+  <div id="headerMount" class="no-print"></div>
 
-<div class="controls no-print">
-  <select id="barrelSelect">
-    <option>Loading barrels…</option>
-  </select>
-  <button id="btnGenerate">Generate</button>
-  <button id="btnPrint" disabled>Print</button>
-  <button id="btnClear">Clear</button>
-</div>
+  <!-- CONTROLS -->
+  <div class="controls no-print">
+    <select id="barrelSelect">
+      <option>Loading barrels…</option>
+    </select>
+    <button id="btnGenerate">Generate</button>
+    <button id="btnPrint" disabled>Print</button>
+    <button id="btnClear">Clear</button>
+  </div>
 
-<div id="msg" class="no-print"></div>
+  <!-- PRINT AREA -->
+  <div id="printArea">
+    <div id="label" class="label">
 
-<div id="label" class="label">
+      <div class="lbl-header">
+        <div class="lbl-r">R</div>
+        <div>
+          <div class="lbl-title">797 Distillery LLC</div>
+          <div>425 E Pleasant Ave</div>
+          <div>Covington, Tennessee 38019</div>
+          <div class="lbl-dsp">DSP-TN-21154</div>
+        </div>
+      </div>
 
-  <div class="lbl-header">
-    <div class="lbl-r">R</div>
-    <div>
-      <div class="lbl-title">797 Distillery LLC</div>
-      <div>425 E Pleasant Ave</div>
-      <div>Covington, Tennessee 38019</div>
-      <div class="lbl-dsp">DSP-TN-21154</div>
+      <div class="lbl-rule"></div>
+
+      <div class="lbl-data">
+        <div><span>First Fill Date:</span> <b id="vFillDate"></b></div>
+        <div><span>Mash Bill:</span> <b id="vMashBill"></b></div>
+        <div><span>Product Name:</span> <b id="vSpiritType"></b></div>
+        <div><span>Entry Proof:</span> <b id="vEntryProof"></b></div>
+        <div><span>Lot Identification No:</span> <b id="vLotId"></b></div>
+        <div><span>RC-G:</span> <b id="vRCG"></b></div>
+        <div><span>OPG:</span> <b id="vOPG"></b></div>
+        <div><span>Barrel Type:</span> <b id="vBarrelType"></b></div>
+      </div>
+
+      <div class="lbl-rule"></div>
+
+      <div class="lbl-crest">
+        <img src="websiteLogoGlass.png" class="crest-img" alt="797 Distillery Logo">
+      </div>
+
+      <div class="lbl-rule"></div>
+
+      <div class="lbl-barrel">
+        Barrel # <span id="vBarrelNo"></span>
+      </div>
+
+      <div class="lbl-rule"></div>
+
+      <div class="lbl-qr">
+        <div id="qrcode"></div>
+      </div>
+
     </div>
   </div>
-
-  <div class="lbl-rule"></div>
-
-  <div class="lbl-data">
-    <div><span>First Fill Date:</span> <b id="vFillDate"></b></div>
-    <div><span>Mash Bill:</span> <b id="vMashBill"></b></div>
-    <div><span>Product Name:</span> <b id="vSpiritType"></b></div>
-    <div><span>Entry Proof:</span> <b id="vEntryProof"></b></div>
-    <div><span>Lot Identification No:</span> <b id="vLotId"></b></div>
-    <div><span>RC-G:</span> <b id="vRCG"></b></div>
-    <div><span>OPG:</span> <b id="vOPG"></b></div>
-    <div><span>Barrel Type:</span> <b id="vBarrelType"></b></div>
-  </div>
-
-  <div class="lbl-rule"></div>
-
-  <div class="lbl-crest">
-    <img src="websiteLogoGlass.png" alt="797 Distillery Crest" class="crest-img">
-  </div>
-
-  <div class="lbl-rule"></div>
-
-  <div class="lbl-barrel">
-    Barrel # <span id="vBarrelNo"></span>
-  </div>
-
-  <div class="lbl-rule"></div>
-
-  <div class="lbl-qr">
-    <div id="qrcode"></div>
-  </div>
-
-</div>
 </div>
 
 <script>
@@ -204,35 +241,33 @@ const BARREL_STORAGE_CSV_URL =
 async function loadHeader(){
   try{
     const r=await fetch("header.html",{cache:"no-store"});
-    document.getElementById("headerMount").innerHTML=await r.text();
+    headerMount.innerHTML=await r.text();
   }catch{}
 }
 
 function parseCSV(t){
-  const r=[],l=t.split(/\r?\n/);
-  const h=l.shift().split(",");
-  l.forEach(line=>{
-    if(!line.trim())return;
-    const o={},c=line.split(",");
-    h.forEach((k,i)=>o[k.trim()]=c[i]?.trim()||"");
-    r.push(o);
+  const [h,...lines]=t.split(/\r?\n/);
+  const headers=h.split(",");
+  return lines.filter(l=>l.trim()).map(l=>{
+    const o={},c=l.split(",");
+    headers.forEach((k,i)=>o[k.trim()]=c[i]?.trim()||"");
+    return o;
   });
-  return r;
 }
 
 function makeQR(url){
-  document.getElementById("qrcode").innerHTML="";
-  if(url)new QRCode("qrcode",{text:url,width:140,height:140});
+  qrcode.innerHTML="";
+  if(url)new QRCode(qrcode,{text:url,width:150,height:150});
 }
 
-let barrels=new Map();
+const barrels=new Map();
 
 async function loadBarrels(){
   const r=await fetch(BARREL_STORAGE_CSV_URL);
   const rows=parseCSV(await r.text());
   rows.forEach(o=>barrels.set(o["Barrel No."],o));
-  barrelSelect.innerHTML=`<option value="">Select barrel…</option>`+
-    [...barrels.keys()].map(b=>`<option>${b}</option>`).join("");
+  barrelSelect.innerHTML='<option value="">Select barrel…</option>'+
+    [...barrels.keys()].sort().map(b=>`<option>${b}</option>`).join("");
 }
 
 function fillLabel(o){
@@ -268,8 +303,5 @@ btnPrint.onclick=()=>window.print();
   await loadBarrels();
 })();
 </script>
-</body>
-</html>
-
 </body>
 </html>
