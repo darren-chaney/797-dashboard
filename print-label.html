@@ -114,15 +114,18 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 /* PRODUCT LETTER (R / W / etc.) */
 .lbl-r{
-  font-size: 96px;
-  font-weight: 900;
-  line-height: 0.95;
+  font-size: 96px;        /* height */
+  font-weight: 900;       /* boldness */
+  line-height: 1;
 
-  /* 🔑 MAKE IT 3X WIDER */
-  transform: scaleX(3);
+  /* THIS is what pushes text over */
+  min-width: 120px;       /* ⬅ controls horizontal space */
+  text-align: left;
 
-  /* 🔑 VISUAL WEIGHT BOOST */
-  letter-spacing: -2px;
+  /* subtle optical weight */
+  letter-spacing: 4px;
+
+  color: #000;
 }
 
 /* COMPANY NAME */
