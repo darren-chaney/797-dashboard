@@ -7,7 +7,7 @@
 <title>797 Distillery – Print Barrel Label</title>
 
 <!-- APP VERSION -->
-<meta name="app-version" content="Print Label v1.8.2">
+<meta name="app-version" content="Print Label v1.8.3">
 
 <!-- Header CSS (GLOBAL, SHARED) -->
 <link rel="stylesheet" href="header.css?v=1.0.0">
@@ -104,28 +104,46 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 
 /* HEADER BLOCK */
+/* ===== TOP LABEL HEADER ===== */
+
 .lbl-header{
   display:flex;
-  gap:14px;
+  gap:18px;
   align-items:flex-start;
 }
 
+/* PRODUCT LETTER (R / W / etc.) */
 .lbl-r{
-  font-size:104px;
-  font-weight:900;
-  line-height:0.95;
+  font-size: 96px;
+  font-weight: 900;
+  line-height: 0.95;
+
+  /* 🔑 MAKE IT 3X WIDER */
+  transform: scaleX(3);
+
+  /* 🔑 VISUAL WEIGHT BOOST */
+  letter-spacing: -2px;
 }
 
+/* COMPANY NAME */
 .lbl-title{
-  font-size:18px;
-  font-weight:900;
+  font-size: 21px;     /* +3pt */
+  font-weight: 900;
+}
+
+/* ADDRESS + DSP */
+.lbl-header div div{
+  font-size: 15px;     /* +3pt from before */
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .lbl-dsp{
-  font-weight:900;
-  margin-top:2px;
+  font-weight: 900;
+  margin-top: 2px;
 }
 
+   
 .lbl-rule{
   border-top:3px solid #000;
   margin:8px 0;
