@@ -12,7 +12,7 @@
 <title>797 Distillery – Print Barrel Label</title>
 
 <!-- APP VERSION -->
-<meta name="app-version" content="Print Label v1.9.6">
+<meta name="app-version" content="Print Label v1.9.7">
 
 <!-- Header CSS -->
 <link rel="stylesheet" href="header.css?v=1.0.0">
@@ -102,8 +102,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .lbl-header{
   display:flex;
   align-items:flex-start;
-  gap:18px;            /* tighter than before */
-  padding-left:8px;   /* subtle optical inset */
+  gap:16px;           /* text a hair closer */
+  padding-left:14px; /* fixed left gutter for wide letters */
 }
 
 
@@ -275,7 +275,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </div>
 
 <script data-nocache="true">
-const APP_VERSION = "Print Label v1.9.6";
+const APP_VERSION = "Print Label v1.9.7";
 const BARREL_STORAGE_CSV_URL =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vSNyLVIgK_UeIZdZQJaGF3IgiqZ68aCG0tydTzszngpgYhu4-HlLXNHotuGPJOA63CKSs-RkZgGtRpt/pub?output=csv";
 
