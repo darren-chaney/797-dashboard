@@ -96,33 +96,37 @@ button:disabled{opacity:.5;cursor:not-allowed}
 /* TOP HEADER */
 .lbl-header{
   display:flex;
-  gap:18px;
   align-items:flex-start;
+  gap:22px;              /* slightly more breathing room */
 }
 
+/* PRODUCT LETTER */
 .lbl-r{
-  font-size:96px;
+  font-size:120px;       /* larger */
   font-weight:900;
-  line-height:1;
-  min-width:120px;
-  letter-spacing:4px;
+  line-height:0.95;
+  min-width:150px;       /* forces width → pushes text right */
+  letter-spacing:8px;   /* visual mass */
 }
 
+/* RIGHT TEXT BLOCK */
 .lbl-header-text{
-  font-size:17px;
-  font-weight:800;
+  font-size:18.5px;      /* slightly larger */
+  font-weight:900;      /* heavier overall */
   line-height:1.25;
 }
 
+/* DISTILLERY NAME */
 .lbl-title{
-  font-size:21px;
+  font-size:24px;        /* stronger hierarchy */
   font-weight:900;
 }
 
+/* DSP LINE */
 .lbl-dsp{
-  font-size:16px;
+  font-size:17px;
   font-weight:900;
-  margin-top:2px;
+  margin-top:3px;
 }
 
 .lbl-rule{
