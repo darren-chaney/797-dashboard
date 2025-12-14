@@ -2,186 +2,161 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>797 Distillery – Print Barrel Label</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- VERSION STAMP -->
+<!-- 797 BARREL LABEL :: v1.7.0 :: 2025-12-13 -->
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
 <style>
-:root{
-  --bg:#0f172a;
-  --panel:#111c33;
-  --border:#334155;
-  --text:#e5e7eb;
-}
-
-/* ================= BASE ================= */
+/* ===============================
+   SCREEN UI (DASHBOARD)
+   =============================== */
 body{
   margin:0;
-  background:var(--bg);
-  color:var(--text);
+  background:#0f172a;
+  color:#e5e7eb;
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
 }
-
 .container{
   max-width:1100px;
   margin:0 auto;
-  padding:18px;
+  padding:16px;
 }
-
-/* ================= HEADER ================= */
-#headerMount{max-height:90px;overflow:hidden}
-#headerMount img{max-height:48px;width:auto}
-#headerMount *{margin:0!important}
-
-/* ================= CONTROLS ================= */
 .controls{
   background:#111c33;
-  border:1px solid var(--border);
+  border:1px solid #334155;
   border-radius:12px;
   padding:14px;
-  display:grid;
-  grid-template-columns:1fr auto auto auto;
+  display:flex;
   gap:10px;
 }
-
 select,button{
-  padding:10px 12px;
+  padding:10px 14px;
   border-radius:10px;
-  border:1px solid var(--border);
+  border:1px solid #334155;
   background:#0b1222;
-  color:var(--text);
+  color:#e5e7eb;
   font-weight:700;
 }
-
 button{cursor:pointer}
-button:disabled{opacity:.5;cursor:not-allowed}
+button:disabled{opacity:.5}
 
-/* ================= LABEL ================= */
-#printArea{
-  margin-top:16px;
-}
-
+/* ===============================
+   LABEL (EXACT 4x6)
+   =============================== */
 .label{
   width:6in;
   height:4in;
   background:#fff;
   color:#000;
-  padding:18px;
   box-sizing:border-box;
-  font-family: Arial, Helvetica, sans-serif;
-  font-weight: 600;           /* ⬅ base weight */
+  padding:16px 18px;
+  font-family:Arial,Helvetica,sans-serif;
   display:none;
 }
 
-.lbl-header{
-  display:flex;
+/* ===== TOP HEADER ===== */
+.lbl-top{
+  display:grid;
+  grid-template-columns:90px 1fr;
+  gap:12px;
   align-items:center;
-  gap:14px;
 }
-
-.lbl-r{
-  font-size:92px;
+.lbl-big-letter{
+  font-size:120px;
   font-weight:900;
   line-height:1;
 }
-
-.lbl-title{
-  font-size: 19px;
-  font-weight: 900;
+.lbl-company{
+  font-size:16px;
+  font-weight:900;
 }
-
+.lbl-address{
+  font-size:14px;
+  font-weight:700;
+}
 .lbl-dsp{
-  font-weight: 900;
-  margin-top: 2px;
+  font-size:14px;
+  font-weight:900;
 }
 
-
-.lbl-rule{
-  border-top: 4px solid #000;   /* ⬅ heavier line */
-  margin: 10px 0;
+/* ===== RULE ===== */
+.rule{
+  border-top:3px solid #000;
+  margin:8px 0;
 }
 
-
-.lbl-data{
-  font-size: 15px;            /* ⬅ up from 14 */
-  line-height: 1.45;          /* ⬅ tighter like your label */
+/* ===== DATA GRID ===== */
+.data{
+  display:grid;
+  grid-template-columns:230px 1fr;
+  row-gap:6px;
+  font-size:15px;
 }
-
-.lbl-data span{
-  display:inline-block;
-  width:190px;                /* ⬅ slightly wider */
-  font-weight: 800;           /* ⬅ bold labels */
+.data .k{
+  text-align:right;
+  font-weight:900;
+  padding-right:10px;
 }
-.lbl-data b{
-  font-weight: 700;
+.data .v{
+  text-align:left;
+  font-weight:700;
 }
-
 
 /* ===== LOGO ===== */
-.lbl-crest{
+.crest{
   text-align:center;
+  margin:8px 0;
 }
-.crest-img{
-  height:260px;            /* FINAL correct size */
+.crest img{
+  height:190px;
   width:auto;
-  max-width:100%;
-  display:block;
-  margin:8px auto;
   object-fit:contain;
 }
 
 /* ===== BARREL ===== */
-.lbl-barrel{
+.barrel{
   text-align:center;
-  font-size: 30px;            /* ⬅ up from 28 */
-  font-weight: 900;
-  letter-spacing: 0.4px;
+  font-size:30px;
+  font-weight:900;
+  margin:6px 0;
 }
 
-
 /* ===== QR ===== */
-.lbl-qr{
+.qr{
   display:flex;
   justify-content:center;
 }
-.lbl-qr canvas,
-.lbl-qr img{
+.qr img,.qr canvas{
   width:150px;
   height:150px;
 }
 
-/* ================= PRINT ================= */
+/* ===== VERSION (BOTTOM RIGHT) ===== */
+.version{
+  position:absolute;
+  bottom:6px;
+  right:10px;
+  font-size:10px;
+  font-weight:700;
+  color:#444;
+}
+
+/* ===============================
+   PRINT
+   =============================== */
 @page{
   size:6in 4in;
   margin:0;
 }
-
 @media print{
-  html,body{
-    width:6in;
-    height:4in;
-    margin:0;
-    padding:0;
-    overflow:hidden;
-    background:#fff;
-  }
-
-  body *{visibility:hidden}
-
-  #printArea,
-  #printArea *{
-    visibility:visible;
-  }
-
-  #printArea{
-    position:absolute;
-    inset:0;
-    width:6in;
-    height:4in;
-  }
-
+  body{background:#fff}
   .no-print{display:none!important}
+  .container{padding:0;margin:0}
+  .label{display:block}
 }
 </style>
 </head>
@@ -189,105 +164,92 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <body>
 <div class="container">
 
+<!-- CONTROLS -->
+<div class="controls no-print">
+  <select id="barrelSelect">
+    <option>Loading barrels…</option>
+  </select>
+  <button id="btnGenerate">Generate</button>
+  <button id="btnPrint" disabled>Print</button>
+  <button id="btnClear">Clear</button>
+</div>
+
+<!-- LABEL -->
+<div id="label" class="label">
+
   <!-- HEADER -->
-  <div id="headerMount" class="no-print"></div>
-
-  <!-- CONTROLS -->
-  <div class="controls no-print">
-    <select id="barrelSelect">
-      <option>Loading barrels…</option>
-    </select>
-    <button id="btnGenerate">Generate</button>
-    <button id="btnPrint" disabled>Print</button>
-    <button id="btnClear">Clear</button>
-  </div>
-
-  <!-- PRINT AREA -->
-  <div id="printArea">
-    <div id="label" class="label">
-
-      <div class="lbl-header">
-        <div class="lbl-r">R</div>
-        <div>
-          <div class="lbl-title">797 Distillery LLC</div>
-          <div>425 E Pleasant Ave</div>
-          <div>Covington, Tennessee 38019</div>
-          <div class="lbl-dsp">DSP-TN-21154</div>
-        </div>
-      </div>
-
-      <div class="lbl-rule"></div>
-
-      <div class="lbl-data">
-        <div><span>First Fill Date:</span> <b id="vFillDate"></b></div>
-        <div><span>Mash Bill:</span> <b id="vMashBill"></b></div>
-        <div><span>Product Name:</span> <b id="vSpiritType"></b></div>
-        <div><span>Entry Proof:</span> <b id="vEntryProof"></b></div>
-        <div><span>Lot Identification No:</span> <b id="vLotId"></b></div>
-        <div><span>RC-G:</span> <b id="vRCG"></b></div>
-        <div><span>OPG:</span> <b id="vOPG"></b></div>
-        <div><span>Barrel Type:</span> <b id="vBarrelType"></b></div>
-      </div>
-
-      <div class="lbl-rule"></div>
-
-      <div class="lbl-crest">
-        <img src="websiteLogoGlass.png" class="crest-img" alt="797 Distillery Logo">
-      </div>
-
-      <div class="lbl-rule"></div>
-
-      <div class="lbl-barrel">
-        Barrel # <span id="vBarrelNo"></span>
-      </div>
-
-      <div class="lbl-rule"></div>
-
-      <div class="lbl-qr">
-        <div id="qrcode"></div>
-      </div>
-
+  <div class="lbl-top">
+    <div id="bigLetter" class="lbl-big-letter">R</div>
+    <div>
+      <div class="lbl-company">797 Distillery LLC</div>
+      <div class="lbl-address">425 E Pleasant Ave</div>
+      <div class="lbl-address">Covington, Tennessee 38019</div>
+      <div class="lbl-dsp">DSP-TN-21154</div>
     </div>
   </div>
+
+  <div class="rule"></div>
+
+  <!-- DATA -->
+  <div class="data">
+    <div class="k">First Fill Date:</div><div class="v" id="vFillDate"></div>
+    <div class="k">Mash Bill:</div><div class="v" id="vMashBill"></div>
+    <div class="k">Product Name:</div><div class="v" id="vSpiritType"></div>
+    <div class="k">Entry Proof:</div><div class="v" id="vEntryProof"></div>
+    <div class="k">Lot Identification No:</div><div class="v" id="vLotId"></div>
+    <div class="k">RC-G:</div><div class="v" id="vRCG"></div>
+    <div class="k">OPG:</div><div class="v" id="vOPG"></div>
+    <div class="k">Barrel Type:</div><div class="v" id="vBarrelType"></div>
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- LOGO -->
+  <div class="crest">
+    <img src="websiteLogoGlass.png" alt="797 Distillery Logo">
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- BARREL -->
+  <div class="barrel">
+    Barrel # <span id="vBarrelNo"></span>
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- QR -->
+  <div class="qr">
+    <div id="qrcode"></div>
+  </div>
+
+  <div class="version">v1.7.0</div>
+</div>
 </div>
 
 <script>
-const BARREL_STORAGE_CSV_URL =
+const CSV_URL =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vSNyLVIgK_UeIZdZQJaGF3IgiqZ68aCG0tydTzszngpgYhu4-HlLXNHotuGPJOA63CKSs-RkZgGtRpt/pub?output=csv";
 
-async function loadHeader(){
-  try{
-    const r=await fetch("header.html",{cache:"no-store"});
-    headerMount.innerHTML=await r.text();
-  }catch{}
-}
+const barrels = new Map();
 
 function parseCSV(t){
-  const [h,...lines]=t.split(/\r?\n/);
-  const headers=h.split(",");
-  return lines.filter(l=>l.trim()).map(l=>{
+  const lines=t.split(/\r?\n/);
+  const h=lines.shift().split(",");
+  lines.forEach(l=>{
+    if(!l.trim())return;
     const o={},c=l.split(",");
-    headers.forEach((k,i)=>o[k.trim()]=c[i]?.trim()||"");
-    return o;
+    h.forEach((k,i)=>o[k.trim()]=c[i]?.trim()||"");
+    barrels.set(o["Barrel No."],o);
   });
 }
 
 function makeQR(url){
   qrcode.innerHTML="";
-  if(url)new QRCode(qrcode,{text:url,width:150,height:150});
+  if(url) new QRCode(qrcode,{text:url,width:150,height:150});
 }
 
-const barrels=new Map();
-
-async function loadBarrels(){
-  const r=await fetch(BARREL_STORAGE_CSV_URL);
-  const rows=parseCSV(await r.text());
-  rows.forEach(o=>barrels.set(o["Barrel No."],o));
-  barrelSelect.innerHTML='<option value="">Select barrel…</option>'+
-    [...barrels.keys()].sort().map(b=>`<option>${b}</option>`).join("");
-}
-
-function fillLabel(o){
+function fill(o){
   vBarrelNo.textContent=o["Barrel No."];
   vFillDate.textContent=o["Fill Date"];
   vMashBill.textContent=o["Mash Bill"];
@@ -298,26 +260,33 @@ function fillLabel(o){
   vOPG.textContent=o["OPG"];
   vBarrelType.textContent=o["Barrel Type"];
   makeQR(o["Barrel Doc Link"]);
+
+  // BIG LETTER LOGIC
+  const s=o["Spirit Type"].toLowerCase();
+  bigLetter.textContent = s.includes("rum") ? "R" :
+                          s.includes("whiskey") ? "W" :
+                          s.includes("vodka") ? "V" : "S";
+
   label.style.display="block";
   btnPrint.disabled=false;
 }
 
 btnGenerate.onclick=()=>{
   const o=barrels.get(barrelSelect.value);
-  if(o)fillLabel(o);
+  if(o) fill(o);
 };
-
 btnClear.onclick=()=>{
   label.style.display="none";
   btnPrint.disabled=true;
   qrcode.innerHTML="";
 };
-
 btnPrint.onclick=()=>window.print();
 
 (async()=>{
-  await loadHeader();
-  await loadBarrels();
+  const r=await fetch(CSV_URL);
+  parseCSV(await r.text());
+  barrelSelect.innerHTML=`<option value="">Select barrel…</option>`+
+    [...barrels.keys()].sort().map(b=>`<option>${b}</option>`).join("");
 })();
 </script>
 </body>
