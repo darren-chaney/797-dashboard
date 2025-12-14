@@ -12,7 +12,7 @@
 <title>797 Distillery – Print Barrel Label</title>
 
 <!-- APP VERSION -->
-<meta name="app-version" content="Print Label v1.9.10">
+<meta name="app-version" content="Print Label v1.9.11">
 
 <!-- Header CSS -->
 <link rel="stylesheet" href="header.css?v=1.0.0">
@@ -157,23 +157,32 @@ button:disabled{opacity:.5;cursor:not-allowed}
   margin:8px 0;
 }
 
-/* DATA */
+/* DATA BLOCK */
 .lbl-data{
   font-size:16.5px;
   line-height:1.55;
 }
-.lbl-data b{
-  font-weight:800;
+
+/* LEFT LABEL COLUMN */
+.lbl-data span{
+  display:inline-block;
+  width:230px;          /* firm column */
+  text-align:right;    /* RIGHT-JUSTIFIED */
+  font-weight:900;     /* heavy */
+  padding-right:12px;  /* space before values */
 }
+
+/* RIGHT VALUE COLUMN */
+.lbl-data b{
+  font-weight:800;     /* slightly lighter than labels */
+  word-break:break-word;
+}
+
+/* ROW SPACING */
 .lbl-data div{
   margin-bottom:2px;
 }
 
-.lbl-data span{
-  display:inline-block;
-  width:220px;          /* wider label column */
-  font-weight:900;
-}
 
 /* LOGO */
 .lbl-crest{text-align:center}
@@ -282,7 +291,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </div>
 
 <script data-nocache="true">
-const APP_VERSION = "Print Label v1.9.10";
+const APP_VERSION = "Print Label v1.9.11";
 const BARREL_STORAGE_CSV_URL =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vSNyLVIgK_UeIZdZQJaGF3IgiqZ68aCG0tydTzszngpgYhu4-HlLXNHotuGPJOA63CKSs-RkZgGtRpt/pub?output=csv";
 
