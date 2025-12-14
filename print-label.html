@@ -67,9 +67,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
   height:4in;
   background:#fff;
   color:#000;
-  padding:0.25in;
+  padding:18px;
   box-sizing:border-box;
-  font-family:Arial,Helvetica,sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 600;           /* ⬅ base weight */
   display:none;
 }
 
@@ -85,23 +86,37 @@ button:disabled{opacity:.5;cursor:not-allowed}
   line-height:1;
 }
 
-.lbl-title{font-size:18px;font-weight:800}
-.lbl-dsp{font-weight:800;margin-top:2px}
+.lbl-title{
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.lbl-dsp{
+  font-weight: 900;
+  margin-top: 2px;
+}
+
 
 .lbl-rule{
-  border-top:3px solid #000;
-  margin:10px 0;
+  border-top: 4px solid #000;   /* ⬅ heavier line */
+  margin: 10px 0;
 }
 
+
 .lbl-data{
-  font-size:14px;
-  line-height:1.6;
+  font-size: 15px;            /* ⬅ up from 14 */
+  line-height: 1.45;          /* ⬅ tighter like your label */
 }
+
 .lbl-data span{
   display:inline-block;
-  width:180px;
-  font-weight:700;
+  width:190px;                /* ⬅ slightly wider */
+  font-weight: 800;           /* ⬅ bold labels */
 }
+.lbl-data b{
+  font-weight: 700;
+}
+
 
 /* ===== LOGO ===== */
 .lbl-crest{
@@ -119,9 +134,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 /* ===== BARREL ===== */
 .lbl-barrel{
   text-align:center;
-  font-size:28px;
-  font-weight:900;
+  font-size: 30px;            /* ⬅ up from 28 */
+  font-weight: 900;
+  letter-spacing: 0.4px;
 }
+
 
 /* ===== QR ===== */
 .lbl-qr{
