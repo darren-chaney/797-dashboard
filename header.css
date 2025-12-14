@@ -1,0 +1,70 @@
+/* ==============================
+   GLOBAL HEADER CSS – LOCKED
+   ============================== */
+
+.header-container {
+  max-width: 1100px;
+  margin: 0 auto 16px auto;
+  padding: 0 18px;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header-titles h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 900;
+}
+
+.subheading {
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  margin-top: 2px;
+}
+
+.header-logo-link {
+  display: block;
+}
+
+.header-logo {
+  height: 48px;
+  width: auto;
+  display: block;
+}
+
+/* Actions */
+.dashboard-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.action-btn.secondary {
+  background: #0f172a;
+}
+
+/* ==============================
+   PRINT SAFETY
+   ============================== */
+@media print {
+  .header-container {
+    display: none !important;
+  }
+}
