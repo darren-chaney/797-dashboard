@@ -114,3 +114,34 @@ body.ops-home #page-title {
 body.ops-home main {
   padding-top: 8px;
 }
+
+/* =====================================
+   DASHBOARD HEADER LAYOUT FIX
+   ===================================== */
+
+body.dashboard .header-container {
+  padding-bottom: 10px;
+}
+
+/* Stack title naturally for dashboards */
+body.dashboard .header-row {
+  align-items: flex-start;
+}
+
+/* Make dashboard titles feel like tool headers */
+body.dashboard #page-title {
+  font-size: 1.8rem;
+  margin-bottom: 4px;
+}
+
+body.dashboard .subheading {
+  font-size: 0.9rem;
+  max-width: 700px;
+}
+
+/* Nav should feel clearly secondary to title */
+body.dashboard .module-nav {
+  margin-top: 14px;
+  padding-top: 10px;
+}
+
