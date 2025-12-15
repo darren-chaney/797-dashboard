@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>797 Distillery Barrel Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/shared/header.css">
+  <link rel="stylesheet" href="header.css">
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -206,7 +206,7 @@
 </script>
 
 <script>
-fetch("/shared/header.html")
+fetch("header.html")
   .then(res => res.text())
   .then(html => {
     document.getElementById("global-header").innerHTML = html;
