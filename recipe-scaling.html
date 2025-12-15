@@ -2,196 +2,344 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Moonshine Recipe Wizard</title>
+  <title>Recipe Scaling</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <!-- Shared Header CSS -->
   <link rel="stylesheet" href="header.css" />
+
+  <!-- Scaling Engine -->
   <script src="scaler.js"></script>
 
   <style>
-    body {
-      margin: 0;
-      background: #0f172a;
-      color: #e5e7eb;
-      font-family: system-ui, sans-serif;
+    body{
+      margin:0;
+      background:#0f172a;
+      color:#e5e7eb;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     }
 
-    main {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 32px 20px;
+    main{
+      max-width:1000px;
+      margin:0 auto;
+      padding:32px 20px;
     }
 
-    h1 {
-      margin-bottom: 6px;
+    h1{
+      font-size:1.7rem;
+      margin:0 0 6px 0;
     }
 
-    .subtitle {
-      color: #9ca3af;
-      margin-bottom: 28px;
+    .subtitle{
+      color:#9ca3af;
+      margin-bottom:22px;
     }
 
-    .step {
-      background: #111c33;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
+    .panel{
+      background:#111c33;
+      border:1px solid #334155;
+      border-radius:12px;
+      padding:20px;
+      margin-bottom:18px;
     }
 
-    label {
-      font-size: 0.85rem;
-      color: #cbd5e1;
-      display: block;
-      margin-bottom: 6px;
+    .panel h2{
+      font-size:1.05rem;
+      margin:0 0 14px 0;
     }
 
-    select, input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      background: #0f172a;
-      color: #e5e7eb;
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+      gap:14px;
     }
 
-    .results {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-top: 12px;
+    label{
+      display:block;
+      font-size:.85rem;
+      color:#cbd5e1;
+      margin-bottom:6px;
     }
 
-    .result {
-      background: #0f1e3a;
-      border: 1px solid #475569;
-      border-radius: 10px;
-      padding: 14px;
+    select, input{
+      width:100%;
+      padding:10px;
+      border-radius:8px;
+      border:1px solid #334155;
+      background:#0f172a;
+      color:#e5e7eb;
+      font-size:.95rem;
+      outline:none;
     }
 
-    .label {
-      font-size: 0.75rem;
-      color: #9ca3af;
+    input:focus, select:focus{
+      border-color:#64748b;
     }
 
-    .value {
-      font-size: 1.15rem;
-      font-weight: 600;
+    .results{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));
+      gap:14px;
+      margin-top:10px;
+    }
+
+    .result{
+      background:#0f1e3a;
+      border:1px solid #475569;
+      border-radius:10px;
+      padding:14px;
+    }
+
+    .result .k{
+      font-size:.75rem;
+      color:#9ca3af;
+      margin-bottom:4px;
+    }
+
+    .result .v{
+      font-size:1.15rem;
+      font-weight:650;
+      letter-spacing:.2px;
+    }
+
+    .muted{
+      color:#9ca3af;
+      font-size:.85rem;
+      line-height:1.35;
+    }
+
+    .rowline{
+      height:1px;
+      background:#334155;
+      margin:14px 0;
+    }
+
+    .pill{
+      display:inline-block;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid #475569;
+      background:#0f172a;
+      color:#cbd5e1;
+      font-size:.78rem;
+      margin-top:8px;
     }
   </style>
 </head>
 
 <body>
 
-<div id="global-header"></div>
+  <!-- GLOBAL HEADER -->
+  <div id="global-header"></div>
 
-<script>
-  const PAGE_TITLE = "Moonshine Recipe Wizard";
-  const PAGE_SUBTITLE = "Scale approved flavored moonshine recipes";
+  <script>
+    const PAGE_TITLE = "Recipe Scaling";
+    const PAGE_SUBTITLE = "Wizard scaling from approved base recipes.";
 
-  fetch("header.html", { cache: "no-store" })
-    .then(r => r.text())
-    .then(html => {
-      document.getElementById("global-header").innerHTML = html;
-      document.getElementById("page-title").textContent = PAGE_TITLE;
-      document.getElementById("page-subheading").textContent = PAGE_SUBTITLE;
-      setActiveModule("products");
+    fetch("header.html", { cache: "no-store" })
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("global-header").innerHTML = html;
+
+        const title = document.getElementById("page-title");
+        const subtitle = document.getElementById("page-subheading");
+
+        if (title) title.textContent = PAGE_TITLE;
+        if (subtitle) subtitle.textContent = PAGE_SUBTITLE;
+
+        setActiveModule("products");
+      });
+  </script>
+
+  <main>
+    <h1>Recipe Scaling</h1>
+    <div class="subtitle">Select a recipe, enter base gallons, get exact water + scaled ingredients.</div>
+
+    <!-- STEP 1: RECIPE -->
+    <section class="panel">
+      <h2>Step 1 — Select Recipe</h2>
+      <div class="grid">
+        <div>
+          <label for="recipe">Recipe</label>
+          <select id="recipe"></select>
+          <div class="pill" id="recipeMeta">—</div>
+        </div>
+      </div>
+      <div class="muted" style="margin-top:10px;">
+        This wizard assumes the recipe defines a canonical base (ex: 4 gal @ 155 proof) and a fixed final proof (ex: 60).
+      </div>
+    </section>
+
+    <!-- STEP 2: BASE INPUT -->
+    <section class="panel">
+      <h2>Step 2 — Base Spirit Used</h2>
+      <div class="grid">
+        <div>
+          <label for="baseGallons">Gallons of Base Spirit</label>
+          <input id="baseGallons" type="number" step="0.01" value="4" />
+        </div>
+
+        <div>
+          <label for="baseProof">Base Proof</label>
+          <input id="baseProof" type="number" step="1" value="155" />
+        </div>
+
+        <div>
+          <label for="finalProof">Final Proof</label>
+          <input id="finalProof" type="number" step="1" value="60" />
+        </div>
+      </div>
+
+      <div class="muted" style="margin-top:10px;">
+        Base Proof and Final Proof are auto-filled by the recipe, but you can override for special cases.
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="panel">
+      <h2>Results</h2>
+      <div id="results" class="results"></div>
+
+      <div class="rowline"></div>
+
+      <div class="muted">
+        Ingredient units come from the recipe book:
+        <strong>Flavoring = mL</strong>, <strong>Sweetener = kg</strong>.
+        Water and volume are calculated in <strong>gallons</strong>.
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // =========================================================
+    // RECIPE DATA (Step 2 will expand this — start small)
+    // Notes:
+    // - flavorMl and sweetenerKg are placeholders until you paste real numbers
+    // - base + final are the authoritative proof targets for math
+    // =========================================================
+    const RECIPES = {
+      // Replace placeholder amounts with your Master Recipe Book numbers.
+      apple_pie: {
+        name: "Apple Pie Moonshine",
+        base: { gallons: 4, proof: 155 },
+        final: { proof: 60 },
+        ingredients: { flavorMl: 0, sweetenerKg: 0 }
+      },
+      blue_raspberry: {
+        name: "Blue Raspberry Moonshine",
+        base: { gallons: 4, proof: 155 },
+        final: { proof: 60 },
+        ingredients: { flavorMl: 0, sweetenerKg: 0 }
+      }
+    };
+
+    const recipeSelect = document.getElementById("recipe");
+    const recipeMeta = document.getElementById("recipeMeta");
+    const baseGallonsInput = document.getElementById("baseGallons");
+    const baseProofInput = document.getElementById("baseProof");
+    const finalProofInput = document.getElementById("finalProof");
+    const resultsDiv = document.getElementById("results");
+
+    // Populate dropdown
+    Object.entries(RECIPES).forEach(([key, r]) => {
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = r.name;
+      recipeSelect.appendChild(opt);
     });
-</script>
 
-<main>
-  <h1>Moonshine Recipe Wizard</h1>
-  <div class="subtitle">Flavored moonshine – fixed 60 proof</div>
+    function setInputsFromRecipe() {
+      const r = RECIPES[recipeSelect.value];
+      if (!r) return;
 
-  <!-- STEP 1 -->
-  <div class="step">
-    <label>Step 1 — Select Flavor</label>
-    <select id="recipe"></select>
-  </div>
+      baseGallonsInput.value = r.base.gallons;
+      baseProofInput.value = r.base.proof;
+      finalProofInput.value = r.final.proof;
 
-  <!-- STEP 2 -->
-  <div class="step">
-    <label>Step 2 — Gallons of 155-Proof Base Spirit</label>
-    <input id="baseGallons" type="number" step="0.01" value="4" />
-  </div>
-
-  <!-- STEP 3 -->
-  <div class="step">
-    <label>Results</label>
-    <div class="results" id="results"></div>
-  </div>
-</main>
-
-<script>
-  const MOONSHINE_RECIPES = {
-    apple_pie: {
-      name: "Apple Pie Moonshine",
-      base: { gallons: 4, proof: 155 },
-      finalProof: 60,
-      ingredients: { flavorOz: 32, sugarLb: 8 }
-    },
-    blue_raspberry: {
-      name: "Blue Raspberry Moonshine",
-      base: { gallons: 4, proof: 155 },
-      finalProof: 60,
-      ingredients: { flavorOz: 24, sugarLb: 6 }
+      recipeMeta.textContent =
+        `${r.base.gallons} gal @ ${r.base.proof} proof → ${r.final.proof} proof`;
     }
-  };
 
-  const recipeSelect = document.getElementById("recipe");
-  const baseInput = document.getElementById("baseGallons");
-  const results = document.getElementById("results");
+    function runWizard() {
+      const r = RECIPES[recipeSelect.value];
+      if (!r) return;
 
-  Object.entries(MOONSHINE_RECIPES).forEach(([key, r]) => {
-    const opt = document.createElement("option");
-    opt.value = key;
-    opt.textContent = r.name;
-    recipeSelect.appendChild(opt);
-  });
+      const baseGallons = Number(baseGallonsInput.value);
+      const baseProof = Number(baseProofInput.value);
+      const finalProof = Number(finalProofInput.value);
 
-  function runWizard() {
-    const recipe = MOONSHINE_RECIPES[recipeSelect.value];
-    const baseUsed = Number(baseInput.value);
+      if (!baseGallons || !baseProof || !finalProof) {
+        resultsDiv.innerHTML = `<div class="muted">Enter valid base gallons and proofs.</div>`;
+        return;
+      }
 
-    const multiplier = baseUsed / recipe.base.gallons;
+      // =========================================================
+      // STEP 1 REFACTOR COMPLETE:
+      // All base → water → final volume math comes from scaler.js
+      // =========================================================
+      let scaledBase;
+      try {
+        scaledBase = Scaler.scaleFromBase({
+          baseGallons,
+          baseProof,
+          targetProof: finalProof
+        });
+      } catch (e) {
+        resultsDiv.innerHTML = `<div class="muted">${e.message}</div>`;
+        return;
+      }
 
-    const scaledFlavor = recipe.ingredients.flavorOz * multiplier;
-    const scaledSugar = recipe.ingredients.sugarLb * multiplier;
+      // Recipe multiplier (ingredient scaling)
+      const multiplier = baseGallons / r.base.gallons;
 
-    const alcoholPG =
-      baseUsed * (recipe.base.proof / 100);
+      // Ingredient scaling (units match Master Recipe Book)
+      const flavorMl = (r.ingredients?.flavorMl || 0) * multiplier;
+      const sweetenerKg = (r.ingredients?.sweetenerKg || 0) * multiplier;
 
-    const finalVolume =
-      alcoholPG / (recipe.finalProof / 100);
+      resultsDiv.innerHTML = `
+        <div class="result">
+          <div class="k">Water Required</div>
+          <div class="v">${scaledBase.waterGallons} gal</div>
+        </div>
 
-    const waterNeeded =
-      finalVolume - baseUsed;
+        <div class="result">
+          <div class="k">Final Volume</div>
+          <div class="v">${scaledBase.finalVolume} gal</div>
+        </div>
 
-    results.innerHTML = `
-      <div class="result">
-        <div class="label">Water Required</div>
-        <div class="value">${waterNeeded.toFixed(2)} gal</div>
-      </div>
-      <div class="result">
-        <div class="label">Flavoring</div>
-        <div class="value">${scaledFlavor.toFixed(1)} oz</div>
-      </div>
-      <div class="result">
-        <div class="label">Sugar</div>
-        <div class="value">${scaledSugar.toFixed(2)} lb</div>
-      </div>
-      <div class="result">
-        <div class="label">Final Volume</div>
-        <div class="value">${finalVolume.toFixed(2)} gal</div>
-      </div>
-    `;
-  }
+        <div class="result">
+          <div class="k">Alcohol Content</div>
+          <div class="v">${scaledBase.alcoholPG} PG</div>
+        </div>
 
-  recipeSelect.addEventListener("change", runWizard);
-  baseInput.addEventListener("input", runWizard);
+        <div class="result">
+          <div class="k">Flavoring</div>
+          <div class="v">${flavorMl.toFixed(0)} mL</div>
+          <div class="muted">Scaled × ${multiplier.toFixed(3)}</div>
+        </div>
 
-  runWizard();
-</script>
+        <div class="result">
+          <div class="k">Sweetener</div>
+          <div class="v">${sweetenerKg.toFixed(3)} kg</div>
+          <div class="muted">Scaled × ${multiplier.toFixed(3)}</div>
+        </div>
+      `;
+    }
+
+    // Events
+    recipeSelect.addEventListener("change", () => {
+      setInputsFromRecipe();
+      runWizard();
+    });
+
+    [baseGallonsInput, baseProofInput, finalProofInput].forEach(el => {
+      el.addEventListener("input", runWizard);
+    });
+
+    // Init
+    setInputsFromRecipe();
+    runWizard();
+  </script>
 
 </body>
 </html>
