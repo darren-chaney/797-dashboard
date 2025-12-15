@@ -1,7 +1,7 @@
 /* =========================================================
    797 Distillery – Recipe Scaling Engine
    File: scaler.js
-   Version: 1.0.0
+   Version: 1.1.0
    Author: 797 Distillery
    ========================================================= */
 
@@ -53,6 +53,14 @@ const PRODUCTS = {
 };
 
 /* =========================
+   UTILITIES
+   ========================= */
+
+function round(value, decimals = 2) {
+  return Number(value.toFixed(decimals));
+}
+
+/* =========================
    CORE MATH
    ========================= */
 
@@ -74,7 +82,34 @@ function waterVolume(targetVolume, alcoholVol, otherLiquids = 0) {
 }
 
 /* =========================
-   MAIN SCALER
+   BASE-SPIRIT SCALER (WIZARD ENGINE)
+   ========================= */
+
+function scaleFromBase({
+  baseGallons,
+  baseProof,
+  targetProof
+}) {
+  if (!baseGallons || !baseProof || !targetProof) {
+    throw new Error("scaleFromBase requires baseGallons, baseProof, and targetProof");
+  }
+
+  const alcoholPG = proofGallons(baseGallons, baseProof);
+  const finalVolume = alcoholPG / (targetProof / 100);
+  const waterGallons = finalVolume - baseGallons;
+
+  return {
+    alcoholPG: round(alcoholPG),
+    finalVolume: round(finalVolume),
+    waterGallons: round(waterGallons),
+    baseGallons: round(baseGallons),
+    baseProof,
+    targetProof
+  };
+}
+
+/* =========================
+   GENERIC RECIPE SCALER
    ========================= */
 
 function scaleRecipe({
@@ -112,7 +147,7 @@ function scaleRecipe({
 
   return {
     product: product.name,
-    targetVolumeGal,
+    targetVolumeGal: round(targetVolumeGal),
     targetProof: finalTargetProof,
     baseProof: product.baseProof,
     proofGallons: round(requiredPG),
@@ -125,18 +160,11 @@ function scaleRecipe({
 }
 
 /* =========================
-   UTILITIES
-   ========================= */
-
-function round(value, decimals = 2) {
-  return Number(value.toFixed(decimals));
-}
-
-/* =========================
    EXPORTS (GLOBAL SAFE)
    ========================= */
 
 window.Scaler = {
   PRODUCTS,
-  scaleRecipe
+  scaleRecipe,
+  scaleFromBase
 };
