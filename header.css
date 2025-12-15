@@ -81,5 +81,6 @@ body.ops-home .header-container {
 }
 
 body.dashboard .header-container {
-  background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+  background: transparent;
 }
+
