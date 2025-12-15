@@ -1,12 +1,13 @@
 /* ==============================
-   GLOBAL HEADER – BASE STYLES
+   GLOBAL HEADER — LOCKED
    ============================== */
 
 .header-container {
   padding: 14px 20px 10px 20px;
   border-bottom: 1px solid #334155;
+  max-width: 1200px;
+  margin: 0 auto;
 }
-
 
 .header-row {
   display: flex;
@@ -31,7 +32,6 @@
   color: #9ca3af;
 }
 
-
 .header-logo-link {
   display: flex;
   align-items: center;
@@ -43,15 +43,7 @@
 }
 
 /* ==============================
-   DASHBOARD HEADER MODE
-   ============================== */
-
-body.dashboard .header-container {
-  background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
-}
-
-/* ==============================
-   MODULE NAV
+   MODULE NAV — LOCKED
    ============================== */
 
 .module-nav {
@@ -80,76 +72,14 @@ body.dashboard .header-container {
   font-weight: 500;
 }
 
-/* =====================================
-   OPS HOME (INDEX PAGE) HEADER TUNING
-   ===================================== */
+/* ==============================
+   PAGE ROLE — BACKGROUND ONLY
+   ============================== */
 
 body.ops-home .header-container {
-  padding-top: 8px;
-  padding-bottom: 6px;
-  max-width: 1100px;
-  margin: 0 auto;
+  background: transparent;
 }
-
-body.ops-home .header-row {
-  align-items: flex-start;
-}
-
-
-body.ops-home .module-nav {
-  margin-top: 6px;
-  padding-top: 6px;
-}
-
-body.ops-home #page-title {
-  font-size: 1.25rem;
-}
-
-/* =====================================
-   OPS HOME CONTENT PULL-UP
-   ===================================== */
-
-body.ops-home main {
-  padding-top: 8px;
-}
-
-/* =====================================
-   DASHBOARD HEADER LAYOUT FIX
-   ===================================== */
 
 body.dashboard .header-container {
-  padding-bottom: 10px;
-background: transparent;
+  background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
 }
-
-/* Stack title naturally for dashboards */
-body.dashboard .header-row {
-  align-items: flex-start;
-}
-
-/* Make dashboard titles feel like tool headers */
-body.dashboard #page-title {
-  font-size: 1.8rem;
-  margin-bottom: 4px;
-}
-
-body.dashboard .subheading {
-  font-size: 0.9rem;
-  max-width: 700px;
-}
-
-/* Nav should feel clearly secondary to title */
-body.dashboard .module-nav {
-  margin-top: 14px;
-  padding-top: 10px;
-}
-/* =====================================
-   DASHBOARD HEADER WIDTH CONSTRAINT
-   ===================================== */
-
-/* Slightly tighten dashboard header height */
-body.dashboard .header-container {
-  padding-top: 12px;   /* was 16px */
-}
-
-
