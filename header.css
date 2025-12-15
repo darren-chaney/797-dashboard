@@ -40,6 +40,13 @@
   height: 96px;
   width: auto;
 }
+/* ==============================
+   DASHBOARD HEADER MODE
+   ============================== */
+
+body.dashboard .header-container {
+  background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+}
 
 /* ==============================
    MODULE NAV
