@@ -133,7 +133,7 @@
   /* =========================
      PAGE CONFIG
      ========================= */
-  const APP_VERSION = "v1.2.0";
+  const APP_VERSION = "v1.3.0";
 
   const PAGE_TITLE = "Recipe Scaling";
   const PAGE_SUBTITLE = "Wizard scaling from approved base recipes.";
@@ -208,46 +208,22 @@ const RECIPES = {
       { name:"Citric Acid", type:"solid", amount:27, unit:"g" },
       { name:"Malic Acid",  type:"solid", amount:8,  unit:"g" }
     ]
-  }
-  spicy_pineapple: {
-  name: "Spicy Pineapple Moonshine",
-  base: { gallons: 5, proof: 155 },
-  final: { proof: 60 },
-  ingredients: [
-    {
-      name: "HFCS 42",
-      type: "percent_vv",
-      percent: 0.14,
-      densityKgPerL: 1.613
-    },
-    {
-      name: "Apex Pineapple Flavor (Natural & Artificial)",
-      type: "liquid",
-      amount: 420,
-      unit: "mL"
-    },
-    {
-      name: "Apex Capsicum Natural Extract",
-      type: "liquid",
-      amount: 12,
-      unit: "mL"
-    },
-    {
-      name: "Citric Acid",
-      type: "solid",
-      amount: 27,
-      unit: "g"
-    },
-    {
-      name: "Malic Acid",
-      type: "solid",
-      amount: 8,
-      unit: "g"
-    }
-  ]
-}
+  },  // ✅ REQUIRED COMMA HERE
 
+  spicy_pineapple: {
+    name: "Spicy Pineapple Moonshine",
+    base: { gallons: 5, proof: 155 },
+    final: { proof: 60 },
+    ingredients: [
+      { name:"HFCS 42", type:"percent_vv", percent:0.14, densityKgPerL:1.613 },
+      { name:"Apex Pineapple Flavor (Natural & Artificial)", type:"liquid", amount:420, unit:"mL" },
+      { name:"Apex Capsicum Natural Extract", type:"liquid", amount:12, unit:"mL" },
+      { name:"Citric Acid", type:"solid", amount:27, unit:"g" },
+      { name:"Malic Acid", type:"solid", amount:8, unit:"g" }
+    ]
+  }
 };
+
 
 const GAL_TO_L = 3.785411784;
 function fmt(n,d=3){ return Number(n).toFixed(d); }
