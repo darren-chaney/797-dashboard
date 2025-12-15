@@ -135,26 +135,31 @@
 <script>
 /* =========================================================
    RECIPE DEFINITIONS (MATCH MASTER RECIPE BOOK)
-   ========================================================= */
+   =========================================================
+   Ingredient types supported:
+   - { type:"percent_vv", percent:0.14, densityKgPerL:1.613 }  // HFCS 42 example
+   - { type:"liquid", amount:232, unit:"mL" }                  // flavor/extract liquids
+   - { type:"solid",  amount:27,  unit:"g"  }                  // acids, powders
+   - { type:"mass",   amount:8.45, unit:"kg" }                 // if you ever want mass-only items
+*/
+
 const RECIPES = {
   margarita: {
     name: "Margarita Moonshine",
-    base: { gallons: 4, proof: 164 },
+    base: { gallons: 4, proof: 164 },     // canonical recipe book line
     final: { proof: 60 },
     ingredients: [
-      { name:"HFCS 42", amount:8.45, unit:"kg" },
-      { name:"Apex Margarita Flavor", amount:232, unit:"mL" },
-      { name:"Apex Orange Extract", amount:39, unit:"mL" },
-      { name:"Citric Acid", amount:27, unit:"g" },
-      { name:"Malic Acid", amount:8, unit:"g" }
-    ]
-  },
+      // Sweetness rule: 14% v/v using HFCS 42
+      { name: "HFCS 42", type: "percent_vv", percent: 0.14, densityKgPerL: 1.613 },
 
-  apple_pie: {
-    name: "Apple Pie Moonshine",
-    base: { gallons: 4, proof: 155 },
-    final: { proof: 60 },
-    ingredients: []
+      // Liquids
+      { name: "Apex Margarita Flavor", type: "liquid", amount: 232, unit: "mL" },
+      { name: "Apex Orange Extract",   type: "liquid", amount: 39,  unit: "mL" },
+
+      // Solids
+      { name: "Citric Acid", type: "solid", amount: 27, unit: "g" },
+      { name: "Malic Acid",  type: "solid", amount: 8,  unit: "g" }
+    ]
   }
 };
 
@@ -165,59 +170,148 @@ const baseProofInput = document.getElementById("baseProof");
 const finalProofInput = document.getElementById("finalProof");
 const resultsDiv = document.getElementById("results");
 
-// Populate recipes
+/* ---------- Unit helpers ---------- */
+const GAL_TO_L = 3.785411784;
+
+function toGallons(amount, unit){
+  const u = (unit || "").toLowerCase();
+  if (u === "gal" || u === "gallon" || u === "gallons") return amount;
+  if (u === "l" || u === "liter" || u === "liters") return amount / GAL_TO_L;
+  if (u === "ml") return (amount / 1000) / GAL_TO_L;
+  return 0; // solids/mass don't contribute volume here
+}
+
+function fmt(n, d=2){ return Number(n).toFixed(d); }
+
+/* ---------- Populate recipes ---------- */
 Object.entries(RECIPES).forEach(([key,r])=>{
-  const o=document.createElement("option");
-  o.value=key;
-  o.textContent=r.name;
+  const o = document.createElement("option");
+  o.value = key;
+  o.textContent = r.name;
   recipeSelect.appendChild(o);
 });
 
 function loadRecipe(){
-  const r=RECIPES[recipeSelect.value];
-  baseGallonsInput.value=r.base.gallons;
-  baseProofInput.value=r.base.proof;
-  finalProofInput.value=r.final.proof;
-  recipeMeta.textContent=
-    `${r.base.gallons} gal @ ${r.base.proof} → ${r.final.proof} proof`;
+  const r = RECIPES[recipeSelect.value];
+  baseGallonsInput.value = r.base.gallons;
+  baseProofInput.value = r.base.proof;
+  finalProofInput.value = r.final.proof;
+  recipeMeta.textContent = `${r.base.gallons} gal @ ${r.base.proof} → ${r.final.proof} proof`;
 }
 
 function runWizard(){
-  const r=RECIPES[recipeSelect.value];
-  const baseGallons=Number(baseGallonsInput.value);
+  const r = RECIPES[recipeSelect.value];
+  if (!r) return;
 
-  const scaled=Scaler.scaleFromBase({
-    baseGallons,
-    baseProof:Number(baseProofInput.value),
-    targetProof:Number(finalProofInput.value)
-  });
+  const baseGallons = Number(baseGallonsInput.value);
+  const baseProof   = Number(baseProofInput.value);
+  const finalProof  = Number(finalProofInput.value);
 
-  const multiplier=baseGallons/r.base.gallons;
+  if (!baseGallons || !baseProof || !finalProof){
+    resultsDiv.innerHTML = `<div class="muted">Enter valid base gallons and proofs.</div>`;
+    return;
+  }
 
-  const ingredientBlocks = r.ingredients.map(i=>{
+  // Final volume + PG from authoritative engine
+  let scaledBase;
+  try{
+    scaledBase = Scaler.scaleFromBase({
+      baseGallons,
+      baseProof,
+      targetProof: finalProof
+    });
+  } catch(e){
+    resultsDiv.innerHTML = `<div class="muted">${e.message}</div>`;
+    return;
+  }
+
+  // Scale factor for “recipe book amounts”
+  const multiplier = baseGallons / r.base.gallons;
+
+  // Compute volume-taking additions (HFCS + other liquids if desired)
+  let volumeAdditionsGal = 0;
+
+  // Build ingredient cards
+  const ingredientBlocks = (r.ingredients || []).map(ing => {
+    const type = ing.type || "mass";
+
+    // HFCS / sweetness rule: percent of FINAL volume
+    if (type === "percent_vv"){
+      const volGal = scaledBase.finalVolume * ing.percent; // v/v
+      volumeAdditionsGal += volGal;
+
+      const volL = volGal * GAL_TO_L;
+      const kg = (ing.densityKgPerL ? (volL * ing.densityKgPerL) : null);
+
+      return `
+        <div class="result">
+          <div class="k">${ing.name}</div>
+          <div class="v">${fmt(volGal,3)} gal</div>
+          <div class="muted">
+            ${fmt(ing.percent*100,1)}% v/v of final
+            ${kg !== null ? ` • ≈ ${fmt(kg,2)} kg` : ""}
+          </div>
+        </div>
+      `;
+    }
+
+    // Liquids: scale by multiplier, contribute (optionally) to volume
+    if (type === "liquid"){
+      const scaledAmt = (ing.amount || 0) * multiplier;
+      const volGal = toGallons(scaledAmt, ing.unit || "mL");
+      // If you want to subtract flavor/extract volume from water too, keep next line:
+      volumeAdditionsGal += volGal;
+
+      return `
+        <div class="result">
+          <div class="k">${ing.name}</div>
+          <div class="v">${fmt(scaledAmt, ing.unit==="mL" ? 0 : 3)} ${ing.unit}</div>
+          <div class="muted">× ${fmt(multiplier,4)}</div>
+        </div>
+      `;
+    }
+
+    // Solids: scale by multiplier, no volume effect
+    if (type === "solid"){
+      const scaledAmt = (ing.amount || 0) * multiplier;
+      return `
+        <div class="result">
+          <div class="k">${ing.name}</div>
+          <div class="v">${fmt(scaledAmt,3)} ${ing.unit}</div>
+          <div class="muted">× ${fmt(multiplier,4)}</div>
+        </div>
+      `;
+    }
+
+    // Mass-only fallback
+    const scaledAmt = (ing.amount || 0) * multiplier;
     return `
       <div class="result">
-        <div class="k">${i.name}</div>
-        <div class="v">${(i.amount*multiplier).toFixed(3)} ${i.unit}</div>
-        <div class="muted">× ${multiplier.toFixed(3)}</div>
+        <div class="k">${ing.name}</div>
+        <div class="v">${fmt(scaledAmt,3)} ${ing.unit || ""}</div>
+        <div class="muted">× ${fmt(multiplier,4)}</div>
       </div>
     `;
   }).join("");
 
-  resultsDiv.innerHTML=`
+  // ✅ Correct water: subtract HFCS + other liquid volumes from water
+  const correctedWaterGal = scaledBase.finalVolume - baseGallons - volumeAdditionsGal;
+
+  resultsDiv.innerHTML = `
     <div class="result">
       <div class="k">Water Required</div>
-      <div class="v">${scaled.waterGallons} gal</div>
+      <div class="v">${fmt(correctedWaterGal,3)} gal</div>
+      <div class="muted">Final − Base − Liquid Adds</div>
     </div>
 
     <div class="result">
       <div class="k">Final Volume</div>
-      <div class="v">${scaled.finalVolume} gal</div>
+      <div class="v">${fmt(scaledBase.finalVolume,3)} gal</div>
     </div>
 
     <div class="result">
       <div class="k">Alcohol Content</div>
-      <div class="v">${scaled.alcoholPG} PG</div>
+      <div class="v">${fmt(scaledBase.alcoholPG,2)} PG</div>
     </div>
 
     ${ingredientBlocks}
@@ -225,12 +319,12 @@ function runWizard(){
 }
 
 recipeSelect.addEventListener("change",()=>{loadRecipe();runWizard();});
-[baseGallonsInput,baseProofInput,finalProofInput]
-  .forEach(e=>e.addEventListener("input",runWizard));
+[baseGallonsInput, baseProofInput, finalProofInput].forEach(el=>{
+  el.addEventListener("input", runWizard);
+});
 
 loadRecipe();
 runWizard();
 </script>
-
 </body>
 </html>
