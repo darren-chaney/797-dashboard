@@ -8,8 +8,9 @@
   <!-- Shared Header CSS -->
   <link rel="stylesheet" href="header.css" />
 
-  <!-- Scaling Engine -->
+  <!-- Core Engines -->
   <script src="scaler.js"></script>
+  <script src="recipes.js"></script>
 
   <style>
     body{
@@ -104,13 +105,15 @@
 <div id="global-header"></div>
 
 <script>
-  const APP_VERSION = "v1.5.0";
+  const APP_VERSION = "v1.6.0";
 
   fetch("header.html",{cache:"no-store"})
     .then(r=>r.text())
     .then(html=>{
       document.getElementById("global-header").innerHTML = html;
-      if (typeof setActiveModule === "function") setActiveModule("products");
+      if (typeof setActiveModule === "function") {
+        setActiveModule("products");
+      }
     });
 </script>
 
@@ -165,128 +168,153 @@
 
 <script>
 /* =========================
-   RECIPES
+   SAFETY CHECK
    ========================= */
+if (!window.RECIPES) {
+  throw new Error("RECIPES not loaded. Check recipes.js path.");
+}
 
-const RECIPES = {
-  margarita: {
-    name:"Margarita Moonshine",
-    base:{gallons:4,proof:164},
-    final:{proof:60},
-    ingredients:[
-      {name:"HFCS 42",type:"percent_vv",percent:0.14,densityKgPerL:1.613},
-      {name:"Apex Margarita Flavor",type:"liquid",amount:232,unit:"mL"},
-      {name:"Apex Orange Extract",type:"liquid",amount:39,unit:"mL"},
-      {name:"Citric Acid",type:"solid",amount:27,unit:"g"},
-      {name:"Malic Acid",type:"solid",amount:8,unit:"g"}
-    ]
-  },
-  spicy_pineapple: {
-    name:"Spicy Pineapple Moonshine",
-    base:{gallons:5,proof:155},
-    final:{proof:60},
-    ingredients:[
-      {name:"HFCS 42",type:"percent_vv",percent:0.12,densityKgPerL:1.613},
-      {name:"Apex Pineapple Flavor",type:"liquid",amount:420,unit:"mL"},
-      {name:"Apex Capsicum Extract",type:"liquid",amount:12,unit:"mL"},
-      {name:"Citric Acid",type:"solid",amount:27,unit:"g"},
-      {name:"Malic Acid",type:"solid",amount:8,unit:"g"}
-    ]
-  }
-};
-
+/* =========================
+   UTILITIES
+   ========================= */
 const GAL_TO_L = 3.785411784;
-const fmt=(n,d=3)=>Number(n).toFixed(d);
-const fmt1=n=>Number(n).toFixed(1);
+const fmt = (n,d=3)=>Number(n).toFixed(d);
+const fmt1 = n=>Number(n).toFixed(1);
 
 document.getElementById("app-version").textContent = APP_VERSION;
 
-const recipeSelect=document.getElementById("recipe");
-const recipeMeta=document.getElementById("recipeMeta");
-const recipeSummary=document.getElementById("recipeSummary");
-const baseGallonsInput=document.getElementById("baseGallons");
-const baseProofInput=document.getElementById("baseProof");
-const finalProofInput=document.getElementById("finalProof");
-const sweetPercentInput=document.getElementById("sweetPercent");
-const sweetOverrideInput=document.getElementById("sweetOverride");
-const resultsDiv=document.getElementById("results");
+/* =========================
+   DOM
+   ========================= */
+const recipeSelect = document.getElementById("recipe");
+const recipeMeta = document.getElementById("recipeMeta");
+const recipeSummary = document.getElementById("recipeSummary");
 
-Object.entries(RECIPES).forEach(([k,r])=>{
-  const o=document.createElement("option");
-  o.value=k;o.textContent=r.name;
+const baseGallonsInput = document.getElementById("baseGallons");
+const baseProofInput   = document.getElementById("baseProof");
+const finalProofInput  = document.getElementById("finalProof");
+
+const sweetPercentInput = document.getElementById("sweetPercent");
+const sweetOverrideInput = document.getElementById("sweetOverride");
+
+const resultsDiv = document.getElementById("results");
+
+/* =========================
+   INIT DROPDOWN
+   ========================= */
+Object.entries(RECIPES).forEach(([key,r])=>{
+  const o = document.createElement("option");
+  o.value = key;
+  o.textContent = r.name;
   recipeSelect.appendChild(o);
 });
 
 function getHFCS(r){
-  return r.ingredients.find(i=>i.type==="percent_vv");
+  const hfcs = r.ingredients.find(i=>i.type==="percent_vv");
+  if (!hfcs) throw new Error(`Recipe "${r.name}" missing HFCS percent.`);
+  return hfcs;
 }
 
-function renderSummary(r,pct){
-  recipeSummary.innerHTML=`
-    <div class="result"><div class="k">Canonical Base</div><div class="v">${r.base.gallons} gal @ ${r.base.proof}</div></div>
-    <div class="result"><div class="k">Final Proof</div><div class="v">${r.final.proof}</div></div>
-    <div class="result"><div class="k">Sweetness</div><div class="v">${fmt1(pct*100)}% HFCS-42</div></div>`;
+function renderSummary(r,pct01){
+  recipeSummary.innerHTML = `
+    <div class="result">
+      <div class="k">Canonical Base</div>
+      <div class="v">${r.base.gallons} gal @ ${r.base.proof}</div>
+    </div>
+    <div class="result">
+      <div class="k">Final Proof</div>
+      <div class="v">${r.final.proof}</div>
+    </div>
+    <div class="result">
+      <div class="k">Sweetness</div>
+      <div class="v">${fmt1(pct01*100)}% HFCS-42</div>
+    </div>
+  `;
 }
 
 function loadRecipe(){
-  const r=RECIPES[recipeSelect.value];
-  const hfcs=getHFCS(r);
+  const r = RECIPES[recipeSelect.value];
+  const hfcs = getHFCS(r);
 
-  baseGallonsInput.value=r.base.gallons;
-  baseProofInput.value=r.base.proof;
-  finalProofInput.value=r.final.proof;
+  baseGallonsInput.value = r.base.gallons;
+  baseProofInput.value   = r.base.proof;
+  finalProofInput.value  = r.final.proof;
 
-  sweetPercentInput.value=fmt1(hfcs.percent*100);
-  sweetPercentInput.disabled=true;
-  sweetOverrideInput.checked=false;
+  sweetPercentInput.value = fmt1(hfcs.percent*100);
+  sweetPercentInput.disabled = true;
+  sweetOverrideInput.checked = false;
 
-  recipeMeta.textContent=`${r.base.gallons} gal @ ${r.base.proof} → ${r.final.proof}`;
+  recipeMeta.textContent =
+    `${r.base.gallons} gal @ ${r.base.proof} → ${r.final.proof} proof`;
+
   renderSummary(r,hfcs.percent);
 }
 
 function runWizard(){
-  const r=RECIPES[recipeSelect.value];
-  const hfcs=getHFCS(r);
+  const r = RECIPES[recipeSelect.value];
+  const hfcs = getHFCS(r);
 
-  const baseGallons=+baseGallonsInput.value;
-  const baseProof=+baseProofInput.value;
-  const finalProof=+finalProofInput.value;
+  const baseGallons = +baseGallonsInput.value;
+  const baseProof   = +baseProofInput.value;
+  const finalProof  = +finalProofInput.value;
 
-  const pct=sweetOverrideInput.checked
+  const pct01 = sweetOverrideInput.checked
     ? (+sweetPercentInput.value/100 || hfcs.percent)
     : hfcs.percent;
 
-  const scaled=Scaler.scaleFromBase({baseGallons,baseProof,targetProof:finalProof});
-  const hfcsGal=scaled.finalVolume*pct;
-  const hfcsKg=hfcsGal*GAL_TO_L*hfcs.densityKgPerL;
-  const waterGal=scaled.finalVolume-baseGallons-hfcsGal;
+  const scaled = Scaler.scaleFromBase({
+    baseGallons,
+    baseProof,
+    targetProof: finalProof
+  });
 
-  const mult=baseGallons/r.base.gallons;
+  const hfcsGal = scaled.finalVolume * pct01;
+  const hfcsKg  = hfcsGal * GAL_TO_L * hfcs.densityKgPerL;
+  const waterGal = scaled.finalVolume - baseGallons - hfcsGal;
 
-  const blocks=r.ingredients.filter(i=>i.type!=="percent_vv").map(i=>{
-    const amt=i.amount*mult;
-    return `<div class="result"><div class="k">${i.name}</div><div class="v">${fmt(amt)} ${i.unit}</div></div>`;
-  }).join("");
+  const multiplier = baseGallons / r.base.gallons;
 
-  resultsDiv.innerHTML=`
+  const ingredientBlocks = r.ingredients
+    .filter(i=>i.type!=="percent_vv")
+    .map(i=>{
+      const amt = i.amount * multiplier;
+      return `
+        <div class="result">
+          <div class="k">${i.name}</div>
+          <div class="v">${fmt(amt)} ${i.unit}</div>
+        </div>`;
+    }).join("");
+
+  resultsDiv.innerHTML = `
     <div class="result"><div class="k">Water Required</div><div class="v">${fmt(waterGal)} gal</div></div>
     <div class="result"><div class="k">Final Volume</div><div class="v">${fmt(scaled.finalVolume)} gal</div></div>
     <div class="result"><div class="k">Alcohol Content</div><div class="v">${fmt(scaled.alcoholPG,2)} PG</div></div>
-    <div class="result"><div class="k">HFCS-42</div><div class="v">${fmt(hfcsKg,2)} kg</div><div class="muted">${fmt1(pct*100)}% v/v</div></div>
-    ${blocks}`;
+    <div class="result"><div class="k">HFCS-42</div><div class="v">${fmt(hfcsKg,2)} kg</div><div class="muted">${fmt1(pct01*100)}% v/v</div></div>
+    ${ingredientBlocks}
+  `;
 
-  renderSummary(r,pct);
+  renderSummary(r,pct01);
 }
 
+/* =========================
+   EVENTS
+   ========================= */
 sweetOverrideInput.addEventListener("change",()=>{
-  sweetPercentInput.disabled=!sweetOverrideInput.checked;
+  sweetPercentInput.disabled = !sweetOverrideInput.checked;
   runWizard();
 });
 
-recipeSelect.addEventListener("change",()=>{loadRecipe();runWizard();});
-[baseGallonsInput,baseProofInput,finalProofInput,sweetPercentInput]
+recipeSelect.addEventListener("change",()=>{
+  loadRecipe();
+  runWizard();
+});
+
+[baseGallonsInput, baseProofInput, finalProofInput, sweetPercentInput]
   .forEach(el=>el.addEventListener("input",runWizard));
 
+/* =========================
+   START
+   ========================= */
 loadRecipe();
 runWizard();
 </script>
