@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Products</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Shared Header CSS -->
+  <link rel="stylesheet" href="header.css" />
+
+  <style>
+    body {
+      margin: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 32px;
+    }
+
+    /* Cards */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #111c33;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .card h2 {
+      font-size: 1.15rem;
+      margin: 0 0 8px 0;
+    }
+
+    .card p {
+      color: #cbd5e1;
+      font-size: 0.95rem;
+      margin: 0 0 14px 0;
+    }
+
+    .card a {
+      color: #93c5fd;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .card a:hover {
+      text-decoration: underline;
+    }
+
+    /* Featured (Recipe Scaling) */
+    .featured {
+      grid-column: 1 / -1;
+      background: #0f1e3a;
+      border-color: #475569;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- GLOBAL HEADER -->
+  <div id="global-header"></div>
+
+  <script>
+    const PAGE_TITLE = "Products";
+    const PAGE_SUBTITLE =
+      "Product definitions, recipes, and packaging references.";
+
+    fetch("header.html", { cache: "no-store" })
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("global-header").innerHTML = html;
+
+        const title = document.getElementById("page-title");
+        const subtitle = document.getElementById("page-subheading");
+
+        if (title) title.textContent = PAGE_TITLE;
+        if (subtitle) subtitle.textContent = PAGE_SUBTITLE;
+
+        setActiveModule("products");
+      });
+  </script>
+
+  <main>
+    <h1>Products</h1>
+    <div class="subtitle">
+      Product definitions, recipes, and packaging references
+    </div>
+
+    <div class="cards">
+
+      <!-- FEATURED: RECIPE SCALING -->
+      <section class="card featured">
+        <h2>Recipe Scaling</h2>
+        <p>
+          Scale approved base recipes to any batch size with confidence.
+        </p>
+        <a href="recipe-scaling.html">
+          Open Recipe Scaling →
+        </a>
+      </section>
+
+      <!-- BASE RECIPES -->
+      <section class="card">
+        <h2>Base Recipes & Mash Bills</h2>
+        <p>
+          Canonical recipes used for scaling and production reference.
+        </p>
+        <a href="recipes.html">
+          View Base Recipes →
+        </a>
+      </section>
+
+      <!-- LABELS -->
+      <section class="card">
+        <h2>Approved Labels (PDF)</h2>
+        <p>
+          TTB-approved product labels for reference and printing.
+        </p>
+        <a href="labels.html">
+          View Approved Labels →
+        </a>
+      </section>
+
+      <!-- BARCODES -->
+      <section class="card">
+        <h2>Barcodes & SKUs</h2>
+        <p>
+          GS1 and retail barcode references by product.
+        </p>
+        <a href="barcodes.html">
+          View Barcodes & SKUs →
+        </a>
+      </section>
+
+    </div>
+  </main>
+
+</body>
+</html>
