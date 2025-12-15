@@ -133,7 +133,7 @@
   /* =========================
      PAGE CONFIG
      ========================= */
-  const APP_VERSION = "v1.1.0";
+  const APP_VERSION = "v1.2.0";
 
   const PAGE_TITLE = "Recipe Scaling";
   const PAGE_SUBTITLE = "Wizard scaling from approved base recipes.";
@@ -263,14 +263,18 @@ function runWizard(){
     if(i.type==="percent_vv"){
       hfcsVolumeGal = scaled.finalVolume * i.percent;
       const kg = hfcsVolumeGal * GAL_TO_L * i.densityKgPerL;
+
       return `
         <div class="result">
-          <div class="k">${i.name}</div>
-          <div class="v">${fmt(hfcsVolumeGal)} gal</div>
-          <div class="muted">≈ ${fmt(kg,2)} kg (${i.percent*100}% v/v)</div>
+        <div class="k">${i.name}</div>
+        <div class="v">${fmt(kg,2)} kg</div>
+        <div class="muted">
+          (≈ ${fmt(hfcsVolumeGal)} gal • ${fmt(i.percent*100,1)}% v/v)
         </div>
-      `;
+        </div>
+  `    ;
     }
+
     if(i.type==="liquid"){
       const amt = i.amount * multiplier;
       return `
