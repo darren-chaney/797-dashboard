@@ -37,10 +37,25 @@
 
     .grid{
       display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
-      gap:18px;
+      grid-template-columns:repeat(auto-fit, minmax(160px, max-content));
+      gap:20px;
+      align-items:end;
     }
     
+    input[type="number"]{
+      text-align:right;
+    }
+
+    .grid input{
+      width:160px;
+      max-width:100%;
+    }
+    
+    .grid > div{
+      display:flex;
+      flex-direction:column;
+    }
+
     .panel input{
     max-width:100%;
     }
@@ -99,16 +114,14 @@
       margin-top:8px;
     }
 
-    /* VERSION BADGE */
-    .version-badge{
-      position:fixed;
-      bottom:10px;
-      right:12px;
-      font-size:.7rem;
+   .results-version{
+      margin-top:12px;
+      font-size:.72rem;
       color:#9ca3af;
-      opacity:.6;
-      pointer-events:none;
+      opacity:.7;
+      text-align:right;
     }
+
   </style>
 </head>
 
@@ -166,15 +179,17 @@
   </section>
 
   <!-- RESULTS -->
-  <section class="panel">
-    <h2>Results</h2>
-    <div id="results" class="results"></div>
-  </section>
-  <!-- VERSION BADGE -->
-<div class="version-badge">
-  Recipe Scaling • <span id="app-version"></span>
-</div>
+<section class="panel">
+  <h2>Results</h2>
+  <div id="results" class="results"></div>
+
+  <!-- VERSION -->
+  <div class="results-version">
+    Recipe Scaling • <span id="app-version"></span>
+  </div>
+</section>
 </main>
+
 
 <script>
 /* =========================================================
