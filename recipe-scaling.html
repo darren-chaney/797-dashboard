@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Recipe Scaling</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Shared Header CSS -->
+  <link rel="stylesheet" href="header.css" />
+
+  <!-- Scaling Engine -->
+  <script src="scaler.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 28px;
+    }
+
+    .panel {
+      background: #111c33;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .panel h2 {
+      font-size: 1.1rem;
+      margin: 0 0 14px 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+
+    select,
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #e5e7eb;
+      font-size: 0.95rem;
+    }
+
+    button {
+      margin-top: 16px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      background: transparent;
+      color: #e5e7eb;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1e293b;
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .result {
+      background: #0f1e3a;
+      border: 1px solid #475569;
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .result .label {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+
+    .result .value {
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .muted {
+      color: #9ca3af;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- GLOBAL HEADER -->
+  <div id="global-header"></div>
+
+  <script>
+    const PAGE_TITLE = "Recipe Scaling";
+    const PAGE_SUBTITLE =
+      "Scale approved base recipes by volume and proof.";
+
+    fetch("header.html", { cache: "no-store" })
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("global-header").innerHTML = html;
+
+        const title = document.getElementById("page-title");
+        const subtitle = document.getElementById("page-subheading");
+
+        if (title) title.textContent = PAGE_TITLE;
+        if (subtitle) subtitle.textContent = PAGE_SUBTITLE;
+
+        setActiveModule("products");
+      });
+  </script>
+
+  <main>
+    <h1>Recipe Scaling</h1>
+    <div class="subtitle">
+      Scale approved base recipes to any batch size
+    </div>
+
+    <!-- INPUTS -->
+    <section class="panel">
+      <h2>Inputs</h2>
+
+      <div class="grid">
+        <div>
+          <label for="product">Product</label>
+          <select id="product"></select>
+        </div>
+
+        <div>
+          <label for="volume">Target Volume (gallons)</label>
+          <input id="volume" type="number" step="0.01" value="20" />
+        </div>
+
+        <div>
+          <label for="proof">Target Proof</label>
+          <input id="proof" type="number" step="1" />
+        </div>
+      </div>
+
+      <button onclick="runScale()">Scale Recipe</button>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="panel">
+      <h2>Results</h2>
+
+      <div class="results" id="results">
+        <div class="muted">
+          Enter inputs and click “Scale Recipe”
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const productSelect = document.getElementById("product");
+    const volumeInput = document.getElementById("volume");
+    const proofInput = document.getElementById("proof");
+    const resultsDiv = document.getElementById("results");
+
+    // Populate products
+    Object.values(Scaler.PRODUCTS).forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.key;
+      opt.textContent = p.name;
+      opt.dataset.defaultProof = p.defaultTargetProof;
+      productSelect.appendChild(opt);
+    });
+
+    // Set default proof on product change
+    productSelect.addEventListener("change", () => {
+      const selected =
+        productSelect.options[productSelect.selectedIndex];
+      proofInput.value = selected.dataset.defaultProof;
+    });
+
+    // Init
+    productSelect.dispatchEvent(new Event("change"));
+
+    function runScale() {
+      const result = Scaler.scaleRecipe({
+        productKey: productSelect.value,
+        targetVolumeGal: Number(volumeInput.value),
+        targetProof: Number(proofInput.value)
+      });
+
+      resultsDiv.innerHTML = `
+        <div class="result">
+          <div class="label">Alcohol Required</div>
+          <div class="value">${result.alcoholGallons} gal</div>
+        </div>
+
+        <div class="result">
+          <div class="label">Water Required</div>
+          <div class="value">${result.waterGallons} gal</div>
+        </div>
+
+        <div class="result">
+          <div class="label">Proof Gallons</div>
+          <div class="value">${result.proofGallons} PG</div>
+        </div>
+      `;
+    }
+  </script>
+
+</body>
+</html>
