@@ -1,73 +1,29 @@
 /* ==============================
-   GLOBAL HEADER CSS – LOCKED
+   MODULE NAV
    ============================== */
-.page-content {
-  padding-top: 0;
-}
 
-.header-container {
-  max-width: 1100px;
-  margin: 0 auto 16px auto;
-  padding: 0 18px;
-}
-
-.header-row {
+.module-nav {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.header-titles h1 {
-  margin: 0;
-  font-size: 1.8rem;
-  font-weight: 900;
-}
-
-.subheading {
-  font-size: 0.95rem;
-  color: #cbd5e1;
-  margin-top: 2px;
-}
-
-.header-logo-link {
-  display: block;
-}
-
-.header-logo {
-  height: 55px;
-  width: auto;
-  display: block;
-}
-
-/* Actions */
-.dashboard-actions {
+  gap: 18px;
   margin-top: 10px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid #334155;
 }
 
-.action-btn {
-  padding: 8px 14px;
-  border-radius: 8px;
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #e5e7eb;
+.module-nav a {
   text-decoration: none;
-  font-weight: 800;
-  font-size: 0.9rem;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+  padding: 6px 10px;
+  border-radius: 6px;
 }
 
-.action-btn.secondary {
-  background: #0f172a;
+.module-nav a:hover {
+  background: #1e293b;
 }
 
-/* ==============================
-   PRINT SAFETY
-   ============================== */
-@media print {
-  .header-container {
-    display: none !important;
-  }
+.module-nav a.active {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 500;
 }
