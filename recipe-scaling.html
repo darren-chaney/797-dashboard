@@ -85,6 +85,17 @@
       font-size:.78rem;
       margin-top:8px;
     }
+
+    /* VERSION BADGE */
+    .version-badge{
+      position:fixed;
+      bottom:10px;
+      right:12px;
+      font-size:.7rem;
+      color:#9ca3af;
+      opacity:.6;
+      pointer-events:none;
+    }
   </style>
 </head>
 
@@ -93,6 +104,11 @@
 <div id="global-header"></div>
 
 <script>
+  /* =========================
+     PAGE CONFIG
+     ========================= */
+  const APP_VERSION = "v1.0.0";
+
   const PAGE_TITLE = "Recipe Scaling";
   const PAGE_SUBTITLE = "Wizard scaling from approved base recipes.";
 
@@ -143,12 +159,14 @@
   </section>
 </main>
 
+<!-- VERSION BADGE -->
+<div class="version-badge">
+  Recipe Scaling • <span id="app-version"></span>
+</div>
+
 <script>
 /* =========================================================
    RECIPE DEFINITIONS (MATCH MASTER RECIPE BOOK)
-   - HFCS affects water volume (percent v/v)
-   - Flavor extracts DO NOT affect water volume
-   - Acids DO NOT affect water volume
    ========================================================= */
 
 const RECIPES = {
@@ -158,10 +176,8 @@ const RECIPES = {
     final: { proof: 60 },
     ingredients: [
       { name:"HFCS 42", type:"percent_vv", percent:0.14, densityKgPerL:1.613 },
-
       { name:"Apex Margarita Flavor", type:"liquid", amount:232, unit:"mL" },
       { name:"Apex Orange Extract",   type:"liquid", amount:39,  unit:"mL" },
-
       { name:"Citric Acid", type:"solid", amount:27, unit:"g" },
       { name:"Malic Acid",  type:"solid", amount:8,  unit:"g" }
     ]
@@ -169,8 +185,9 @@ const RECIPES = {
 };
 
 const GAL_TO_L = 3.785411784;
-
 function fmt(n,d=3){ return Number(n).toFixed(d); }
+
+document.getElementById("app-version").textContent = APP_VERSION;
 
 const recipeSelect = document.getElementById("recipe");
 const recipeMeta = document.getElementById("recipeMeta");
@@ -179,7 +196,6 @@ const baseProofInput = document.getElementById("baseProof");
 const finalProofInput = document.getElementById("finalProof");
 const resultsDiv = document.getElementById("results");
 
-// Populate recipes
 Object.entries(RECIPES).forEach(([key,r])=>{
   const o=document.createElement("option");
   o.value=key;
@@ -214,14 +230,12 @@ function runWizard(){
   });
 
   const multiplier = baseGallons / r.base.gallons;
-
   let hfcsVolumeGal = 0;
 
   const ingredientBlocks = r.ingredients.map(i=>{
     if(i.type==="percent_vv"){
       hfcsVolumeGal = scaled.finalVolume * i.percent;
       const kg = hfcsVolumeGal * GAL_TO_L * i.densityKgPerL;
-
       return `
         <div class="result">
           <div class="k">${i.name}</div>
@@ -230,7 +244,6 @@ function runWizard(){
         </div>
       `;
     }
-
     if(i.type==="liquid"){
       const amt = i.amount * multiplier;
       return `
@@ -241,7 +254,6 @@ function runWizard(){
         </div>
       `;
     }
-
     if(i.type==="solid"){
       const amt = i.amount * multiplier;
       return `
@@ -262,17 +274,14 @@ function runWizard(){
       <div class="k">Water Required</div>
       <div class="v">${fmt(waterGal)} gal</div>
     </div>
-
     <div class="result">
       <div class="k">Final Volume</div>
       <div class="v">${fmt(scaled.finalVolume)} gal</div>
     </div>
-
     <div class="result">
       <div class="k">Alcohol Content</div>
       <div class="v">${fmt(scaled.alcoholPG,2)} PG</div>
     </div>
-
     ${ingredientBlocks}
   `;
 }
