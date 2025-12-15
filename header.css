@@ -144,4 +144,13 @@ body.dashboard .module-nav {
   margin-top: 14px;
   padding-top: 10px;
 }
+/* =====================================
+   DASHBOARD HEADER WIDTH CONSTRAINT
+   ===================================== */
+
+body.dashboard .header-container {
+  max-width: 1200px;   /* match dashboard layout */
+  margin: 0 auto;
+}
+
 
