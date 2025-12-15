@@ -13,6 +13,7 @@
 
   <!-- Google Charts -->
   <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <link rel="stylesheet" href="header.css">
 
   <style>
     /* ==============================
@@ -36,14 +37,7 @@
     }
 
     .dashboard { max-width: 1300px; margin: auto; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    header h1 { font-size: 1.6rem; letter-spacing: 0.05em; }
-    header p { font-size: 0.9rem; color: var(--muted); }
-    .badge {
-      padding: 6px 12px; border-radius: 999px;
-      border: 1px solid var(--copper); font-size: .8rem;
-      text-transform: uppercase;
-    }
+    
 
     .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
 
@@ -163,18 +157,27 @@
 </head>
 
 <body>
-  <div class="dashboard">
+  <!-- GLOBAL HEADER -->
+  <div id="global-header"></div>
 
-    <!-- ==========================
-         HEADER
-         ========================== -->
-    <header>
-      <div>
-        <h1>797 Distillery • Fermentation Dashboard</h1>
-        <p>Live Tilt telemetry • dual batch monitoring • fermentation curves</p>
-      </div>
-      <div class="badge">REALTIME</div>
-    </header>
+  <script>
+    const PAGE_TITLE = "Fermentation Dashboard";
+    const PAGE_SUBTITLE =
+      "Live Tilt telemetry • dual batch monitoring • fermentation curves";
+
+    fetch("header.html", { cache: "no-store" })
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("global-header").innerHTML = html;
+
+        const title = document.getElementById("page-title");
+        const subtitle = document.getElementById("page-subtitle");
+
+        if (title) title.textContent = PAGE_TITLE;
+        if (subtitle) subtitle.textContent = PAGE_SUBTITLE;
+      });
+  </script>
+  <div class="dashboard">
 
     <!-- ==========================
          MAIN GRID: CHART + TILES
