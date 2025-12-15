@@ -41,34 +41,23 @@
       gap:20px;
       align-items:end;
     }
-    
-    input[type="number"]{
-      text-align:right;
-    }
 
-    .grid input{
-      width:160px;
-      max-width:100%;
-    }
-    
     .grid > div{
       display:flex;
       flex-direction:column;
     }
 
-    .panel input{
-    max-width:100%;
+    input[type="number"]{
+      text-align:right;
     }
 
     label{
-      display:block;
       font-size:.85rem;
       color:#cbd5e1;
       margin-bottom:6px;
     }
 
     select,input{
-      width:100%;
       padding:10px;
       border-radius:8px;
       border:1px solid #334155;
@@ -85,23 +74,15 @@
     }
 
     .result{
-      background:#0b1220;           /* darker than page */
+      background:#0b1220;
       border:1px solid #334155;
       border-radius:12px;
       padding:16px;
-      box-shadow:
-      inset 0 0 0 1px rgba(255,255,255,0.02);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
     }
-    .result .v{
-      font-size:1.2rem;
-      font-weight:700;
-      letter-spacing:.2px;
-    }
-    .panel + .panel{
-      margin-top:22px;
-    }
+
     .k{font-size:.75rem;color:#9ca3af;margin-bottom:4px}
-    .v{font-size:1.15rem;font-weight:650}
+    .v{font-size:1.2rem;font-weight:700}
     .muted{color:#9ca3af;font-size:.85rem}
 
     .pill{
@@ -114,14 +95,13 @@
       margin-top:8px;
     }
 
-   .results-version{
+    .results-version{
       margin-top:12px;
       font-size:.72rem;
       color:#9ca3af;
       opacity:.7;
       text-align:right;
     }
-
   </style>
 </head>
 
@@ -133,7 +113,7 @@
   /* =========================
      PAGE CONFIG
      ========================= */
-  const APP_VERSION = "v1.3.0";
+  const APP_VERSION = "v1.4.1";
 
   const PAGE_TITLE = "Recipe Scaling";
   const PAGE_SUBTITLE = "Wizard scaling from approved base recipes.";
@@ -144,7 +124,10 @@
       document.getElementById("global-header").innerHTML=html;
       document.getElementById("page-title").textContent=PAGE_TITLE;
       document.getElementById("page-subheading").textContent=PAGE_SUBTITLE;
-      setActiveModule("products");
+
+      if (typeof setActiveModule === "function") {
+        setActiveModule("products");
+      }
     });
 </script>
 
@@ -157,6 +140,9 @@
     <h2>Step 1 — Select Recipe</h2>
     <select id="recipe"></select>
     <div class="pill" id="recipeMeta">—</div>
+
+    <!-- RECIPE SUMMARY -->
+    <div id="recipeSummary" class="results"></div>
   </section>
 
   <!-- STEP 2 -->
@@ -179,22 +165,19 @@
   </section>
 
   <!-- RESULTS -->
-<section class="panel">
-  <h2>Results</h2>
-  <div id="results" class="results"></div>
-
-  <!-- VERSION -->
-  <div class="results-version">
-    Recipe Scaling • <span id="app-version"></span>
-  </div>
-</section>
+  <section class="panel">
+    <h2>Results</h2>
+    <div id="results" class="results"></div>
+    <div class="results-version">
+      Recipe Scaling • <span id="app-version"></span>
+    </div>
+  </section>
 </main>
 
-
 <script>
-/* =========================================================
-   RECIPE DEFINITIONS (MATCH MASTER RECIPE BOOK)
-   ========================================================= */
+/* =========================
+   RECIPE DEFINITIONS
+   ========================= */
 
 const RECIPES = {
   margarita: {
@@ -204,11 +187,11 @@ const RECIPES = {
     ingredients: [
       { name:"HFCS 42", type:"percent_vv", percent:0.14, densityKgPerL:1.613 },
       { name:"Apex Margarita Flavor", type:"liquid", amount:232, unit:"mL" },
-      { name:"Apex Orange Extract",   type:"liquid", amount:39,  unit:"mL" },
+      { name:"Apex Orange Extract", type:"liquid", amount:39, unit:"mL" },
       { name:"Citric Acid", type:"solid", amount:27, unit:"g" },
-      { name:"Malic Acid",  type:"solid", amount:8,  unit:"g" }
+      { name:"Malic Acid", type:"solid", amount:8, unit:"g" }
     ]
-  },  // ✅ REQUIRED COMMA HERE
+  },
 
   spicy_pineapple: {
     name: "Spicy Pineapple Moonshine",
@@ -216,7 +199,7 @@ const RECIPES = {
     final: { proof: 60 },
     ingredients: [
       { name:"HFCS 42", type:"percent_vv", percent:0.14, densityKgPerL:1.613 },
-      { name:"Apex Pineapple Flavor (Natural & Artificial)", type:"liquid", amount:420, unit:"mL" },
+      { name:"Apex Pineapple Flavor", type:"liquid", amount:420, unit:"mL" },
       { name:"Apex Capsicum Natural Extract", type:"liquid", amount:12, unit:"mL" },
       { name:"Citric Acid", type:"solid", amount:27, unit:"g" },
       { name:"Malic Acid", type:"solid", amount:8, unit:"g" }
@@ -224,14 +207,14 @@ const RECIPES = {
   }
 };
 
-
 const GAL_TO_L = 3.785411784;
-function fmt(n,d=3){ return Number(n).toFixed(d); }
+const fmt = (n,d=3)=>Number(n).toFixed(d);
 
 document.getElementById("app-version").textContent = APP_VERSION;
 
 const recipeSelect = document.getElementById("recipe");
 const recipeMeta = document.getElementById("recipeMeta");
+const recipeSummary = document.getElementById("recipeSummary");
 const baseGallonsInput = document.getElementById("baseGallons");
 const baseProofInput = document.getElementById("baseProof");
 const finalProofInput = document.getElementById("finalProof");
@@ -244,13 +227,31 @@ Object.entries(RECIPES).forEach(([key,r])=>{
   recipeSelect.appendChild(o);
 });
 
+function renderRecipeSummary(r){
+  const hfcs = r.ingredients.find(i=>i.type==="percent_vv");
+  recipeSummary.innerHTML = `
+    <div class="result">
+      <div class="k">Canonical Base</div>
+      <div class="v">${r.base.gallons} gal @ ${r.base.proof}</div>
+    </div>
+    <div class="result">
+      <div class="k">Final Proof</div>
+      <div class="v">${r.final.proof}</div>
+    </div>
+    <div class="result">
+      <div class="k">Sweetness</div>
+      <div class="v">${hfcs.percent*100}% HFCS-42</div>
+    </div>
+  `;
+}
+
 function loadRecipe(){
   const r=RECIPES[recipeSelect.value];
   baseGallonsInput.value=r.base.gallons;
   baseProofInput.value=r.base.proof;
   finalProofInput.value=r.final.proof;
-  recipeMeta.textContent =
-    `${r.base.gallons} gal @ ${r.base.proof} → ${r.final.proof} proof`;
+  recipeMeta.textContent=`${r.base.gallons} gal @ ${r.base.proof} → ${r.final.proof} proof`;
+  renderRecipeSummary(r);
 }
 
 function runWizard(){
@@ -259,81 +260,33 @@ function runWizard(){
   const baseProof=Number(baseProofInput.value);
   const finalProof=Number(finalProofInput.value);
 
-  if(!baseGallons||!baseProof||!finalProof){
-    resultsDiv.innerHTML=`<div class="muted">Enter valid inputs.</div>`;
-    return;
-  }
+  const scaled=Scaler.scaleFromBase({ baseGallons, baseProof, targetProof:finalProof });
 
-  const scaled=Scaler.scaleFromBase({
-    baseGallons,
-    baseProof,
-    targetProof:finalProof
-  });
+  const multiplier=baseGallons/r.base.gallons;
+  let hfcsVolumeGal=0;
 
-  const multiplier = baseGallons / r.base.gallons;
-  let hfcsVolumeGal = 0;
-
-  const ingredientBlocks = r.ingredients.map(i=>{
+  const ingredients=r.ingredients.map(i=>{
     if(i.type==="percent_vv"){
-      hfcsVolumeGal = scaled.finalVolume * i.percent;
-      const kg = hfcsVolumeGal * GAL_TO_L * i.densityKgPerL;
-
-      return `
-        <div class="result">
-        <div class="k">${i.name}</div>
-        <div class="v">${fmt(kg,2)} kg</div>
-        <div class="muted">
-          (≈ ${fmt(hfcsVolumeGal)} gal • ${fmt(i.percent*100,1)}% v/v)
-        </div>
-        </div>
-  `    ;
+      hfcsVolumeGal=scaled.finalVolume*i.percent;
+      const kg=hfcsVolumeGal*GAL_TO_L*i.densityKgPerL;
+      return `<div class="result"><div class="k">${i.name}</div><div class="v">${fmt(kg,2)} kg</div></div>`;
     }
-
-    if(i.type==="liquid"){
-      const amt = i.amount * multiplier;
-      return `
-        <div class="result">
-          <div class="k">${i.name}</div>
-          <div class="v">${fmt(amt,0)} ${i.unit}</div>
-          <div class="muted">× ${fmt(multiplier,4)}</div>
-        </div>
-      `;
-    }
-    if(i.type==="solid"){
-      const amt = i.amount * multiplier;
-      return `
-        <div class="result">
-          <div class="k">${i.name}</div>
-          <div class="v">${fmt(amt)} ${i.unit}</div>
-          <div class="muted">× ${fmt(multiplier,4)}</div>
-        </div>
-      `;
-    }
+    const amt=i.amount*multiplier;
+    return `<div class="result"><div class="k">${i.name}</div><div class="v">${fmt(amt)} ${i.unit}</div></div>`;
   }).join("");
 
-  const waterGal =
-    scaled.finalVolume - baseGallons - hfcsVolumeGal;
+  const waterGal=scaled.finalVolume-baseGallons-hfcsVolumeGal;
 
-  resultsDiv.innerHTML = `
-    <div class="result">
-      <div class="k">Water Required</div>
-      <div class="v">${fmt(waterGal)} gal</div>
-    </div>
-    <div class="result">
-      <div class="k">Final Volume</div>
-      <div class="v">${fmt(scaled.finalVolume)} gal</div>
-    </div>
-    <div class="result">
-      <div class="k">Alcohol Content</div>
-      <div class="v">${fmt(scaled.alcoholPG,2)} PG</div>
-    </div>
-    ${ingredientBlocks}
+  resultsDiv.innerHTML=`
+    <div class="result"><div class="k">Water Required</div><div class="v">${fmt(waterGal)} gal</div></div>
+    <div class="result"><div class="k">Final Volume</div><div class="v">${fmt(scaled.finalVolume)} gal</div></div>
+    <div class="result"><div class="k">Alcohol Content</div><div class="v">${fmt(scaled.alcoholPG,2)} PG</div></div>
+    ${ingredients}
   `;
 }
 
 recipeSelect.addEventListener("change",()=>{loadRecipe();runWizard();});
-[baseGallonsInput,baseProofInput,finalProofInput]
-  .forEach(el=>el.addEventListener("input",runWizard));
+[baseGallonsInput,baseProofInput,finalProofInput].forEach(el=>el.addEventListener("input",runWizard));
 
 loadRecipe();
 runWizard();
