@@ -148,9 +148,9 @@ body.dashboard .module-nav {
    DASHBOARD HEADER WIDTH CONSTRAINT
    ===================================== */
 
+/* Slightly tighten dashboard header height */
 body.dashboard .header-container {
-  max-width: 1200px;   /* match dashboard layout */
-  margin: 0 auto;
+  padding-top: 12px;   /* was 16px */
 }
 
 
