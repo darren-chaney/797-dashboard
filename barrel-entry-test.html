@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>797 Distillery - New Barrel Entry</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
+  <link rel="stylesheet" href="header.css">
   <style>
     .container {
   max-width: 1100px;
@@ -12,30 +12,13 @@
   padding: 1.5rem 1rem 3rem;
 }
 
-    .header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.header-logo {
-  width: 75px;        /* 👈 this is the key */
-  height: auto;
-  opacity: 0.95;
-}
 
     body {
-      background: #0f172a;
-      color: #e5e7eb;
-      font-family: system-ui, sans-serif;
-      padding: 20px;
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
+  background: #0f172a;
+  color: #e5e7eb;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 0;
+}
 
     form {
       max-width: 500px;
@@ -110,28 +93,26 @@
 
 <body>
 
-  <!-- ============================================
-     HEADER — TITLE + LOGO INLINE
-     ============================================ -->
-  <div class="container">
-  <div class="header-row">
-  <div>
-    <h1>797 Distillery - New Barrel Entry Form</h1>
-    <div class="subheading">
-      Log a new barrel into inventory
-    </div>
-  </div>
+  <!-- GLOBAL HEADER -->
+<div id="global-header"></div>
 
-  <a href="https://darren-chaney.github.io/797-dashboard/index.html">
-    <img
-      src="websiteLogoGlassWhiteTrans.png"
-      class="header-logo"
-      alt="797 Distillery Logo"
-    >
-  </a>
-</div>
-</div>
+<script>
+  const PAGE_TITLE = "New Barrel Entry";
+  const PAGE_SUBTITLE = "Log a new barrel into inventory";
 
+  fetch("header.html", { cache: "no-store" })
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById("global-header").innerHTML = html;
+
+      const title = document.getElementById("page-title");
+      const subtitle = document.getElementById("page-subtitle");
+
+      if (title) title.textContent = PAGE_TITLE;
+      if (subtitle) subtitle.textContent = PAGE_SUBTITLE;
+    });
+</script>
+<div class="container">
   <form id="barrelForm">
 
     <label>Barrel No.</label>
@@ -195,7 +176,7 @@
     <button type="submit">Submit Barrel</button>
 
   </form>
-
+</div>
   <script>
     const API_URL = "https://api.sheetbest.com/sheets/62950420-e9fb-4453-a651-96bf566f2907";
     // Auto-set RC-G based on Gallons selection
