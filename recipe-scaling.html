@@ -42,14 +42,9 @@
       align-items:end;
     }
 
-    .grid > div{
-      display:flex;
-      flex-direction:column;
-    }
+    .grid > div{display:flex;flex-direction:column}
 
-    input[type="number"]{
-      text-align:right;
-    }
+    input[type="number"]{text-align:right}
 
     label{
       font-size:.85rem;
@@ -78,7 +73,6 @@
       border:1px solid #334155;
       border-radius:12px;
       padding:16px;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
     }
 
     .k{font-size:.75rem;color:#9ca3af;margin-bottom:4px}
@@ -110,24 +104,13 @@
 <div id="global-header"></div>
 
 <script>
-  /* =========================
-     PAGE CONFIG
-     ========================= */
-  const APP_VERSION = "v1.4.2";
-
-  const PAGE_TITLE = "Recipe Scaling";
-  const PAGE_SUBTITLE = "Wizard scaling from approved base recipes.";
+  const APP_VERSION = "v1.5.0";
 
   fetch("header.html",{cache:"no-store"})
     .then(r=>r.text())
     .then(html=>{
-      document.getElementById("global-header").innerHTML=html;
-      document.getElementById("page-title").textContent=PAGE_TITLE;
-      document.getElementById("page-subheading").textContent=PAGE_SUBTITLE;
-
-      if (typeof setActiveModule === "function") {
-        setActiveModule("products");
-      }
+      document.getElementById("global-header").innerHTML = html;
+      if (typeof setActiveModule === "function") setActiveModule("products");
     });
 </script>
 
@@ -140,8 +123,6 @@
     <h2>Step 1 — Select Recipe</h2>
     <select id="recipe"></select>
     <div class="pill" id="recipeMeta">—</div>
-
-    <!-- RECIPE SUMMARY -->
     <div id="recipeSummary" class="results"></div>
   </section>
 
@@ -163,12 +144,12 @@
       </div>
       <div>
         <label>Sweetness % (HFCS v/v)</label>
-        <input id="sweetPercent" type="number" step="0.1" min="0" max="30">
+        <input id="sweetPercent" type="number" step="0.1" disabled>
+        <label class="muted" style="margin-top:6px">
+          <input id="sweetOverride" type="checkbox">
+          Override recipe sweetness
+        </label>
       </div>
-    </div>
-
-    <div class="muted" style="margin-top:10px;">
-      Sweetness % defaults from the recipe, but you can override it here (ex: 12.0 vs 14.0).
     </div>
   </section>
 
@@ -184,203 +165,127 @@
 
 <script>
 /* =========================
-   RECIPE DEFINITIONS
+   RECIPES
    ========================= */
 
 const RECIPES = {
   margarita: {
-    name: "Margarita Moonshine",
-    base: { gallons: 4, proof: 164 },
-    final: { proof: 60 },
-    ingredients: [
-      { name:"HFCS 42", type:"percent_vv", percent:0.14, densityKgPerL:1.613 },
-      { name:"Apex Margarita Flavor", type:"liquid", amount:232, unit:"mL" },
-      { name:"Apex Orange Extract", type:"liquid", amount:39, unit:"mL" },
-      { name:"Citric Acid", type:"solid", amount:27, unit:"g" },
-      { name:"Malic Acid", type:"solid", amount:8, unit:"g" }
+    name:"Margarita Moonshine",
+    base:{gallons:4,proof:164},
+    final:{proof:60},
+    ingredients:[
+      {name:"HFCS 42",type:"percent_vv",percent:0.14,densityKgPerL:1.613},
+      {name:"Apex Margarita Flavor",type:"liquid",amount:232,unit:"mL"},
+      {name:"Apex Orange Extract",type:"liquid",amount:39,unit:"mL"},
+      {name:"Citric Acid",type:"solid",amount:27,unit:"g"},
+      {name:"Malic Acid",type:"solid",amount:8,unit:"g"}
     ]
   },
-
   spicy_pineapple: {
-    name: "Spicy Pineapple Moonshine",
-    base: { gallons: 5, proof: 155 },
-    final: { proof: 60 },
-    ingredients: [
-      /* 👇 SET THIS TO 0.12 IF SPICY PINEAPPLE IS 12% */
-      { name:"HFCS 42", type:"percent_vv", percent:0.12, densityKgPerL:1.613 },
-      { name:"Apex Pineapple Flavor (Natural & Artificial)", type:"liquid", amount:420, unit:"mL" },
-      { name:"Apex Capsicum Natural Extract", type:"liquid", amount:12, unit:"mL" },
-      { name:"Citric Acid", type:"solid", amount:27, unit:"g" },
-      { name:"Malic Acid", type:"solid", amount:8, unit:"g" }
+    name:"Spicy Pineapple Moonshine",
+    base:{gallons:5,proof:155},
+    final:{proof:60},
+    ingredients:[
+      {name:"HFCS 42",type:"percent_vv",percent:0.12,densityKgPerL:1.613},
+      {name:"Apex Pineapple Flavor",type:"liquid",amount:420,unit:"mL"},
+      {name:"Apex Capsicum Extract",type:"liquid",amount:12,unit:"mL"},
+      {name:"Citric Acid",type:"solid",amount:27,unit:"g"},
+      {name:"Malic Acid",type:"solid",amount:8,unit:"g"}
     ]
   }
 };
 
 const GAL_TO_L = 3.785411784;
-
-// formatting helpers
-const fmt = (n,d=3)=>Number(n).toFixed(d);
-const fmt0 = (n)=>Number(n).toFixed(0);
-const fmt1 = (n)=>Number(n).toFixed(1);
+const fmt=(n,d=3)=>Number(n).toFixed(d);
+const fmt1=n=>Number(n).toFixed(1);
 
 document.getElementById("app-version").textContent = APP_VERSION;
 
-const recipeSelect = document.getElementById("recipe");
-const recipeMeta = document.getElementById("recipeMeta");
-const recipeSummary = document.getElementById("recipeSummary");
+const recipeSelect=document.getElementById("recipe");
+const recipeMeta=document.getElementById("recipeMeta");
+const recipeSummary=document.getElementById("recipeSummary");
+const baseGallonsInput=document.getElementById("baseGallons");
+const baseProofInput=document.getElementById("baseProof");
+const finalProofInput=document.getElementById("finalProof");
+const sweetPercentInput=document.getElementById("sweetPercent");
+const sweetOverrideInput=document.getElementById("sweetOverride");
+const resultsDiv=document.getElementById("results");
 
-const baseGallonsInput = document.getElementById("baseGallons");
-const baseProofInput = document.getElementById("baseProof");
-const finalProofInput = document.getElementById("finalProof");
-const sweetPercentInput = document.getElementById("sweetPercent");
-
-const resultsDiv = document.getElementById("results");
-
-Object.entries(RECIPES).forEach(([key,r])=>{
+Object.entries(RECIPES).forEach(([k,r])=>{
   const o=document.createElement("option");
-  o.value=key;
-  o.textContent=r.name;
+  o.value=k;o.textContent=r.name;
   recipeSelect.appendChild(o);
 });
 
-function getRecipeHFCS(r){
-  const hfcs = r.ingredients.find(i => i.type === "percent_vv");
-  if (!hfcs) throw new Error("Recipe missing HFCS percent_vv ingredient.");
-  return hfcs;
+function getHFCS(r){
+  return r.ingredients.find(i=>i.type==="percent_vv");
 }
 
-function renderRecipeSummary(r, effectivePct01){
-  const hfcs = getRecipeHFCS(r);
-  const pct = (typeof effectivePct01 === "number" ? effectivePct01 : hfcs.percent) * 100;
-
-  recipeSummary.innerHTML = `
-    <div class="result">
-      <div class="k">Canonical Base</div>
-      <div class="v">${r.base.gallons} gal @ ${r.base.proof}</div>
-    </div>
-    <div class="result">
-      <div class="k">Final Proof</div>
-      <div class="v">${r.final.proof}</div>
-    </div>
-    <div class="result">
-      <div class="k">Sweetness</div>
-      <div class="v">${fmt1(pct)}% HFCS-42</div>
-    </div>
-  `;
+function renderSummary(r,pct){
+  recipeSummary.innerHTML=`
+    <div class="result"><div class="k">Canonical Base</div><div class="v">${r.base.gallons} gal @ ${r.base.proof}</div></div>
+    <div class="result"><div class="k">Final Proof</div><div class="v">${r.final.proof}</div></div>
+    <div class="result"><div class="k">Sweetness</div><div class="v">${fmt1(pct*100)}% HFCS-42</div></div>`;
 }
 
 function loadRecipe(){
-  const r = RECIPES[recipeSelect.value];
-  const hfcs = getRecipeHFCS(r);
+  const r=RECIPES[recipeSelect.value];
+  const hfcs=getHFCS(r);
 
-  baseGallonsInput.value = r.base.gallons;
-  baseProofInput.value   = r.base.proof;
-  finalProofInput.value  = r.final.proof;
+  baseGallonsInput.value=r.base.gallons;
+  baseProofInput.value=r.base.proof;
+  finalProofInput.value=r.final.proof;
 
-  // Default sweetness from recipe (editable)
-  sweetPercentInput.value = fmt1(hfcs.percent * 100);
+  sweetPercentInput.value=fmt1(hfcs.percent*100);
+  sweetPercentInput.disabled=true;
+  sweetOverrideInput.checked=false;
 
-  recipeMeta.textContent =
-    `${r.base.gallons} gal @ ${r.base.proof} → ${r.final.proof} proof`;
-
-  renderRecipeSummary(r, hfcs.percent);
+  recipeMeta.textContent=`${r.base.gallons} gal @ ${r.base.proof} → ${r.final.proof}`;
+  renderSummary(r,hfcs.percent);
 }
 
 function runWizard(){
-  const r = RECIPES[recipeSelect.value];
-  const hfcs = getRecipeHFCS(r);
+  const r=RECIPES[recipeSelect.value];
+  const hfcs=getHFCS(r);
 
-  const baseGallons = Number(baseGallonsInput.value);
-  const baseProof   = Number(baseProofInput.value);
-  const finalProof  = Number(finalProofInput.value);
+  const baseGallons=+baseGallonsInput.value;
+  const baseProof=+baseProofInput.value;
+  const finalProof=+finalProofInput.value;
 
-  // sweetness override (percent typed by user)
-  let sweetPct01 = Number(sweetPercentInput.value) / 100;
-  if (!isFinite(sweetPct01) || sweetPct01 <= 0) {
-    sweetPct01 = hfcs.percent; // fall back to recipe
-  }
+  const pct=sweetOverrideInput.checked
+    ? (+sweetPercentInput.value/100 || hfcs.percent)
+    : hfcs.percent;
 
-  if(!baseGallons || !baseProof || !finalProof){
-    resultsDiv.innerHTML = `<div class="muted">Enter valid inputs.</div>`;
-    return;
-  }
+  const scaled=Scaler.scaleFromBase({baseGallons,baseProof,targetProof:finalProof});
+  const hfcsGal=scaled.finalVolume*pct;
+  const hfcsKg=hfcsGal*GAL_TO_L*hfcs.densityKgPerL;
+  const waterGal=scaled.finalVolume-baseGallons-hfcsGal;
 
-  const scaled = Scaler.scaleFromBase({
-    baseGallons,
-    baseProof,
-    targetProof: finalProof
-  });
+  const mult=baseGallons/r.base.gallons;
 
-  const multiplier = baseGallons / r.base.gallons;
+  const blocks=r.ingredients.filter(i=>i.type!=="percent_vv").map(i=>{
+    const amt=i.amount*mult;
+    return `<div class="result"><div class="k">${i.name}</div><div class="v">${fmt(amt)} ${i.unit}</div></div>`;
+  }).join("");
 
-  // HFCS computed from effective sweetness percent
-  const hfcsVolumeGal = scaled.finalVolume * sweetPct01;
-  const hfcsKg = hfcsVolumeGal * GAL_TO_L * hfcs.densityKgPerL;
+  resultsDiv.innerHTML=`
+    <div class="result"><div class="k">Water Required</div><div class="v">${fmt(waterGal)} gal</div></div>
+    <div class="result"><div class="k">Final Volume</div><div class="v">${fmt(scaled.finalVolume)} gal</div></div>
+    <div class="result"><div class="k">Alcohol Content</div><div class="v">${fmt(scaled.alcoholPG,2)} PG</div></div>
+    <div class="result"><div class="k">HFCS-42</div><div class="v">${fmt(hfcsKg,2)} kg</div><div class="muted">${fmt1(pct*100)}% v/v</div></div>
+    ${blocks}`;
 
-  // water = final - base - hfcs (flavors/acids excluded)
-  const waterGal = scaled.finalVolume - baseGallons - hfcsVolumeGal;
-
-  // render ingredients (non-HFCS scale linearly)
-  const ingredientBlocks = r.ingredients
-    .filter(i => i.type !== "percent_vv")
-    .map(i=>{
-      const amt = i.amount * multiplier;
-
-      if(i.type === "liquid"){
-        return `
-          <div class="result">
-            <div class="k">${i.name}</div>
-            <div class="v">${fmt0(amt)} ${i.unit}</div>
-            <div class="muted">× ${fmt(multiplier,4)}</div>
-          </div>
-        `;
-      }
-
-      if(i.type === "solid"){
-        return `
-          <div class="result">
-            <div class="k">${i.name}</div>
-            <div class="v">${fmt(amt,3)} ${i.unit}</div>
-            <div class="muted">× ${fmt(multiplier,4)}</div>
-          </div>
-        `;
-      }
-
-      return "";
-    }).join("");
-
-  resultsDiv.innerHTML = `
-    <div class="result">
-      <div class="k">Water Required</div>
-      <div class="v">${fmt(waterGal)} gal</div>
-    </div>
-
-    <div class="result">
-      <div class="k">Final Volume</div>
-      <div class="v">${fmt(scaled.finalVolume)} gal</div>
-    </div>
-
-    <div class="result">
-      <div class="k">Alcohol Content</div>
-      <div class="v">${fmt(scaled.alcoholPG,2)} PG</div>
-    </div>
-
-    <div class="result">
-      <div class="k">HFCS 42</div>
-      <div class="v">${fmt(hfcsKg,2)} kg</div>
-      <div class="muted">${fmt1(sweetPct01*100)}% v/v (≈ ${fmt(hfcsVolumeGal)} gal)</div>
-    </div>
-
-    ${ingredientBlocks}
-  `;
-
-  // keep summary reflecting the effective sweetness
-  renderRecipeSummary(r, sweetPct01);
+  renderSummary(r,pct);
 }
 
-recipeSelect.addEventListener("change",()=>{ loadRecipe(); runWizard(); });
-[baseGallonsInput, baseProofInput, finalProofInput, sweetPercentInput]
-  .forEach(el => el.addEventListener("input", runWizard));
+sweetOverrideInput.addEventListener("change",()=>{
+  sweetPercentInput.disabled=!sweetOverrideInput.checked;
+  runWizard();
+});
+
+recipeSelect.addEventListener("change",()=>{loadRecipe();runWizard();});
+[baseGallonsInput,baseProofInput,finalProofInput,sweetPercentInput]
+  .forEach(el=>el.addEventListener("input",runWizard));
 
 loadRecipe();
 runWizard();
