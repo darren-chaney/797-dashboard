@@ -27,3 +27,38 @@
   color: #ffffff;
   font-weight: 500;
 }
+/* =====================================
+   OPS HOME (INDEX PAGE) HEADER TUNING
+   ===================================== */
+
+body.ops-home .header-container {
+  padding-bottom: 8px;
+}
+
+body.ops-home .header-row {
+  align-items: center;
+}
+
+/* Reduce logo dominance */
+body.ops-home .header-logo {
+  max-height: 72px; /* was visually too large */
+  opacity: 0.9;
+}
+
+/* Pull nav up visually */
+body.ops-home .module-nav {
+  margin-top: 6px;
+}
+
+/* Reduce vertical weight of title */
+body.ops-home #page-title {
+  font-size: 1.3rem;
+}
+
+/* =====================================
+   OPS HOME CONTENT PULL-UP
+   ===================================== */
+
+body.ops-home main {
+  padding-top: 16px;
+}
