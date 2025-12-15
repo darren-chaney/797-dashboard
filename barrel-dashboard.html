@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>797 Distillery Barrel Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/shared/header.css">
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -11,33 +12,6 @@
       padding: 0;
       background: #0f172a;
       color: #e5e7eb;
-    }
-
-    /* ============================================
-       HEADER AREA — TITLE + LOGO INLINE (DESIGNER)
-       ============================================ */
-    .header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
-
-    .header-logo {
-      width: 75px;   /* adjust size here */
-      opacity: 0.95;
-    }
-
-    .title-with-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;                   /* spacing between text + logo */
-    }
-
-    .header-logo-inline {
-      width: 42px;                /* perfect visual size */
-      opacity: 0.95;
-      transform: translateY(-2px); /* optical alignment tweak */
     }
 
     .container {
@@ -55,13 +29,6 @@
       font-size: 1.3rem;
       margin-top: 2rem;
       margin-bottom: 0.75rem;
-    }
-
-    .subheading {
-      font-size: 0.9rem;
-      color: #9ca3af;
-      margin-bottom: 1rem;
-      margin-top: 4px; /* tighter visual spacing */
     }
 
     .stats-grid {
@@ -198,17 +165,6 @@
       margin-top: 0.4rem;
     }
 
-    @media (max-width: 640px) {
-      h1 {
-        font-size: 1.4rem;
-      }
-      .stat-card {
-        padding: 0.6rem 0.7rem;
-      }
-      .header-logo-inline {
-        width: 34px;
-      }
-    }
     .dashboard-actions {
   display: flex;
   gap: 0.75rem;
@@ -239,44 +195,31 @@
 
   </style>
 </head>
-
+  
 <body>
+  
+<!-- GLOBAL HEADER -->
+<div id="global-header"></div>
+<script>
+  const PAGE_TITLE = "Barrel Dashboard";
+  const PAGE_SUBTITLE = "Live view of all barrels from your Google Sheet (Barrel Log).";
+</script>
 
+<script>
+fetch("/shared/header.html")
+  .then(res => res.text())
+  .then(html => {
+    document.getElementById("global-header").innerHTML = html;
+
+    const title = document.getElementById("page-title");
+    const subtitle = document.getElementById("page-subtitle");
+
+    if (title) title.textContent = PAGE_TITLE;
+    if (subtitle) subtitle.textContent = PAGE_SUBTITLE;
+  });
+</script>
   <div class="container">
-
-    <!-- ============================================
-         HEADER — TITLE + LOGO INLINE
-         ============================================ -->
-    <div class="header-row">
-      <div>
-        <h1>797 Distillery Barrel Dashboard</h1>
-        <div class="subheading">
-          Live view of all barrels from your Google Sheet (Barrel Log).
-        </div>
-      </div>
-
-      <!-- Right-side logo -->
-      <img src="websiteLogoGlassWhiteTrans.png" class="header-logo" alt="797 Distillery Logo">
-    </div>
-    <!-- END HEADER BLOCK -->
-    <!-- Nav Block -->
-<div class="dashboard-actions">
-  <a
-    href="https://darren-chaney.github.io/797-dashboard/barrel-entry-test.html"
-    class="action-btn"
-    target="_blank"
-  >
-    ➕ New Barrel Entry
-  </a>
-
-  <a
-    href="https://darren-chaney.github.io/797-dashboard/dashboard.html"
-    class="action-btn secondary"
-  >
-    🧪 Fermentation Dashboard
-  </a>
-</div>
-
+    
     <!-- ⭐ Stats -->
     <div class="stats-grid">
       <div class="stat-card">
