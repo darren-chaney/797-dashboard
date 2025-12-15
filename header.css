@@ -1,6 +1,9 @@
 /* ==============================
    GLOBAL HEADER CSS – LOCKED
    ============================== */
+.page-content {
+  padding-top: 0;
+}
 
 .header-container {
   max-width: 1100px;
