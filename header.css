@@ -1,11 +1,54 @@
 /* ==============================
+   GLOBAL HEADER – BASE STYLES
+   ============================== */
+
+.header-container {
+  background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+  padding: 16px 20px 12px 20px;
+  border-bottom: 1px solid #334155;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+#page-title {
+  font-size: 1.6rem;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.subheading {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.header-logo-link {
+  display: flex;
+  align-items: center;
+}
+
+.header-logo {
+  height: 96px;
+  width: auto;
+}
+
+/* ==============================
    MODULE NAV
    ============================== */
 
 .module-nav {
   display: flex;
   gap: 18px;
-  margin-top: 10px;
+  margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid #334155;
 }
@@ -27,32 +70,34 @@
   color: #ffffff;
   font-weight: 500;
 }
+
 /* =====================================
    OPS HOME (INDEX PAGE) HEADER TUNING
    ===================================== */
 
 body.ops-home .header-container {
-  padding-bottom: 8px;
+  padding-top: 8px;
+  padding-bottom: 6px;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 body.ops-home .header-row {
-  align-items: center;
+  align-items: flex-start;
 }
 
-/* Reduce logo dominance */
 body.ops-home .header-logo {
-  max-height: 72px; /* was visually too large */
+  height: 56px;
   opacity: 0.9;
 }
 
-/* Pull nav up visually */
 body.ops-home .module-nav {
   margin-top: 6px;
+  padding-top: 6px;
 }
 
-/* Reduce vertical weight of title */
 body.ops-home #page-title {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
 }
 
 /* =====================================
@@ -60,5 +105,5 @@ body.ops-home #page-title {
    ===================================== */
 
 body.ops-home main {
-  padding-top: 16px;
+  padding-top: 8px;
 }
