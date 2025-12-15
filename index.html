@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>797 Distillery – Operations</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Shared Header CSS -->
+  <link rel="stylesheet" href="header.css" />
+
+  <style>
+    body {
+      margin: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 32px;
+    }
+
+    .modules {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .module {
+      background: #111c33;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .module h2 {
+      font-size: 1.1rem;
+      margin: 0 0 10px 0;
+    }
+
+    .module ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .module li {
+      margin-bottom: 8px;
+    }
+
+    .module a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+
+    .module a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Shared Header Include -->
+  <div id="header"></div>
+
+  <main>
+    <h1>797 Distillery – Operations</h1>
+    <div class="subtitle">
+      Internal tools and records
+    </div>
+
+    <div class="modules">
+
+      <!-- PRODUCTS -->
+      <section class="module" id="products">
+        <h2>Products</h2>
+        <ul>
+          <li><a href="recipe-scaling.html">Recipe Scaling</a></li>
+          <li><a href="recipes.html">Base Recipes & Mash Bills</a></li>
+          <li><a href="labels.html">Approved Labels (PDF)</a></li>
+          <li><a href="barcodes.html">Barcodes & SKUs</a></li>
+        </ul>
+      </section>
+
+      <!-- BARRELS -->
+      <section class="module" id="barrels">
+        <h2>Barrels</h2>
+        <ul>
+          <li><a href="barrel-entry.html">New Barrel Entry</a></li>
+          <li><a href="print-barrel-label.html">Print Barrel Label</a></li>
+          <li><a href="barrel-inventory.html">Barrel Inventory</a></li>
+        </ul>
+      </section>
+
+      <!-- FERMENTATION -->
+      <section class="module" id="fermentation">
+        <h2>Fermentation</h2>
+        <ul>
+          <li><a href="ferm-dashboard.html">Live Dashboard</a></li>
+          <li><a href="ferm-history.html">Historical Data</a></li>
+        </ul>
+      </section>
+
+      <!-- COMPLIANCE -->
+      <section class="module" id="compliance">
+        <h2>Compliance</h2>
+        <ul>
+          <li><a href="https://www.pay.gov" target="_blank">Pay.gov (Excise Tax)</a></li>
+          <li><a href="https://www.ttb.gov" target="_blank">TTB Website</a></li>
+          <li><a href="compliance-notes.html">Filing Notes & Checklists</a></li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    // Load shared header
+    fetch("header.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("header").innerHTML = html;
+      });
+  </script>
+
+</body>
+</html>
