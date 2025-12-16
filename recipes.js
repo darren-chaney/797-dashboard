@@ -1,7 +1,7 @@
 /* =========================================================
    797 Distillery – Master Recipe Book
    File: recipes.js
-   Version: 1.0.2
+   Version: 1.0.3
    Notes:
    - Canonical production recipes only
    - No math, no UI logic
@@ -123,7 +123,8 @@ window.RECIPES = {
     final: { proof: 60 },
     ingredients: [
       { name: "HFCS 42", type: "percent_vv", percent: 0.12, densityKgPerL: 1.613 },
-      { name: "Strawberry Fresh Flavor", type: "liquid", amount: 580, unit: "mL" },
+      { name: "Apex Strawberry Fresh", type: "liquid", amount: 480, unit: "mL" },
+      { name: "Olive Nation Strawberry", type: "liquid", amount: 100, unit: "mL" },
       { name: "Liquid Citric Acid", type: "liquid", amount: 15, unit: "mL" }
     ]
   },
