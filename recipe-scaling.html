@@ -61,6 +61,20 @@
       color:#e5e7eb;
       font-size:.95rem;
     }
+    select{
+    appearance:none;
+    -webkit-appearance:none;
+    background-image:
+    linear-gradient(45deg, transparent 50%, #9ca3af 50%),
+    linear-gradient(135deg, #9ca3af 50%, transparent 50%);
+    background-position:
+    calc(100% - 18px) 55%,
+    calc(100% - 12px) 55%;
+    background-size:6px 6px, 6px 6px;
+    background-repeat:no-repeat;
+    padding-right:36px;
+    cursor:pointer;
+    }
 
     .results{
       display:grid;
@@ -76,7 +90,13 @@
       padding:16px;
     }
 
-    .k{font-size:.75rem;color:#9ca3af;margin-bottom:4px}
+    .k{
+      font-size:.85rem;
+      color:#cbd5e1;
+      letter-spacing:.02em;
+      margin-bottom:6px;
+    }
+
     .v{font-size:1.2rem;font-weight:700}
     .muted{color:#9ca3af;font-size:.85rem}
 
@@ -105,7 +125,7 @@
 <div id="global-header"></div>
 
 <script>
-  const APP_VERSION = "v1.6.0";
+  const APP_VERSION = "v1.6.1";
 
   fetch("header.html",{cache:"no-store"})
     .then(r=>r.text())
