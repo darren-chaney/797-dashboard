@@ -6,14 +6,42 @@
 /* ------------------------------
    Bench Proofing Math (R&D ONLY)
    ------------------------------ */
-function calculateWaterForProof(baseMl, baseProof, targetProof) {
-  if (!baseMl || !baseProof || !targetProof) return 0;
+function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additiveMl = 0){
+  if (!finalMl || !baseProof || !targetProof) {
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Missing proof inputs."] };
+  }
 
-  const alcoholMl = baseMl * (baseProof / 200);
-  const finalVolumeMl = alcoholMl / (targetProof / 200);
-  const waterMl = finalVolumeMl - baseMl;
+  const warnings = [];
 
-  return Math.max(0, waterMl);
+  const Vfinal = Number(finalMl);
+  const Vadd = Math.max(0, Number(additiveMl || 0));
+  const VspiritWater = Math.max(0, Vfinal - Vadd);
+
+  // Alcohol needed in the FINAL sample volume
+  const alcoholNeededMl = Vfinal * (targetProof / 200);
+
+  // Base spirit required to supply that alcohol
+  const baseSpiritMl = alcoholNeededMl / (baseProof / 200);
+
+  // Remaining room for water after base spirit (inside spirit+water bucket)
+  const waterMl = VspiritWater - baseSpiritMl;
+
+  if (Vadd > Vfinal){
+    warnings.push("Additives exceed final sample size. Reduce flavors/sweetener or increase sample size.");
+  }
+
+  if (waterMl < 0){
+    warnings.push(
+      "Not enough room for water at this proof/size after additives. Lower target proof, raise sample size, reduce additives, or use higher-proof base."
+    );
+  }
+
+  return {
+    baseSpiritMl: Math.max(0, baseSpiritMl),
+    waterMl: Math.max(0, waterMl),
+    spiritWaterMl: VspiritWater,
+    warnings
+  };
 }
 
 const SB_LOCKED_RANGES_VERSION = "v1.0";
