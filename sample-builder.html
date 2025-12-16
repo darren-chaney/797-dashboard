@@ -26,11 +26,8 @@
       --muted:#9ca3af;
       --good:#22c55e;
       --warn:#f59e0b;
-      --bad:#ef4444;
       --btn:#111c33;
       --btn2:#0b1223;
-      --chip:#0b1223;
-      --shadow: 0 10px 30px rgba(0,0,0,.25);
     }
     body{
       margin:0;
@@ -43,139 +40,183 @@
       margin:0 auto;
       padding:28px 18px 40px;
     }
-    .subtitle{color:var(--muted); margin:6px 0 20px}
     .row{display:flex; gap:14px; flex-wrap:wrap;}
     .panel{
       background:var(--panel);
       border:1px solid var(--border);
       border-radius:14px;
       padding:18px;
-      box-shadow: var(--shadow);
     }
-    .panel h2{margin:0 0 12px; font-size:1.05rem;}
-    .panel .hint{color:var(--muted); font-size:.92rem; margin-top:6px}
     .grow{flex:1 1 520px;}
-    .side{flex:1 1 320px; min-width:280px;}
-
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:6px 10px;
-      border:1px solid var(--border);
-      border-radius:999px;
-      background:var(--chip);
-      color:var(--text);
-      font-size:.85rem;
-      white-space:nowrap;
-    }
-    .badge b{font-weight:700}
-    .badge.warn{border-color: rgba(245,158,11,.55); color:#fcd34d;}
-    .badge.good{border-color: rgba(34,197,94,.55); color:#86efac;}
-    .badge.muted{color:var(--muted);}
-
-    label{display:block; font-size:.92rem; color:var(--muted); margin:10px 0 6px;}
-    input[type="text"], input[type="number"], textarea, select{
+    .side{flex:1 1 320px;}
+    label{display:block; color:var(--muted); margin:10px 0 6px;}
+    input, select, textarea{
       width:100%;
-      box-sizing:border-box;
       background:var(--btn2);
       color:var(--text);
       border:1px solid var(--border);
       border-radius:10px;
-      padding:10px 12px;
-      outline:none;
-      font-size:1rem;
+      padding:10px;
     }
-    textarea{min-height:84px; resize:vertical;}
-
-    .radioRow{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .pill{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 10px;
-      border:1px solid var(--border);
-      border-radius:12px;
-      background:var(--btn2);
-      user-select:none;
-    }
-    .pill input{accent-color:#e5e7eb;}
-    .pill .mini{color:var(--muted); font-size:.84rem;}
-
-    .actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top:14px;
-    }
+    .radioRow{display:flex; gap:10px; flex-wrap:wrap;}
+    .pill{padding:8px 10px; border:1px solid var(--border); border-radius:10px;}
+    .actions{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;}
     button{
-      appearance:none;
       border:1px solid var(--border);
       background:var(--btn2);
       color:var(--text);
-      border-radius:12px;
+      border-radius:10px;
       padding:10px 12px;
-      font-size:1rem;
       cursor:pointer;
     }
-    button.primary{
-      background:var(--btn);
-      border-color:#486081;
-    }
-    button:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-    }
-
+    button.primary{background:var(--btn);}
+    button:disabled{opacity:.5}
     .divider{height:1px; background:var(--border); margin:14px 0;}
-
-    .twoCol{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
-    @media (max-width: 780px){
-      .twoCol{grid-template-columns:1fr;}
-    }
+    table{width:100%; border-collapse:collapse;}
+    th,td{padding:8px; border-bottom:1px solid var(--border);}
+    th{background:#0b1223; text-align:left;}
+    .badge{padding:6px 10px; border-radius:999px; border:1px solid var(--border);}
+    .warn{color:#fcd34d;}
+    .muted{color:var(--muted);}
   </style>
 </head>
 
 <body>
-  <!-- GLOBAL HEADER -->
-  <div id="global-header"></div>
 
-  <main>
-    <div class="row" style="align-items:flex-start; justify-content:space-between;">
-      <div>
-        <h1 style="margin:0 0 6px;">Sample Builder (R&D)</h1>
-        <div class="subtitle">
-          Create small-batch tasting samples (max 375 mL). Drafts only — promote after tasting.
-        </div>
+<div id="global-header"></div>
+
+<main>
+  <h1>Sample Builder (R&D)</h1>
+  <p class="muted">Create tasting samples up to 375 mL. R&D only.</p>
+
+  <div class="row">
+    <!-- INPUT -->
+    <section class="panel grow">
+      <h2>Sample Inputs</h2>
+
+      <label>Sample Size</label>
+      <div class="radioRow">
+        <label class="pill"><input type="radio" name="sampleSize" value="100"> 100 mL</label>
+        <label class="pill"><input type="radio" name="sampleSize" value="250" checked> 250 mL</label>
+        <label class="pill"><input type="radio" name="sampleSize" value="375"> 375 mL</label>
       </div>
-      <div class="badge warn">
-        🧪 <b>R&D ONLY</b>
-        <span class="muted">• v0.2.0</span>
+
+      <label>Base Spirit Type</label>
+      <select id="baseSpiritType">
+        <option>Moonshine</option>
+        <option>Vodka</option>
+        <option>Rum</option>
+      </select>
+
+      <label>Base Spirit Proof</label>
+      <input id="baseProof" type="number" value="155">
+
+      <label>Target Sample Proof</label>
+      <input id="targetProof" type="number" value="60">
+
+      <label>Flavor Concept</label>
+      <input id="flavorConcept" type="text" placeholder="Strawberry Cream">
+
+      <label>Flavor Strength</label>
+      <div class="radioRow">
+        <label class="pill"><input type="radio" name="strength" value="Mild"> Mild</label>
+        <label class="pill"><input type="radio" name="strength" value="Strong" checked> Strong</label>
+        <label class="pill"><input type="radio" name="strength" value="Extreme"> Extreme</label>
       </div>
+
+      <label>Sweetness (HFCS-42)</label>
+      <div class="radioRow">
+        <label class="pill"><input type="radio" name="sweetness" value="none"> None</label>
+        <label class="pill"><input type="radio" name="sweetness" value="10"> 10%</label>
+        <label class="pill"><input type="radio" name="sweetness" value="12" checked> 12%</label>
+        <label class="pill"><input type="radio" name="sweetness" value="14"> 14%</label>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="btnGenerate">Generate Starting Sample</button>
+        <button id="btnClear">Clear</button>
+        <span id="inputWarning" class="badge muted" style="display:none;"></span>
+      </div>
+    </section>
+
+    <!-- SIDE -->
+    <aside class="panel side">
+      <h2>Drafts</h2>
+      <div id="draftList" class="muted">No drafts yet.</div>
+
+      <div class="actions">
+        <button id="btnSaveDraft" disabled>Save Draft</button>
+        <button id="btnLoadLast">Load Last</button>
+      </div>
+
+      <div class="actions">
+        <button id="btnExportDraft" disabled>Export Draft</button>
+        <button id="btnExportRecipes">Export Candidate Recipes</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- OUTPUT -->
+  <section class="panel" id="outputPanel" style="display:none; margin-top:14px;">
+    <h2>Generated Sample</h2>
+    <div id="sampleMeta" class="muted"></div>
+
+    <div id="warningBlock" class="warn"></div>
+
+    <table id="ingredientTable">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>mL</th>
+          <th>L</th>
+          <th>g / kg</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="actions">
+      <button id="btnDuplicate" disabled>Duplicate & Adjust</button>
+      <button id="btnPromote" disabled class="primary">Save as Candidate Base Recipe</button>
+    </div>
+  </section>
+</main>
+
+<!-- PROMOTION MODAL -->
+<div id="promoBackdrop" style="display:none;">
+  <div class="panel">
+    <h3>Save as Candidate Base Recipe</h3>
+
+    <label>Recipe Name</label>
+    <input id="promoRecipeName">
+
+    <label>Internal Notes</label>
+    <textarea id="promoNotes"></textarea>
+
+    <label><input type="checkbox" id="chkTasted"> Tasted at 375 mL</label>
+    <label><input type="checkbox" id="chkBalanced"> Balanced</label>
+    <label><input type="checkbox" id="chkUnderstood"> Understands candidate only</label>
+
+    <div class="actions">
+      <button id="btnCancelPromo">Cancel</button>
+      <button id="btnConfirmPromo" class="primary">Confirm</button>
     </div>
 
-    <!-- INPUTS -->
-    <!-- (unchanged content omitted for brevity — your inputs remain exactly as you provided) -->
+    <div id="promoError" class="warn"></div>
+  </div>
+</div>
 
-  </main>
+<!-- HEADER -->
+<script>
+  fetch("header.html",{cache:"no-store"})
+    .then(r=>r.text())
+    .then(h=>document.getElementById("global-header").innerHTML=h);
+</script>
 
-  <!-- HEADER LOADER -->
-  <script>
-    const APP_VERSION = "SB_1.2.0";
+<!-- APP SCRIPTS -->
+<script src="logic.js?v=SB_0.2.0"></script>
+<script src="ui.js?v=SB_0.2.0"></script>
 
-    fetch("header.html", { cache: "no-store" })
-      .then(res => res.text())
-      .then(html => { document.getElementById("global-header").innerHTML = html; })
-      .catch(() => {});
-  </script>
-
-  <!-- SAMPLE BUILDER SCRIPTS -->
-  <script src="logic.js?v=SB_0.2.0"></script>
-  <script src="ui.js?v=SB_0.2.0"></script>
 </body>
 </html>
