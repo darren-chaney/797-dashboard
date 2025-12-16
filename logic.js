@@ -3,46 +3,11 @@
    Locked Flavor Ranges v1.0
    ============================================================ */
 
-/* ------------------------------
-   Bench Proofing Math (R&D ONLY)
-   ------------------------------ */
-function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additiveMl = 0){
-  if (!finalMl || !baseProof || !targetProof) {
-    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Missing proof inputs."] };
-  }
-
-  const warnings = [];
-
-  const Vfinal = Number(finalMl);
-  const Vadd = Math.max(0, Number(additiveMl || 0));
-  const VspiritWater = Math.max(0, Vfinal - Vadd);
-
-  const alcoholNeededMl = Vfinal * (targetProof / 200);
-  const baseSpiritMl = alcoholNeededMl / (baseProof / 200);
-  const waterMl = VspiritWater - baseSpiritMl;
-
-  if (Vadd > Vfinal){
-    warnings.push("Additives exceed final sample size.");
-  }
-
-  if (waterMl < 0){
-    warnings.push(
-      "Not enough room for water at this proof after additives."
-    );
-  }
-
-  return {
-    baseSpiritMl: Number(Math.max(0, baseSpiritMl).toFixed(1)),
-    waterMl: Number(Math.max(0, waterMl).toFixed(1)),
-    spiritWaterMl: VspiritWater,
-    warnings
-  };
-}
-
 const SB_LOCKED_RANGES_VERSION = "v1.0";
 const HFCS42_DENSITY_G_PER_ML = 1.30;
 const ALLOWED_SAMPLE_SIZES_ML = [100, 250, 375];
 
+// Locked ranges (per 250 mL)
 const FLAVOR_RANGES = {
   Fruit:   { low: 0.60, typical: 1.00, high: 1.40 },
   Cream:   { low: 0.15, typical: 0.30, high: 0.50 },
@@ -53,23 +18,104 @@ const FLAVOR_RANGES = {
   Heat:    { low: 0.01, typical: 0.03, high: 0.06 }
 };
 
+// Keyword → category mapping
+const KEYWORDS = [
+  { k: ["capsicum","chili","chile","habanero","jalapeno","pepper","heat","spicy"], cat: "Heat" },
+  { k: ["cinnamon","clove","nutmeg","spice","ginger"], cat: "Spice" },
+  { k: ["lemon","lime","orange","tangerine","citrus","grapefruit"], cat: "Citrus" },
+  { k: ["vanilla","french vanilla","bourbon vanilla"], cat: "Vanilla" },
+  { k: ["cream","whipped","sweet cream","milk","dairy"], cat: "Cream" },
+  { k: ["pie","cobbler","cake","cheesecake","cookie","dessert","frosting","donut","brownie"], cat: "Dessert" },
+  { k: ["strawberry","peach","blue","raz","raspberry","watermelon","pineapple","apple","blackberry","cherry","mango","banana","grape","berry"], cat: "Fruit" }
+];
+
+/* ------------------------------
+   Small helpers
+   ------------------------------ */
 function sbNowISO(){ return new Date().toISOString(); }
+
 function sbUuid(prefix){
   const d = new Date();
   const p = n=>String(n).padStart(2,"0");
   return `${prefix}-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${Math.floor(Math.random()*900+100)}`;
 }
+
 function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
 
 function normalizeText(s){
   return (s||"").toLowerCase().replace(/[^\w\s-]/g," ").replace(/\s+/g," ").trim();
 }
 
+function titleCase(s){
+  return (s||"")
+    .split(" ")
+    .filter(Boolean)
+    .map(w=>w[0]?.toUpperCase()+w.slice(1))
+    .join(" ");
+}
+
+/* ------------------------------
+   Bench Proofing Math (R&D ONLY)
+   finalMl is FINAL finished volume (includes flavors + HFCS)
+   ------------------------------ */
+function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additiveMl = 0){
+  const warnings = [];
+
+  const Vfinal = Number(finalMl);
+  const bp = Number(baseProof);
+  const tp = Number(targetProof);
+  const Vadd = Math.max(0, Number(additiveMl || 0));
+
+  if (!Number.isFinite(Vfinal) || Vfinal <= 0) {
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid final sample volume."] };
+  }
+  if (!Number.isFinite(bp) || bp <= 0) {
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid base proof."] };
+  }
+  if (!Number.isFinite(tp) || tp <= 0) {
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid target proof."] };
+  }
+
+  if (tp > bp){
+    warnings.push("Target proof is higher than base proof — you cannot proof up with water.");
+  }
+
+  if (Vadd > Vfinal){
+    warnings.push("Additives exceed final sample size. Reduce flavors/sweetener or increase sample size.");
+  }
+
+  // Space available for spirit + water inside final volume
+  const VspiritWater = Math.max(0, Vfinal - Vadd);
+
+  // Alcohol required in FINAL volume
+  const alcoholNeededMl = Vfinal * (tp / 200);
+
+  // Base spirit volume needed to supply that alcohol
+  const baseSpiritMlRaw = alcoholNeededMl / (bp / 200);
+
+  // Water is whatever remains in the spirit+water bucket
+  const waterMlRaw = VspiritWater - baseSpiritMlRaw;
+
+  if (waterMlRaw < -0.001){
+    warnings.push("Not enough room for water at this proof after additives. Lower target proof, raise sample size, reduce additives, or use higher-proof base.");
+  }
+
+  return {
+    baseSpiritMl: Number(Math.max(0, baseSpiritMlRaw).toFixed(1)),
+    waterMl: Number(Math.max(0, waterMlRaw).toFixed(1)),
+    spiritWaterMl: Number(VspiritWater.toFixed(1)),
+    warnings
+  };
+}
+
+/* ------------------------------
+   Categorization + Parsing
+   ------------------------------ */
 function detectCategory(token){
   const t = normalizeText(token);
   for (const r of KEYWORDS){
-    for (const k of r.k){
-      if (t.includes(k)) return r.cat;
+    for (const kw of r.k){
+      if (t.includes(normalizeText(kw))) return r.cat;
     }
   }
   return "Dessert";
@@ -80,29 +126,37 @@ function parseFlavorConcept(concept){
   const cleaned = normalizeText(raw);
   if (!cleaned) return { ok:false, error:"Enter a flavor concept." };
 
-  const words = cleaned.split(" ");
-  const seen = new Set();
+  const words = cleaned.split(" ").filter(Boolean);
+  const seenCats = new Set();
   const comps = [];
 
   for (const w of words){
     const cat = detectCategory(w);
-    if (!seen.has(cat)){
+    if (!seenCats.has(cat)){
       comps.push({ name: titleCase(w), category: cat });
-      seen.add(cat);
+      seenCats.add(cat);
     }
     if (comps.length >= 3) break;
+  }
+
+  // Safety: ensure at least 1 component with the raw phrase name
+  if (comps.length === 0){
+    comps.push({ name: titleCase(raw), category: "Dessert" });
+  } else if (comps.length === 1 && comps[0].category === "Dessert" && words.length > 1){
+    // Better naming when concept is multi-word but falls back to Dessert
+    comps[0].name = titleCase(raw);
   }
 
   return { ok:true, raw, components: comps };
 }
 
-function titleCase(s){
-  return (s||"").split(" ").map(w=>w[0]?.toUpperCase()+w.slice(1)).join(" ");
-}
-
+/* ------------------------------
+   Strength & Spirit bias
+   ------------------------------ */
 function strengthValue(range, strength){
   if (strength === "Strong") return range.typical;
   if (strength === "Mild") return range.low + (range.typical - range.low) * 0.7;
+  // Extreme
   return range.typical + (range.high - range.typical) * 0.88;
 }
 
@@ -114,9 +168,8 @@ function applySpiritBias(category, amount, spirit){
 }
 
 /* ============================================================
-   Generate Sample Draft (FIXED)
+   Generate Sample Draft
    ============================================================ */
-
 function generateSample({
   sampleSizeMl,
   baseSpiritType,
@@ -161,7 +214,7 @@ function generateSample({
   let sweetener = null;
   let sweetenerMl = 0;
 
-  if (typeof sweetnessPercent === "number"){
+  if (typeof sweetnessPercent === "number" && Number.isFinite(sweetnessPercent)){
     sweetenerMl = Number((sampleSizeMl * sweetnessPercent / 100).toFixed(1));
     sweetener = {
       enabled: true,
@@ -173,7 +226,7 @@ function generateSample({
 
   const additiveMl = flavorTotalMl + sweetenerMl;
 
-  // --- PROOFING ---
+  // --- PROOFING (final volume fixed) ---
   const proofing = calculateProofingForFinalVolume(
     sampleSizeMl,
     baseProof,
@@ -190,8 +243,8 @@ function generateSample({
     sampleDefinition: {
       sampleSizeMl,
       baseSpiritType,
-      baseProof,
-      targetProof,
+      baseProof: Number(baseProof),
+      targetProof: Number(targetProof),
       flavorConcept: parsed.raw,
       flavorStrength
     },
@@ -199,11 +252,11 @@ function generateSample({
     ingredients: {
       baseSpirit: {
         amountMl: proofing.baseSpiritMl,
-        proof: baseProof
+        proof: Number(baseProof)
       },
       water: {
         amountMl: proofing.waterMl,
-        targetProof
+        targetProof: Number(targetProof)
       },
       flavors,
       sweetener,
