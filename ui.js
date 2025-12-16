@@ -21,14 +21,26 @@ function setRad(name, value){
 
 function getInputs(){
   const sampleSizeMl = Number(readRad("sampleSize"));
-  const baseSpiritType = el("baseSpiritType").value;
-  const flavorConcept = el("flavorConcept").value;
+  const baseSpiritType = el("baseSpiritType")?.value || "Moonshine";
+  const flavorConcept = el("flavorConcept")?.value || "";
   const flavorStrength = readRad("strength") || "Strong";
 
   const sweet = readRad("sweetness");
   const sweetnessPercent = (sweet === "none" || sweet == null) ? null : Number(sweet);
 
-  return { sampleSizeMl, baseSpiritType, flavorConcept, flavorStrength, sweetnessPercent };
+  // NEW: proof inputs (R&D bench proofing)
+  const baseProof = Number(el("baseProof")?.value || 155);
+  const targetProof = Number(el("targetProof")?.value || 60);
+
+  return {
+    sampleSizeMl,
+    baseSpiritType,
+    flavorConcept,
+    flavorStrength,
+    sweetnessPercent,
+    baseProof,
+    targetProof
+  };
 }
 
 function loadJSON(key, fallback){
@@ -58,13 +70,21 @@ function downloadJSON(filename, obj){
 function renderDraftList(){
   const drafts = loadJSON(LS_DRAFTS_KEY, []);
   const box = el("draftList");
+
+  // ✅ FIX: don't crash if draftList isn't on the page
+  if (!box) return;
+
   if (!drafts.length){
     box.textContent = "No drafts yet.";
     return;
   }
+
   const html = drafts.slice().reverse().slice(0, 8).map(d => {
     const size = d.sampleDefinition?.sampleSizeMl ?? "?";
-    const concept = d.sampleDefinition?.flavorConcept ?? d.sampleDefinition?.flavorConceptRaw ?? "Untitled";
+    const concept =
+      d.sampleDefinition?.flavorConcept ??
+      d.sampleDefinition?.flavorConceptRaw ??
+      "Untitled";
     const when = new Date(d.createdAt).toLocaleString();
     return `
       <div style="padding:10px 0; border-bottom:1px solid rgba(51,65,85,.6);">
@@ -108,21 +128,25 @@ function escapeHtml(s){
 }
 
 function clearOutput(){
-  el("outputPanel").style.display = "none";
-  el("btnSaveDraft").disabled = true;
-  el("btnExportDraft").disabled = true;
-  el("btnDuplicate").disabled = true;
-  el("btnPromote").disabled = true;
+  const op = el("outputPanel");
+  if (op) op.style.display = "none";
+
+  const b1 = el("btnSaveDraft"); if (b1) b1.disabled = true;
+  const b2 = el("btnExportDraft"); if (b2) b2.disabled = true;
+  const b3 = el("btnDuplicate"); if (b3) b3.disabled = true;
+  const b4 = el("btnPromote"); if (b4) b4.disabled = true;
 }
 
 function showInputWarning(text, type="muted"){
   const w = el("inputWarning");
+  if (!w) return;
   w.style.display = "inline-flex";
   w.className = `badge ${type}`;
   w.textContent = text;
 }
 function hideInputWarning(){
   const w = el("inputWarning");
+  if (!w) return;
   w.style.display = "none";
 }
 
@@ -164,17 +188,26 @@ function showOutputFromDraft(draft, explainList){
 
   // Base spirit
   rows.push({
-    component: "Base Spirit",
+    component: `Base Spirit${draft.ingredients?.baseSpirit?.proof ? ` (${draft.ingredients.baseSpirit.proof} proof)` : ""}`,
     ml: draft.ingredients.baseSpirit.amountMl,
     notes: "R&D base"
   });
+
+  // ✅ NEW: Water (proofing) row if present
+  if (draft.ingredients?.water){
+    rows.push({
+      component: `Water (to ${draft.ingredients.water.targetProof} proof)`,
+      ml: draft.ingredients.water.amountMl,
+      notes: "Bench proofing"
+    });
+  }
 
   // Flavors
   for (const f of (draft.ingredients.flavors || [])){
     rows.push({
       component: f.name,
       ml: f.amountMl,
-      notes: `${f.category} • ${f.rangeUsed}`
+      notes: `${f.category}${f.rangeUsed ? ` • ${f.rangeUsed}` : ""}`
     });
   }
 
@@ -221,7 +254,7 @@ function showOutputFromDraft(draft, explainList){
   const ul = el("adjustmentList");
   ul.innerHTML = "";
   (draft.adjustmentGuidance || []).forEach((g, idx)=>{
-    if (idx > 5) return; // keep it tight
+    if (idx > 5) return;
     const li = document.createElement("li");
     li.innerHTML = `<b>${escapeHtml(g.condition)}</b> → ${escapeHtml(g.action)}`;
     ul.appendChild(li);
@@ -241,8 +274,6 @@ function showOutputFromDraft(draft, explainList){
     li.textContent = t;
     explainUl.appendChild(li);
   });
-
-  // Mandatory boundary statement is already on page; keep it.
 }
 
 function mlToL(ml){ return ml / 1000; }
@@ -276,6 +307,10 @@ function loadDraftIntoUI(draft){
   el("flavorConcept").value = draft.sampleDefinition.flavorConcept || "";
   setRad("strength", draft.sampleDefinition.flavorStrength || "Strong");
 
+  // ✅ NEW: load proof fields if present (fallbacks)
+  if (el("baseProof")) el("baseProof").value = draft.sampleDefinition.baseProof ?? draft.ingredients?.baseSpirit?.proof ?? 155;
+  if (el("targetProof")) el("targetProof").value = draft.sampleDefinition.targetProof ?? draft.ingredients?.water?.targetProof ?? 60;
+
   const sw = draft.sampleDefinition.sweetness;
   if (sw && sw.enabled){
     setRad("sweetness", String(sw.targetPercent || 12));
@@ -285,7 +320,7 @@ function loadDraftIntoUI(draft){
 }
 
 /* ------------------------------------------------------------
-   Promotion → Base Recipe
+   Promotion → Base Recipe (Candidate Only)
    ------------------------------------------------------------ */
 function getRecipes(){
   return loadJSON(LS_RECIPES_KEY, []);
@@ -307,7 +342,8 @@ function openPromoModal(){
   el("chkUnderstood").checked = false;
 
   const sid = currentDraft?.sampleId || "—";
-  el("promoHint").textContent = `Promoting ${sid} will create a new Base Recipe (authority). This does not edit the sample draft.`;
+  el("promoHint").textContent =
+    `Saving ${sid} will create a Candidate Base Recipe stored locally only (not added to production recipes).`;
 }
 
 function closePromoModal(){
@@ -321,7 +357,6 @@ function promoError(msg){
 }
 
 function buildBaseRecipeFromSample(sampleDraft, recipeName, notes){
-  // Normalize flavors to per 250 mL reference
   const sizeMl = sampleDraft.sampleDefinition.sampleSizeMl;
   const factor = 250 / sizeMl;
 
@@ -339,21 +374,16 @@ function buildBaseRecipeFromSample(sampleDraft, recipeName, notes){
     percent: Number(sweetness.targetPercent)
   } : { enabled:false };
 
-  // Base Recipe per your model v1.0
   return {
     baseRecipeId: sbUuid("BR"),
-    status: "unapproved",
+    status: "candidate",
     version: "1.0",
     createdAt: new Date().toISOString(),
     createdBy: "user",
-    origin: {
-      type: "SampleBuilder",
-      sourceSampleId: sampleDraft.sampleId
-    },
+    origin: { type: "SampleBuilder", sourceSampleId: sampleDraft.sampleId },
     product: {
       productName: recipeName,
-      productType: sampleDraft.sampleDefinition.baseSpiritType === "Moonshine" ? "Moonshine" :
-                   sampleDraft.sampleDefinition.baseSpiritType === "Vodka" ? "Vodka" : "Rum",
+      productType: sampleDraft.sampleDefinition.baseSpiritType,
       style: "Flavored Spirit",
       intendedMarket: "Retail",
       notes
@@ -365,34 +395,11 @@ function buildBaseRecipeFromSample(sampleDraft, recipeName, notes){
       dilutionMethod: "water",
       proofingNotes: "Proof down before flavoring"
     },
-    ingredients: {
-      flavors,
-      sweetener,
-      acids: []
-    },
-    scalingRules: {
-      allowSweetnessOverride: false,
-      allowProofOverride: false,
-      minBatchSizeGallons: 1,
-      maxBatchSizeGallons: null,
-      notes: "Flavor ratios locked; scale linearly only"
-    },
-    compliance: {
-      ttbFormulaRequired: true,
-      ttbFormulaId: null,
-      labelRequired: true,
-      colaId: null,
-      stateApprovalRequired: true,
-      statusNotes: ""
-    },
+    ingredients: { flavors, sweetener, acids: [] },
     readiness: {
-      scalerEligible: true,
+      scalerEligible: false,
       labelEligible: false,
       productionEligible: false
-    },
-    revision: {
-      parentRecipeId: null,
-      changeReason: ""
     }
   };
 }
@@ -427,6 +434,11 @@ function init(){
     setRad("strength", "Strong");
     setRad("sweetness", "12");
     el("baseSpiritType").value = "Moonshine";
+
+    // ✅ NEW: reset proof defaults
+    if (el("baseProof")) el("baseProof").value = 155;
+    if (el("targetProof")) el("targetProof").value = 60;
+
     hideInputWarning();
     currentDraft = null;
     clearOutput();
@@ -461,17 +473,16 @@ function init(){
   // Export recipes
   el("btnExportRecipes").addEventListener("click", ()=>{
     const recipes = getRecipes();
-    downloadJSON(`base-recipes.json`, recipes);
+    downloadJSON(`candidate-base-recipes.json`, recipes);
   });
 
-  // Duplicate & adjust = keep inputs, make a new generated draft
+  // Duplicate & adjust
   el("btnDuplicate").addEventListener("click", ()=>{
     if (!currentDraft) return;
-    // Load current into inputs (already), just regenerate to create new sampleId
     const inputs = getInputs();
     const res = generateSample(inputs);
     if (res.ok){
-      // Track iteration linkage
+      res.draft.iteration = res.draft.iteration || {};
       res.draft.iteration.parentSampleId = currentDraft.sampleId;
       res.draft.status = "iterated";
       showOutputFromDraft(res.draft, res.explain);
@@ -481,11 +492,11 @@ function init(){
     }
   });
 
-  // Promote
+  // Promote (Candidate)
   el("btnPromote").addEventListener("click", ()=>{
     if (!currentDraft) return;
     if ((currentDraft.sampleDefinition?.sampleSizeMl || 0) !== 375){
-      showInputWarning("Promotion requires a 375 mL sample.", "warn");
+      showInputWarning("Candidate save requires a 375 mL sample.", "warn");
       return;
     }
     openPromoModal();
@@ -500,7 +511,7 @@ function init(){
     if (!currentDraft) return;
 
     if (currentDraft.sampleDefinition.sampleSizeMl !== 375){
-      promoError("Promotion is only allowed for 375 mL samples.");
+      promoError("Candidate save is only allowed for 375 mL samples.");
       return;
     }
 
@@ -511,13 +522,14 @@ function init(){
 
     if (!el("chkTasted").checked) { promoError("Confirm you tasted this sample at 375 mL."); return; }
     if (!el("chkBalanced").checked) { promoError("Confirm flavor balance is acceptable."); return; }
-    if (!el("chkUnderstood").checked) { promoError("Confirm you understand this becomes a scalable base recipe."); return; }
+    if (!el("chkUnderstood").checked) { promoError("Confirm you understand this becomes a candidate base recipe (not production)."); return; }
 
     const recipe = buildBaseRecipeFromSample(currentDraft, name, notes);
     saveRecipe(recipe);
 
-    // Mark draft as promoted (and persist if it’s in the drafts list)
-    currentDraft.status = "promoted";
+    // Mark draft
+    currentDraft.status = "candidate_saved";
+    currentDraft.promotion = currentDraft.promotion || {};
     currentDraft.promotion.eligible = true;
     currentDraft.promotion.promotedAt = new Date().toISOString();
     currentDraft.promotion.baseRecipeId = recipe.baseRecipeId;
@@ -526,7 +538,7 @@ function init(){
     saveDraft(currentDraft);
 
     closePromoModal();
-    showInputWarning(`Promoted → ${recipe.baseRecipeId}`, "good");
+    showInputWarning(`Saved Candidate → ${recipe.baseRecipeId}`, "good");
     setTimeout(hideInputWarning, 2200);
   });
 }
