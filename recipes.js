@@ -19,7 +19,7 @@ window.RECIPES = {
     base: { gallons: 5.000, proof: 155 },
     final: { proof: 60 },
     ingredients: [
-      { name: "HFCS 42", type: "percent_vv", percent: 0.14, densityKgPerL: 1.613 },
+      { name: "HFCS 42", type: "percent_vv", percent: 0.12, densityKgPerL: 1.613 },
       { name: "Apex Margarita Flavor", type: "liquid", amount: 285, unit: "mL" },
       { name: "Apex Orange Extract", type: "liquid", amount: 48, unit: "mL" },
       { name: "Citric Acid", type: "solid", amount: 33.2, unit: "g" },
@@ -85,7 +85,7 @@ window.RECIPES = {
     base: { gallons: 5.000, proof: 155 },
     final: { proof: 60 },
     ingredients: [
-      { name: "HFCS 42", type: "percent_vv", percent: 0.14, densityKgPerL: 1.613 },
+      { name: "HFCS 42", type: "percent_vv", percent: 0.12, densityKgPerL: 1.613 },
       { name: "Apex Pineapple Flavor", type: "liquid", amount: 420, unit: "mL" },
       { name: "Apex Capsicum Natural Extract", type: "liquid", amount: 12, unit: "mL" },
       { name: "Citric Acid", type: "solid", amount: 27, unit: "g" },
