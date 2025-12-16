@@ -8,11 +8,10 @@
 
   <meta charset="UTF-8" />
   <title>Sample Builder (R&D)</title>
-  
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- APP VERSION -->
-  <meta name="app-version" content="Sample Builder v0.2.3">
+  <meta name="app-version" content="Sample Builder v0.3.0">
 
   <!-- GLOBAL HEADER CSS -->
   <link rel="stylesheet" href="header.css?v=1.0.0">
@@ -21,7 +20,6 @@
     :root{
       --bg:#0f172a;
       --panel:#111c33;
-      --panel2:#0f1a31;
       --border:#334155;
       --text:#e5e7eb;
       --muted:#9ca3af;
@@ -37,7 +35,7 @@
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     }
     main{
-      max-width:1000px;
+      max-width:1100px;
       margin:0 auto;
       padding:28px 18px 40px;
     }
@@ -57,7 +55,11 @@
       color:var(--text);
       border:1px solid var(--border);
       border-radius:10px;
-      padding:10px;
+      padding:8px;
+    }
+    input[readonly]{
+      opacity:.6;
+      cursor:not-allowed;
     }
     .radioRow{display:flex; gap:10px; flex-wrap:wrap;}
     .pill{padding:8px 10px; border:1px solid var(--border); border-radius:10px;}
@@ -76,8 +78,14 @@
     table{width:100%; border-collapse:collapse;}
     th,td{padding:8px; border-bottom:1px solid var(--border);}
     th{background:#0b1223; text-align:left;}
-    .badge{padding:6px 10px; border-radius:999px; border:1px solid var(--border);}
-    .warn{color:#fcd34d;}
+    .badge{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      display:inline-block;
+      margin-left:10px;
+    }
+    .badge.adjusted{color:#fcd34d;}
     .muted{color:var(--muted);}
   </style>
 </head>
@@ -88,8 +96,11 @@
 
 <main>
   <h1>Sample Builder (R&D)</h1>
-  <p class="muted">Create tasting samples up to 375 mL. R&D only.</p>
-  
+  <p class="muted">
+    Create tasting samples up to 375 mL. R&D only.
+    <span id="adjustedBadge" class="badge adjusted" style="display:none;">Adjusted Sample</span>
+  </p>
+
   <div class="row">
     <!-- INPUT -->
     <section class="panel grow">
@@ -116,7 +127,7 @@
       <input id="targetProof" type="number" value="60">
 
       <label>Flavor Concept</label>
-      <input id="flavorConcept" type="text" placeholder="Strawberry Cream">
+      <input id="flavorConcept" type="text" placeholder="Banana Cream">
 
       <label>Flavor Strength</label>
       <div class="radioRow">
@@ -142,35 +153,28 @@
 
     <!-- SIDE -->
     <aside class="panel side">
-      <h2>Drafts</h2>
-      <div id="draftList" class="muted">No drafts yet.</div>
+      <h2>Saved Samples</h2>
+      <div id="draftList" class="muted">No samples yet.</div>
 
       <div class="actions">
-        <button id="btnSaveDraft" disabled>Save Draft</button>
+        <button id="btnSaveDraft" disabled>Save Sample</button>
         <button id="btnLoadLast">Load Last</button>
-      </div>
-
-      <div class="actions">
-        <button id="btnExportDraft" disabled>Export Draft</button>
-        <button id="btnExportRecipes">Export Candidate Recipes</button>
       </div>
     </aside>
   </div>
 
   <!-- OUTPUT -->
   <section class="panel" id="outputPanel" style="display:none; margin-top:14px;">
-    <h2>Generated Sample</h2>
+    <h2>Sample Composition</h2>
     <div id="sampleMeta" class="muted"></div>
-
-    <div id="warningBlock" class="warn"></div>
 
     <table id="ingredientTable">
       <thead>
         <tr>
           <th>Component</th>
-          <th>mL</th>
-          <th>L</th>
-          <th>g / kg</th>
+          <th>Suggested (mL)</th>
+          <th>Adjusted (mL)</th>
+          <th>Δ</th>
           <th>Notes</th>
         </tr>
       </thead>
@@ -179,34 +183,9 @@
 
     <div class="actions">
       <button id="btnDuplicate" disabled>Duplicate & Adjust</button>
-      <button id="btnPromote" disabled class="primary">Save as Candidate Base Recipe</button>
     </div>
   </section>
 </main>
-
-<!-- PROMOTION MODAL -->
-<div id="promoBackdrop" style="display:none;">
-  <div class="panel">
-    <h3>Save as Candidate Base Recipe</h3>
-
-    <label>Recipe Name</label>
-    <input id="promoRecipeName">
-
-    <label>Internal Notes</label>
-    <textarea id="promoNotes"></textarea>
-
-    <label><input type="checkbox" id="chkTasted"> Tasted at 375 mL</label>
-    <label><input type="checkbox" id="chkBalanced"> Balanced</label>
-    <label><input type="checkbox" id="chkUnderstood"> Understands candidate only</label>
-
-    <div class="actions">
-      <button id="btnCancelPromo">Cancel</button>
-      <button id="btnConfirmPromo" class="primary">Confirm</button>
-    </div>
-
-    <div id="promoError" class="warn"></div>
-  </div>
-</div>
 
 <!-- HEADER -->
 <script>
@@ -216,8 +195,8 @@
 </script>
 
 <!-- APP SCRIPTS -->
-<script src="logic.js?v=SB_0.2.3"></script>
-<script src="ui.js?v=SB_0.2.3"></script>
+<script src="logic.js?v=SB_0.3.0"></script>
+<script src="ui.js?v=SB_0.3.0"></script>
 
 </body>
 </html>
