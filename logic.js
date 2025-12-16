@@ -42,6 +42,11 @@ function sbUuid(prefix){
 
 function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
 
+function toNum(v){
+  const n = Number(v);
+  return Number.isFinite(n) ? n : NaN;
+}
+
 function normalizeText(s){
   return (s||"").toLowerCase().replace(/[^\w\s-]/g," ").replace(/\s+/g," ").trim();
 }
@@ -61,10 +66,10 @@ function titleCase(s){
 function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additiveMl = 0){
   const warnings = [];
 
-  const Vfinal = Number(finalMl);
-  const bp = Number(baseProof);
-  const tp = Number(targetProof);
-  const Vadd = Math.max(0, Number(additiveMl || 0));
+  const Vfinal = toNum(finalMl);
+  const bp = toNum(baseProof);
+  const tp = toNum(targetProof);
+  const Vadd = Math.max(0, toNum(additiveMl) || 0);
 
   if (!Number.isFinite(Vfinal) || Vfinal <= 0) {
     return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid final sample volume."] };
@@ -97,7 +102,9 @@ function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additi
   const waterMlRaw = VspiritWater - baseSpiritMlRaw;
 
   if (waterMlRaw < -0.001){
-    warnings.push("Not enough room for water at this proof after additives. Lower target proof, raise sample size, reduce additives, or use higher-proof base.");
+    warnings.push(
+      "Not enough room for water at this proof after additives. Lower target proof, raise sample size, reduce additives, or use higher-proof base."
+    );
   }
 
   return {
@@ -139,11 +146,9 @@ function parseFlavorConcept(concept){
     if (comps.length >= 3) break;
   }
 
-  // Safety: ensure at least 1 component with the raw phrase name
   if (comps.length === 0){
     comps.push({ name: titleCase(raw), category: "Dessert" });
   } else if (comps.length === 1 && comps[0].category === "Dessert" && words.length > 1){
-    // Better naming when concept is multi-word but falls back to Dessert
     comps[0].name = titleCase(raw);
   }
 
@@ -156,8 +161,7 @@ function parseFlavorConcept(concept){
 function strengthValue(range, strength){
   if (strength === "Strong") return range.typical;
   if (strength === "Mild") return range.low + (range.typical - range.low) * 0.7;
-  // Extreme
-  return range.typical + (range.high - range.typical) * 0.88;
+  return range.typical + (range.high - range.typical) * 0.88; // Extreme
 }
 
 function applySpiritBias(category, amount, spirit){
@@ -180,14 +184,28 @@ function generateSample({
   targetProof
 }) {
 
-  if (!ALLOWED_SAMPLE_SIZES_ML.includes(sampleSizeMl)){
+  const size = toNum(sampleSizeMl);
+  if (!ALLOWED_SAMPLE_SIZES_ML.includes(size)){
     return { ok:false, error:"Sample size must be 100, 250, or 375 mL." };
+  }
+
+  const bp = toNum(baseProof);
+  const tp = toNum(targetProof);
+
+  if (!Number.isFinite(bp) || bp < 40 || bp > 200){
+    return { ok:false, error:"Base proof must be a number between 40 and 200." };
+  }
+  if (!Number.isFinite(tp) || tp < 40 || tp > 120){
+    return { ok:false, error:"Target proof must be a number between 40 and 120." };
   }
 
   const parsed = parseFlavorConcept(flavorConcept);
   if (!parsed.ok) return parsed;
 
-  const scaleFactor = sampleSizeMl / 250;
+  const scaleFactor = size / 250;
+
+  const explain = [];
+  const warnings = [];
 
   // --- FLAVORS ---
   const flavors = [];
@@ -195,6 +213,7 @@ function generateSample({
 
   for (const c of parsed.components){
     const range = FLAVOR_RANGES[c.category] || FLAVOR_RANGES.Dessert;
+
     let per250 = strengthValue(range, flavorStrength);
     per250 = applySpiritBias(c.category, per250, baseSpiritType);
     per250 = clamp(per250, range.low, range.high);
@@ -208,31 +227,43 @@ function generateSample({
       amountMl: amt,
       amountMlPer250: Number(per250.toFixed(3))
     });
+
+    explain.push(`${c.name} → ${c.category} (${flavorStrength})`);
   }
 
   // --- SWEETENER ---
   let sweetener = null;
   let sweetenerMl = 0;
 
-  if (typeof sweetnessPercent === "number" && Number.isFinite(sweetnessPercent)){
-    sweetenerMl = Number((sampleSizeMl * sweetnessPercent / 100).toFixed(1));
+  const sp = toNum(sweetnessPercent);
+  if (Number.isFinite(sp)){
+    // keep sane; you typically do 10–14
+    const spClamped = clamp(sp, 0, 25);
+    sweetenerMl = Number((size * spClamped / 100).toFixed(1));
     sweetener = {
       enabled: true,
       type: "HFCS42",
-      targetPercent: sweetnessPercent,
+      targetPercent: spClamped,
       amountMl: sweetenerMl
     };
+    if (sp !== spClamped) warnings.push("Sweetness was clamped to a safe range.");
   }
 
   const additiveMl = flavorTotalMl + sweetenerMl;
 
+  if (additiveMl > size * 0.25){
+    warnings.push("High additives for a small sample. Proofing water may be constrained; taste carefully.");
+  }
+
   // --- PROOFING (final volume fixed) ---
   const proofing = calculateProofingForFinalVolume(
-    sampleSizeMl,
-    baseProof,
-    targetProof,
+    size,
+    bp,
+    tp,
     additiveMl
   );
+
+  warnings.push(...(proofing.warnings || []));
 
   const draft = {
     sampleId: sbUuid("SB"),
@@ -241,34 +272,30 @@ function generateSample({
     lockedFlavorRanges: SB_LOCKED_RANGES_VERSION,
 
     sampleDefinition: {
-      sampleSizeMl,
+      sampleSizeMl: size,
       baseSpiritType,
-      baseProof: Number(baseProof),
-      targetProof: Number(targetProof),
+      baseProof: bp,
+      targetProof: tp,
       flavorConcept: parsed.raw,
-      flavorStrength
+      flavorStrength,
+      sweetnessPercent: Number.isFinite(sp) ? (sweetener?.targetPercent ?? null) : null
     },
 
     ingredients: {
-      baseSpirit: {
-        amountMl: proofing.baseSpiritMl,
-        proof: Number(baseProof)
-      },
-      water: {
-        amountMl: proofing.waterMl,
-        targetProof: Number(targetProof)
-      },
+      baseSpirit: { amountMl: proofing.baseSpiritMl, proof: bp },
+      water: { amountMl: proofing.waterMl, targetProof: tp },
       flavors,
       sweetener,
       acids: []
     },
 
-    warnings: proofing.warnings,
+    explain,
+    warnings,
     promotion: {
-      eligible: sampleSizeMl === 375,
+      eligible: size === 375,
       candidateOnly: true
     }
   };
 
-  return { ok:true, draft };
+  return { ok:true, draft, explain, warnings };
 }
