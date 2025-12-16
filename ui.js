@@ -1,36 +1,56 @@
 /* ============================================================
-   Sample Builder (R&D) — UI + Storage + Promotion
-   Uses localStorage only. Does NOT touch production recipe.js.
+   Sample Builder (R&D) — UI + Storage + Adjustment
+   Uses localStorage only. No production code touched.
    ============================================================ */
 
-const LS_DRAFTS_KEY = "sb_drafts_v1";
-const LS_LAST_KEY   = "sb_last_draft_v1";
-const LS_RECIPES_KEY= "sb_base_recipes_v1";
+const LS_DRAFTS_KEY  = "sb_drafts_v1";
+const LS_LAST_KEY    = "sb_last_draft_v1";
+const LS_RECIPES_KEY = "sb_base_recipes_v1";
 
-const el = (id)=> document.getElementById(id);
+const el = id => document.getElementById(id);
 
+/* ------------------------------
+   Helpers
+   ------------------------------ */
 function readRad(name){
   const n = document.querySelector(`input[name="${name}"]:checked`);
   return n ? n.value : null;
 }
-
 function setRad(name, value){
   const n = document.querySelector(`input[name="${name}"][value="${value}"]`);
   if (n) n.checked = true;
 }
+function escapeHtml(s){
+  return (s||"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function mlToL(ml){ return ml / 1000; }
+function formatMl(n){
+  if (n < 1) return n.toFixed(2);
+  if (n < 10) return n.toFixed(2);
+  return n.toFixed(1);
+}
+function formatL(n){ return n.toFixed(3); }
 
+/* ------------------------------
+   Inputs
+   ------------------------------ */
 function getInputs(){
   const sampleSizeMl = Number(readRad("sampleSize"));
-  const baseSpiritType = el("baseSpiritType")?.value || "Moonshine";
-  const flavorConcept = el("flavorConcept")?.value || "";
+  const baseSpiritType = el("baseSpiritType").value;
+  const flavorConcept = el("flavorConcept").value || "";
   const flavorStrength = readRad("strength") || "Strong";
 
   const sweet = readRad("sweetness");
-  const sweetnessPercent = (sweet === "none" || sweet == null) ? null : Number(sweet);
+  const sweetnessPercent =
+    (sweet === "none" || sweet == null) ? null : Number(sweet);
 
-  // NEW: proof inputs (R&D bench proofing)
-  const baseProof = Number(el("baseProof")?.value || 155);
-  const targetProof = Number(el("targetProof")?.value || 60);
+  const baseProof = Number(el("baseProof").value || 155);
+  const targetProof = Number(el("targetProof").value || 60);
 
   return {
     sampleSizeMl,
@@ -43,6 +63,9 @@ function getInputs(){
   };
 }
 
+/* ------------------------------
+   Storage
+   ------------------------------ */
 function loadJSON(key, fallback){
   try{
     const raw = localStorage.getItem(key);
@@ -54,9 +77,8 @@ function loadJSON(key, fallback){
 function saveJSON(key, value){
   localStorage.setItem(key, JSON.stringify(value, null, 2));
 }
-
 function downloadJSON(filename, obj){
-  const blob = new Blob([JSON.stringify(obj, null, 2)], { type:"application/json" });
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -67,11 +89,12 @@ function downloadJSON(filename, obj){
   setTimeout(()=>URL.revokeObjectURL(url), 2000);
 }
 
+/* ------------------------------
+   Draft list
+   ------------------------------ */
 function renderDraftList(){
   const drafts = loadJSON(LS_DRAFTS_KEY, []);
   const box = el("draftList");
-
-  // ✅ FIX: don't crash if draftList isn't on the page
   if (!box) return;
 
   if (!drafts.length){
@@ -79,468 +102,189 @@ function renderDraftList(){
     return;
   }
 
-  const html = drafts.slice().reverse().slice(0, 8).map(d => {
-    const size = d.sampleDefinition?.sampleSizeMl ?? "?";
-    const concept =
-      d.sampleDefinition?.flavorConcept ??
-      d.sampleDefinition?.flavorConceptRaw ??
-      "Untitled";
+  box.innerHTML = drafts.slice().reverse().slice(0,8).map(d=>{
+    const size = d.sampleDefinition.sampleSizeMl;
+    const name = d.sampleDefinition.flavorConcept || "Untitled";
     const when = new Date(d.createdAt).toLocaleString();
     return `
-      <div style="padding:10px 0; border-bottom:1px solid rgba(51,65,85,.6);">
-        <div style="display:flex; justify-content:space-between; gap:10px;">
-          <div>
-            <div style="color:#e5e7eb;"><b>${d.sampleId}</b> <span class="muted">• ${size} mL</span></div>
-            <div class="muted">${escapeHtml(concept)}</div>
-            <div class="muted small">${when}</div>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-            <button data-load="${d.sampleId}" style="padding:8px 10px; font-size:.92rem;">Load</button>
-          </div>
-        </div>
+      <div style="padding:8px 0; border-bottom:1px solid #334155;">
+        <b>${d.sampleId}</b> • ${size} mL<br>
+        <span class="muted">${escapeHtml(name)}</span><br>
+        <button data-load="${d.sampleId}">Load</button>
       </div>
     `;
   }).join("");
 
-  box.innerHTML = html;
-
   box.querySelectorAll("button[data-load]").forEach(btn=>{
     btn.addEventListener("click", ()=>{
-      const id = btn.getAttribute("data-load");
-      const draftsAll = loadJSON(LS_DRAFTS_KEY, []);
-      const found = draftsAll.find(x=>x.sampleId === id);
-      if (found) {
+      const id = btn.dataset.load;
+      const all = loadJSON(LS_DRAFTS_KEY, []);
+      const found = all.find(x=>x.sampleId===id);
+      if (found){
         loadDraftIntoUI(found);
-        showOutputFromDraft(found, []);
+        showOutputFromDraft(found);
         saveJSON(LS_LAST_KEY, found);
       }
     });
   });
 }
 
-function escapeHtml(s){
-  return (s||"")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-function clearOutput(){
-  const op = el("outputPanel");
-  if (op) op.style.display = "none";
-
-  const b1 = el("btnSaveDraft"); if (b1) b1.disabled = true;
-  const b2 = el("btnExportDraft"); if (b2) b2.disabled = true;
-  const b3 = el("btnDuplicate"); if (b3) b3.disabled = true;
-  const b4 = el("btnPromote"); if (b4) b4.disabled = true;
-}
-
-function showInputWarning(text, type="muted"){
-  const w = el("inputWarning");
-  if (!w) return;
-  w.style.display = "inline-flex";
-  w.className = `badge ${type}`;
-  w.textContent = text;
-}
-function hideInputWarning(){
-  const w = el("inputWarning");
-  if (!w) return;
-  w.style.display = "none";
-}
-
+/* ------------------------------
+   UI state
+   ------------------------------ */
 let currentDraft = null;
-let currentExplain = [];
 
-function showOutputFromDraft(draft, explainList){
+/* ------------------------------
+   Output rendering (ADJUSTABLE)
+   ------------------------------ */
+function showOutputFromDraft(draft){
   currentDraft = draft;
-  currentExplain = explainList || [];
 
   el("outputPanel").style.display = "block";
   el("btnSaveDraft").disabled = false;
   el("btnExportDraft").disabled = false;
   el("btnDuplicate").disabled = false;
+  el("btnPromote").disabled =
+    draft.sampleDefinition.sampleSizeMl !== 375;
 
-  // Promotion enabled only if 375 mL
-  const eligible = (draft.sampleDefinition?.sampleSizeMl === 375);
-  el("btnPromote").disabled = !eligible;
+  el("sampleMeta").textContent =
+    `${draft.sampleId} • ${draft.sampleDefinition.sampleSizeMl} mL • ${draft.sampleDefinition.baseSpiritType}`;
 
-  const meta = `${draft.sampleId} • ${draft.sampleDefinition.sampleSizeMl} mL • ${draft.sampleDefinition.baseSpiritType} • Strength: ${draft.sampleDefinition.flavorStrength}`;
-  el("sampleMeta").textContent = meta;
-
-  // Warnings
-  const warnings = draft.aiInterpretation?.warnings || [];
-  const warnBlock = el("warningBlock");
-  if (warnings.length){
-    warnBlock.style.display = "block";
-    warnBlock.innerHTML = warnings.map(w=>`⚠️ ${escapeHtml(w)}`).join("<br>");
-  }else{
-    warnBlock.style.display = "none";
-    warnBlock.textContent = "";
-  }
-
-  // Table rows
   const tbody = el("ingredientTable").querySelector("tbody");
   tbody.innerHTML = "";
 
   const rows = [];
 
-  // Base spirit
   rows.push({
-    component: `Base Spirit${draft.ingredients?.baseSpirit?.proof ? ` (${draft.ingredients.baseSpirit.proof} proof)` : ""}`,
-    ml: draft.ingredients.baseSpirit.amountMl,
-    notes: "R&D base"
+    name:`Base Spirit (${draft.ingredients.baseSpirit.proof} proof)`,
+    suggested:draft.ingredients.baseSpirit.amountMl,
+    fixed:true
   });
 
-  // ✅ NEW: Water (proofing) row if present
-  if (draft.ingredients?.water){
+  rows.push({
+    name:`Water (to ${draft.ingredients.water.targetProof} proof)`,
+    suggested:draft.ingredients.water.amountMl,
+    fixed:true
+  });
+
+  draft.ingredients.flavors.forEach(f=>{
+    if (f.adjustedMl == null) f.adjustedMl = f.amountMl;
     rows.push({
-      component: `Water (to ${draft.ingredients.water.targetProof} proof)`,
-      ml: draft.ingredients.water.amountMl,
-      notes: "Bench proofing"
+      name:f.name,
+      suggested:f.amountMl,
+      adjusted:f.adjustedMl,
+      flavorRef:f
+    });
+  });
+
+  if (draft.ingredients.sweetener?.enabled){
+    rows.push({
+      name:"HFCS-42",
+      suggested:draft.ingredients.sweetener.amountMl,
+      fixed:true
     });
   }
 
-  // Flavors
-  for (const f of (draft.ingredients.flavors || [])){
-    rows.push({
-      component: f.name,
-      ml: f.amountMl,
-      notes: `${f.category}${f.rangeUsed ? ` • ${f.rangeUsed}` : ""}`
-    });
-  }
-
-  // Sweetener
-  if (draft.ingredients.sweetener && draft.ingredients.sweetener.enabled){
-    rows.push({
-      component: "HFCS-42",
-      ml: draft.ingredients.sweetener.amountMl,
-      notes: `${draft.ingredients.sweetener.targetPercent}% sweetness`
-    });
-  }
-
-  // Acids (none by default)
-  for (const a of (draft.ingredients.acids || [])){
-    rows.push({
-      component: a.name || "Acid",
-      ml: a.amountMl || 0,
-      notes: "Optional"
-    });
-  }
-
-  rows.forEach(r=>{
-    const ml = Number(r.ml || 0);
-    const L = mlToL(ml);
-
-    let weightTxt = "—";
-    if (r.component === "HFCS-42"){
-      const w = hfcsWeightFromMl(ml);
-      weightTxt = `${w.g.toFixed(0)} g / ${w.kg.toFixed(2)} kg`;
-    }
-
+  rows.forEach((r,idx)=>{
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><b>${escapeHtml(r.component)}</b></td>
-      <td>${formatMl(ml)}</td>
-      <td>${formatL(L)}</td>
-      <td>${weightTxt}</td>
-      <td class="muted">${escapeHtml(r.notes || "")}</td>
-    `;
+    if (r.fixed){
+      tr.innerHTML = `
+        <td><b>${r.name}</b></td>
+        <td>${formatMl(r.suggested)}</td>
+        <td>${formatMl(r.suggested)}</td>
+        <td class="muted">—</td>
+        <td class="muted">Fixed</td>
+      `;
+    }else{
+      const delta = r.adjusted - r.suggested;
+      tr.innerHTML = `
+        <td><b>${r.name}</b></td>
+        <td>${formatMl(r.suggested)}</td>
+        <td>
+          <input type="number"
+                 step="0.01"
+                 value="${r.adjusted}"
+                 data-idx="${idx}"
+                 class="adjust-input">
+        </td>
+        <td class="muted">${delta===0?"—":delta.toFixed(2)}</td>
+        <td class="muted">Taste-adjusted</td>
+      `;
+    }
     tbody.appendChild(tr);
   });
-
-  // Adjustment guidance
-  const ul = el("adjustmentList");
-  ul.innerHTML = "";
-  (draft.adjustmentGuidance || []).forEach((g, idx)=>{
-    if (idx > 5) return;
-    const li = document.createElement("li");
-    li.innerHTML = `<b>${escapeHtml(g.condition)}</b> → ${escapeHtml(g.action)}`;
-    ul.appendChild(li);
-  });
-
-  // Explain
-  const explainUl = el("explainList");
-  explainUl.innerHTML = "";
-  const parsed = draft.aiInterpretation?.parsedComponents || [];
-  parsed.forEach(p=>{
-    const li = document.createElement("li");
-    li.textContent = `${p.name} → ${p.category}`;
-    explainUl.appendChild(li);
-  });
-  currentExplain.forEach(t=>{
-    const li = document.createElement("li");
-    li.textContent = t;
-    explainUl.appendChild(li);
-  });
 }
 
-function mlToL(ml){ return ml / 1000; }
-function formatMl(n){
-  if (n < 1) return n.toFixed(2);
-  if (n < 10) return n.toFixed(2);
-  return n.toFixed(1);
-}
-function formatL(n){ return n.toFixed(3); }
-function hfcsWeightFromMl(ml){
-  const g = ml * HFCS42_DENSITY_G_PER_ML;
-  return { g, kg: g/1000 };
-}
+/* ------------------------------
+   Adjustment listener
+   ------------------------------ */
+document.addEventListener("input", e=>{
+  if (!e.target.classList.contains("adjust-input")) return;
+  if (!currentDraft) return;
 
-/* ------------------------------------------------------------
-   Draft storage
-   ------------------------------------------------------------ */
-function saveDraft(draft){
+  const rowIdx = Number(e.target.dataset.idx);
+  const val = Number(e.target.value);
+
+  const flavor = currentDraft.ingredients.flavors[rowIdx-2];
+  if (!flavor) return;
+
+  flavor.adjustedMl = val;
+  el("btnSaveDraft").disabled = false;
+});
+
+/* ------------------------------
+   Draft save / load
+   ------------------------------ */
+function saveDraft(d){
   const drafts = loadJSON(LS_DRAFTS_KEY, []);
-  const existsIdx = drafts.findIndex(d=>d.sampleId === draft.sampleId);
-  if (existsIdx >= 0) drafts[existsIdx] = draft;
-  else drafts.push(draft);
+  const i = drafts.findIndex(x=>x.sampleId===d.sampleId);
+  if (i>=0) drafts[i]=d;
+  else drafts.push(d);
   saveJSON(LS_DRAFTS_KEY, drafts);
-  saveJSON(LS_LAST_KEY, draft);
+  saveJSON(LS_LAST_KEY, d);
   renderDraftList();
 }
-
-function loadDraftIntoUI(draft){
-  setRad("sampleSize", String(draft.sampleDefinition.sampleSizeMl));
-  el("baseSpiritType").value = draft.sampleDefinition.baseSpiritType || "Moonshine";
-  el("flavorConcept").value = draft.sampleDefinition.flavorConcept || "";
-  setRad("strength", draft.sampleDefinition.flavorStrength || "Strong");
-
-  // ✅ NEW: load proof fields if present (fallbacks)
-  if (el("baseProof")) el("baseProof").value = draft.sampleDefinition.baseProof ?? draft.ingredients?.baseSpirit?.proof ?? 155;
-  if (el("targetProof")) el("targetProof").value = draft.sampleDefinition.targetProof ?? draft.ingredients?.water?.targetProof ?? 60;
-
-  const sw = draft.sampleDefinition.sweetness;
-  if (sw && sw.enabled){
-    setRad("sweetness", String(sw.targetPercent || 12));
-  }else{
-    setRad("sweetness", "none");
-  }
+function loadDraftIntoUI(d){
+  setRad("sampleSize", String(d.sampleDefinition.sampleSizeMl));
+  el("baseSpiritType").value = d.sampleDefinition.baseSpiritType;
+  el("flavorConcept").value = d.sampleDefinition.flavorConcept;
+  setRad("strength", d.sampleDefinition.flavorStrength);
+  setRad("sweetness", d.ingredients.sweetener?.enabled
+    ? String(d.ingredients.sweetener.targetPercent)
+    : "none");
+  el("baseProof").value = d.sampleDefinition.baseProof;
+  el("targetProof").value = d.sampleDefinition.targetProof;
 }
 
-/* ------------------------------------------------------------
-   Promotion → Base Recipe (Candidate Only)
-   ------------------------------------------------------------ */
-function getRecipes(){
-  return loadJSON(LS_RECIPES_KEY, []);
-}
-function saveRecipe(recipe){
-  const list = getRecipes();
-  list.push(recipe);
-  saveJSON(LS_RECIPES_KEY, list);
-}
-
-function openPromoModal(){
-  el("promoBackdrop").style.display = "flex";
-  el("promoError").style.display = "none";
-  el("promoError").textContent = "";
-  el("promoRecipeName").value = "";
-  el("promoNotes").value = "";
-  el("chkTasted").checked = false;
-  el("chkBalanced").checked = false;
-  el("chkUnderstood").checked = false;
-
-  const sid = currentDraft?.sampleId || "—";
-  el("promoHint").textContent =
-    `Saving ${sid} will create a Candidate Base Recipe stored locally only (not added to production recipes).`;
-}
-
-function closePromoModal(){
-  el("promoBackdrop").style.display = "none";
-}
-
-function promoError(msg){
-  const box = el("promoError");
-  box.style.display = "block";
-  box.textContent = msg;
-}
-
-function buildBaseRecipeFromSample(sampleDraft, recipeName, notes){
-  const sizeMl = sampleDraft.sampleDefinition.sampleSizeMl;
-  const factor = 250 / sizeMl;
-
-  const flavors = (sampleDraft.ingredients.flavors || []).map(f => ({
-    name: f.name,
-    vendor: f.vendor || null,
-    category: f.category,
-    amountMlPer250: Number((f.amountMl * factor).toFixed(3))
-  }));
-
-  const sweetness = sampleDraft.sampleDefinition.sweetness;
-  const sweetener = (sweetness && sweetness.enabled) ? {
-    enabled: true,
-    type: "HFCS42",
-    percent: Number(sweetness.targetPercent)
-  } : { enabled:false };
-
-  return {
-    baseRecipeId: sbUuid("BR"),
-    status: "candidate",
-    version: "1.0",
-    createdAt: new Date().toISOString(),
-    createdBy: "user",
-    origin: { type: "SampleBuilder", sourceSampleId: sampleDraft.sampleId },
-    product: {
-      productName: recipeName,
-      productType: sampleDraft.sampleDefinition.baseSpiritType,
-      style: "Flavored Spirit",
-      intendedMarket: "Retail",
-      notes
-    },
-    alcoholBase: {
-      baseSpiritType: sampleDraft.sampleDefinition.baseSpiritType,
-      inputProof: null,
-      defaultTargetProof: 60,
-      dilutionMethod: "water",
-      proofingNotes: "Proof down before flavoring"
-    },
-    ingredients: { flavors, sweetener, acids: [] },
-    readiness: {
-      scalerEligible: false,
-      labelEligible: false,
-      productionEligible: false
-    }
-  };
-}
-
-/* ------------------------------------------------------------
-   Wire up UI
-   ------------------------------------------------------------ */
+/* ------------------------------
+   Init
+   ------------------------------ */
 function init(){
   renderDraftList();
-  hideInputWarning();
 
-  // Generate
-  el("btnGenerate").addEventListener("click", ()=>{
-    hideInputWarning();
-
-    const inputs = getInputs();
-    const res = generateSample(inputs);
-    if (!res.ok){
-      showInputWarning(res.error, "warn");
-      clearOutput();
-      return;
-    }
-
-    showOutputFromDraft(res.draft, res.explain);
+  el("btnGenerate").onclick = ()=>{
+    const res = generateSample(getInputs());
+    if (!res.ok) return alert(res.error);
+    showOutputFromDraft(res.draft);
     saveJSON(LS_LAST_KEY, res.draft);
-  });
+  };
 
-  // Clear
-  el("btnClear").addEventListener("click", ()=>{
-    el("flavorConcept").value = "";
-    setRad("sampleSize", "250");
-    setRad("strength", "Strong");
-    setRad("sweetness", "12");
-    el("baseSpiritType").value = "Moonshine";
+  el("btnSaveDraft").onclick = ()=>{
+    if (currentDraft) saveDraft(currentDraft);
+  };
 
-    // ✅ NEW: reset proof defaults
-    if (el("baseProof")) el("baseProof").value = 155;
-    if (el("targetProof")) el("targetProof").value = 60;
-
-    hideInputWarning();
-    currentDraft = null;
-    clearOutput();
-  });
-
-  // Save draft
-  el("btnSaveDraft").addEventListener("click", ()=>{
-    if (!currentDraft) return;
-    saveDraft(currentDraft);
-    showInputWarning("Draft saved.", "good");
-    setTimeout(hideInputWarning, 1400);
-  });
-
-  // Load last
-  el("btnLoadLast").addEventListener("click", ()=>{
-    const last = loadJSON(LS_LAST_KEY, null);
-    if (!last){
-      showInputWarning("No last draft found.", "warn");
-      setTimeout(hideInputWarning, 1600);
-      return;
+  el("btnLoadLast").onclick = ()=>{
+    const last = loadJSON(LS_LAST_KEY,null);
+    if (last){
+      loadDraftIntoUI(last);
+      showOutputFromDraft(last);
     }
-    loadDraftIntoUI(last);
-    showOutputFromDraft(last, []);
-  });
+  };
 
-  // Export draft
-  el("btnExportDraft").addEventListener("click", ()=>{
-    if (!currentDraft) return;
-    downloadJSON(`${currentDraft.sampleId}.json`, currentDraft);
-  });
-
-  // Export recipes
-  el("btnExportRecipes").addEventListener("click", ()=>{
-    const recipes = getRecipes();
-    downloadJSON(`candidate-base-recipes.json`, recipes);
-  });
-
-  // Duplicate & adjust
-  el("btnDuplicate").addEventListener("click", ()=>{
-    if (!currentDraft) return;
-    const inputs = getInputs();
-    const res = generateSample(inputs);
-    if (res.ok){
-      res.draft.iteration = res.draft.iteration || {};
-      res.draft.iteration.parentSampleId = currentDraft.sampleId;
-      res.draft.status = "iterated";
-      showOutputFromDraft(res.draft, res.explain);
-      saveJSON(LS_LAST_KEY, res.draft);
-      showInputWarning("Duplicated (new iteration).", "good");
-      setTimeout(hideInputWarning, 1600);
-    }
-  });
-
-  // Promote (Candidate)
-  el("btnPromote").addEventListener("click", ()=>{
-    if (!currentDraft) return;
-    if ((currentDraft.sampleDefinition?.sampleSizeMl || 0) !== 375){
-      showInputWarning("Candidate save requires a 375 mL sample.", "warn");
-      return;
-    }
-    openPromoModal();
-  });
-
-  el("btnCancelPromo").addEventListener("click", closePromoModal);
-  el("promoBackdrop").addEventListener("click", (e)=>{
-    if (e.target === el("promoBackdrop")) closePromoModal();
-  });
-
-  el("btnConfirmPromo").addEventListener("click", ()=>{
-    if (!currentDraft) return;
-
-    if (currentDraft.sampleDefinition.sampleSizeMl !== 375){
-      promoError("Candidate save is only allowed for 375 mL samples.");
-      return;
-    }
-
-    const name = el("promoRecipeName").value.trim();
-    const notes = el("promoNotes").value.trim();
-    if (!name) { promoError("Base Recipe Name is required."); return; }
-    if (!notes) { promoError("Internal Notes are required."); return; }
-
-    if (!el("chkTasted").checked) { promoError("Confirm you tasted this sample at 375 mL."); return; }
-    if (!el("chkBalanced").checked) { promoError("Confirm flavor balance is acceptable."); return; }
-    if (!el("chkUnderstood").checked) { promoError("Confirm you understand this becomes a candidate base recipe (not production)."); return; }
-
-    const recipe = buildBaseRecipeFromSample(currentDraft, name, notes);
-    saveRecipe(recipe);
-
-    // Mark draft
-    currentDraft.status = "candidate_saved";
-    currentDraft.promotion = currentDraft.promotion || {};
-    currentDraft.promotion.eligible = true;
-    currentDraft.promotion.promotedAt = new Date().toISOString();
-    currentDraft.promotion.baseRecipeId = recipe.baseRecipeId;
-    currentDraft.promotion.approvedBy = "user";
-
-    saveDraft(currentDraft);
-
-    closePromoModal();
-    showInputWarning(`Saved Candidate → ${recipe.baseRecipeId}`, "good");
-    setTimeout(hideInputWarning, 2200);
-  });
+  el("btnExportDraft").onclick = ()=>{
+    if (currentDraft)
+      downloadJSON(`${currentDraft.sampleId}.json`, currentDraft);
+  };
 }
 
 document.addEventListener("DOMContentLoaded", init);
