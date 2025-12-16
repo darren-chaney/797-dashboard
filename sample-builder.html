@@ -223,27 +223,70 @@
         </div>
 
         <div class="twoCol">
-          <div>
-            <label>Base Spirit Type</label>
-            <select id="baseSpiritType">
-              <option value="Moonshine">Moonshine</option>
-              <option value="Vodka">Vodka</option>
-              <option value="Rum">Rum</option>
-            </select>
-            <div class="hint">Used only for conservative bias rules (not production logic).</div>
-          </div>
+  <div>
+    <label>Base Spirit Type</label>
+    <select id="baseSpiritType">
+      <option value="Moonshine">Moonshine</option>
+      <option value="Vodka">Vodka</option>
+      <option value="Rum">Rum</option>
+    </select>
+    <div class="hint">
+      Used only for conservative bias rules (not production logic).
+    </div>
+  </div>
 
-          <div>
-            <label>Sweetness (HFCS-42)</label>
-            <div class="radioRow" id="sweetnessRow">
-              <label class="pill"><input type="radio" name="sweetness" value="none"> None</label>
-              <label class="pill"><input type="radio" name="sweetness" value="10"> 10%</label>
-              <label class="pill"><input type="radio" name="sweetness" value="12" checked> 12%</label>
-              <label class="pill"><input type="radio" name="sweetness" value="14"> 14%</label>
-            </div>
-            <div class="hint">HFCS mL is computed as % of finished sample volume.</div>
-          </div>
-        </div>
+  <div>
+    <label>Sweetness (HFCS-42)</label>
+    <div class="radioRow" id="sweetnessRow">
+      <label class="pill">
+        <input type="radio" name="sweetness" value="none"> None
+      </label>
+      <label class="pill">
+        <input type="radio" name="sweetness" value="10"> 10%
+      </label>
+      <label class="pill">
+        <input type="radio" name="sweetness" value="12" checked> 12%
+      </label>
+      <label class="pill">
+        <input type="radio" name="sweetness" value="14"> 14%
+      </label>
+    </div>
+    <div class="hint">
+      HFCS mL is computed as % of finished sample volume.
+    </div>
+  </div>
+</div>
+
+<div class="twoCol">
+  <div>
+    <label>Base Spirit Proof</label>
+    <input
+      id="baseProof"
+      type="number"
+      value="155"
+      min="80"
+      max="200"
+    />
+    <div class="hint">
+      Proof of the spirit before dilution (example: 155).
+    </div>
+  </div>
+
+  <div>
+    <label>Target Sample Proof</label>
+    <input
+      id="targetProof"
+      type="number"
+      value="60"
+      min="40"
+      max="100"
+    />
+    <div class="hint">
+      Proof you want to taste (example: 60).
+    </div>
+  </div>
+</div>
+
 
         <label>Flavor Concept</label>
         <input id="flavorConcept" type="text" placeholder='Example: "Strawberry Cream"' />
