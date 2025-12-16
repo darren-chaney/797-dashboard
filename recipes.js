@@ -1,7 +1,7 @@
 /* =========================================================
    797 Distillery – Master Recipe Book
    File: recipes.js
-   Version: 1.0.1
+   Version: 1.0.2
    Notes:
    - Canonical production recipes only
    - No math, no UI logic
@@ -11,8 +11,21 @@
 window.RECIPES = {
 
   /* =========================
-     MOONSHINE – FRUIT / DESSERT
+     MOONSHINE – FLAGSHIP
      ========================= */
+
+  margarita: {
+    name: "Margarita Moonshine",
+    base: { gallons: 5.000, proof: 155 },
+    final: { proof: 60 },
+    ingredients: [
+      { name: "HFCS 42", type: "percent_vv", percent: 0.14, densityKgPerL: 1.613 },
+      { name: "Apex Margarita Flavor", type: "liquid", amount: 285, unit: "mL" },
+      { name: "Apex Orange Extract", type: "liquid", amount: 48, unit: "mL" },
+      { name: "Citric Acid", type: "solid", amount: 33.2, unit: "g" },
+      { name: "Malic Acid", type: "solid", amount: 9.8, unit: "g" }
+    ]
+  },
 
   apple_pie: {
     name: "Apple Pie Moonshine (165 Proof Base)",
