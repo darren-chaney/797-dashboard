@@ -1,7 +1,7 @@
 /* =========================================================
    797 Distillery – Master Recipe Book
    File: recipes.js
-   Version: 1.0.4
+   Version: 1.0.5
    Notes:
    - Canonical production recipes only
    - No math, no UI logic
@@ -169,10 +169,10 @@ window.RECIPES = {
 
   coconut_rum: {
     name: "Coconut Flavored Rum",
-    base: { gallons: 7.75, proof: 80 },
+    base: { gallons: 5.000, proof: 120 },
     final: { proof: 80 },
     ingredients: [
-      { name: "HFCS 42", type: "percent_vv", percent: 0.037, densityKgPerL: 1.613 },
+      { name: "HFCS 42", type: "percent_vv", percent: 0.058, densityKgPerL: 1.613 },
       { name: "Apex Coconut Flavor", type: "liquid", amount: 280, unit: "mL" },
       { name: "Olive Nation Coconut Flavor", type: "liquid", amount: 225, unit: "mL" },
       { name: "Olive Nation Vanilla Flavor", type: "liquid", amount: 100, unit: "mL" }
