@@ -119,25 +119,25 @@ export const MASH_DEFINITIONS = {
      L350 = 14 gal | Molasses = 1 gal
      ------------------------------------------------------------ */
   RUM_BASE: {
-    id: "RUM_BASE",
-    name: "Rum Wash Base",
-    family: MASH_FAMILIES.RUM,
-    fermentOnGrain: false,
+  id: "RUM_BASE",
+  name: "Rum Wash Base",
+  family: MASH_FAMILIES.RUM,
+  fermentOnGrain: false,
 
-    fermentables: {
-      l350: {
-        type: "L350",
-        gal_per_gal: 0.254545  // 14 / 55
-      },
-      molasses: {
-        gal_per_gal: 0.018182  // 1 / 55
-      }
+  fermentables: {
+    l350: {
+      type: "L350",
+      gal_per_gal: 0.254545  // 14 / 55
     },
+    molasses: {
+      gal_per_gal: 0.018182  // 1 / 55
+    }
+  },
 
-    enzymes: null,
+  enzymes: null,
 
-    yeast_family: "RUM",
-    nutrients_required: true
-  }
+  yeast_family: "RUM",
+  nutrients_required: true
+}
 
 };
