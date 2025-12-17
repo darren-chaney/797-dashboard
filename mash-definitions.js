@@ -12,9 +12,9 @@ import { MASH_FAMILIES } from "./mash-rules.js";
 export const MASH_DEFINITIONS = {
 
   /* ------------------------------------------------------------
-     MOONSHINE — BASE (CANONICAL)
-     Corn + Malt + Granulated Sugar
-     Ferment on grain
+     MOONSHINE — BASE (CANONICAL, REAL WORLD)
+     Based on proven 55-gallon recipe:
+     Corn 66 lb | Sugar 100 lb | Malt 15 lb
      ------------------------------------------------------------ */
   MOONSHINE_BASE: {
     id: "MOONSHINE_BASE",
@@ -24,14 +24,14 @@ export const MASH_DEFINITIONS = {
 
     fermentables: {
       corn: {
-        lb_per_gal: 4.0
+        lb_per_gal: 1.20     // 66 lb @ 55 gal
       },
       malted_barley: {
-        lb_per_gal: 0.75
+        lb_per_gal: 0.27     // 15 lb @ 55 gal
       },
       sugar: {
         type: "GRANULATED",
-        lb_per_gal: 1.8
+        lb_per_gal: 1.82     // 100 lb @ 55 gal
       }
     },
 
@@ -50,8 +50,7 @@ export const MASH_DEFINITIONS = {
 
   /* ------------------------------------------------------------
      GRAIN WHISKEY — BASE (NO SUGAR)
-     Corn + Malt + Wheat
-     Ferment on grain
+     Traditional grain-forward mash
      ------------------------------------------------------------ */
   GRAIN_WHISKEY_BASE: {
     id: "GRAIN_WHISKEY_BASE",
@@ -86,7 +85,7 @@ export const MASH_DEFINITIONS = {
 
   /* ------------------------------------------------------------
      HYBRID WHISKEY — BASE (SUGAR ASSIST)
-     Grain-forward with yield boost
+     Grain-forward with controlled yield boost
      ------------------------------------------------------------ */
   HYBRID_WHISKEY_BASE: {
     id: "HYBRID_WHISKEY_BASE",
@@ -96,7 +95,7 @@ export const MASH_DEFINITIONS = {
 
     fermentables: {
       corn: {
-        lb_per_gal: 3.5
+        lb_per_gal: 3.0
       },
       malted_barley: {
         lb_per_gal: 0.75
@@ -106,7 +105,7 @@ export const MASH_DEFINITIONS = {
       },
       sugar: {
         type: "GRANULATED",
-        lb_per_gal: 1.0
+        lb_per_gal: 0.75
       }
     },
 
@@ -155,4 +154,3 @@ export const MASH_DEFINITIONS = {
 /* =========================
    END OF DEFINITIONS
    ========================= */
-
