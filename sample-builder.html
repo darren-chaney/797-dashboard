@@ -89,6 +89,74 @@
     }
     .badge.adjusted{color:#fcd34d;}
     .muted{color:var(--muted);}
+        /* ============================================================
+       Sample Composition Table – Readability Enhancements
+       (Scoped to Sample Builder only)
+       ============================================================ */
+
+    /* Allow component names to wrap and breathe */
+    #ingredientTable td:first-child {
+      max-width: 280px;
+      white-space: normal;
+      line-height: 1.25;
+      vertical-align: top;
+    }
+
+    /* Slightly more vertical space for rows */
+    #ingredientTable td,
+    #ingredientTable th {
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+
+    /* Suggested column = reference only */
+    #ingredientTable td:nth-child(2) {
+      color: var(--muted);
+    }
+
+    /* Adjusted inputs stand out as active */
+    #ingredientTable input.adjust-input {
+      background: var(--btn2);
+      border-color: #475569;
+    }
+
+    /* Stabilize numeric column widths */
+    #ingredientTable th:nth-child(2),
+    #ingredientTable td:nth-child(2),
+    #ingredientTable th:nth-child(3),
+    #ingredientTable td:nth-child(3) {
+      width: 110px;
+    }
+
+    #ingredientTable th:nth-child(4),
+    #ingredientTable td:nth-child(4) {
+      width: 60px;
+      text-align: center;
+    }
+
+    /* Notes column flexes last */
+    #ingredientTable th:nth-child(5),
+    #ingredientTable td:nth-child(5) {
+      width: auto;
+      white-space: nowrap;
+    }
+
+    /* De-emphasize delete button */
+    #ingredientTable button[data-del] {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: #64748b;
+      font-size: 0.85rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    #ingredientTable button[data-del]:hover {
+      color: var(--text);
+      border-color: #64748b;
+      background: #1e293b;
+    }
+
   </style>
 </head>
 
