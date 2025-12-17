@@ -1,1 +1,168 @@
+/* ============================================================
+   797 DISTILLERY — MASH BUILDER STYLES
+   Scoped to mash.html only
+   ============================================================ */
+
+:root{
+  --bg:#0f172a;
+  --panel:#111c33;
+  --border:#334155;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --accent:#22c55e;
+  --warn:#f59e0b;
+}
+
+/* =========================
+   PAGE
+   ========================= */
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+}
+
+.mash-container{
+  max-width:1100px;
+  margin:0 auto;
+  padding:28px 18px 40px;
+}
+
+/* =========================
+   PANELS
+   ========================= */
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+  margin-bottom:18px;
+}
+
+.panel h2{
+  margin:0 0 14px;
+  font-size:1.1rem;
+  font-weight:600;
+}
+
+/* =========================
+   GRID
+   ========================= */
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap:14px;
+  margin-bottom:14px;
+}
+
+label{
+  display:block;
+  font-size:0.85rem;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+
+select,
+input{
+  width:100%;
+  padding:10px 10px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:#0b1223;
+  color:var(--text);
+  font-size:0.95rem;
+}
+
+select:focus,
+input:focus{
+  outline:none;
+  border-color:#64748b;
+}
+
+/* =========================
+   BUTTONS
+   ========================= */
+button{
+  appearance:none;
+  border-radius:10px;
+  padding:10px 14px;
+  font-size:0.95rem;
+  cursor:pointer;
+  border:1px solid var(--border);
+  background:#0b1223;
+  color:var(--text);
+}
+
+button.primary{
+  border-color:var(--accent);
+  color:var(--accent);
+}
+
+button.warn{
+  border-color:var(--warn);
+  color:var(--warn);
+}
+
+button:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+}
+
+/* =========================
+   RESULTS
+   ========================= */
+#mashResults h3{
+  margin:16px 0 6px;
+  font-size:0.95rem;
+  font-weight:600;
+}
+
+#mashResults ul{
+  list-style:none;
+  padding:0;
+  margin:0;
+}
+
+#mashResults li{
+  padding:4px 0;
+  font-size:0.9rem;
+  border-bottom:1px dashed var(--border);
+}
+
+#mashResults li:last-child{
+  border-bottom:none;
+}
+
+/* =========================
+   LOG
+   ========================= */
+#logView ul{
+  list-style:none;
+  padding:0;
+  margin:0;
+}
+
+#logView li{
+  padding:6px 0;
+  font-size:0.9rem;
+  border-bottom:1px solid var(--border);
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+@media (max-width:600px){
+  .mash-container{
+    padding:18px 12px 28px;
+  }
+
+  button{
+    width:100%;
+  }
+}
+
+/* =========================
+   END OF STYLES
+   ========================= */
 
