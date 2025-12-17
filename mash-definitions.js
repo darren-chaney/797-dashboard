@@ -14,17 +14,14 @@ export const MASH_DEFINITIONS = {
      ------------------------------------------------------------ */
   MOONSHINE_BASE: {
     id: "MOONSHINE_BASE",
-    name: "Moonshine Base Mash",
+    name: "Moonshine Base Mash (797)",
     family: MASH_FAMILIES.MOONSHINE,
     fermentOnGrain: true,
 
     fermentables: {
       corn: { lb_per_gal: 1.20 },
       malted_barley: { lb_per_gal: 0.27 },
-      sugar: {
-        type: "GRANULATED",
-        lb_per_gal: 1.82
-      }
+      sugar: { type: "GRANULATED", lb_per_gal: 1.82 }
     },
 
     enzymes: {
@@ -33,6 +30,37 @@ export const MASH_DEFINITIONS = {
     },
 
     yeast_family: "GRAIN",
+    nutrients_required: true
+  },
+
+  /* ------------------------------------------------------------
+     MOONSHINE — 350 GAL COOKER BILL (OTHER DISTILLERY)
+     350 gal reference:
+     Corn 400 lb | Sugar 200 lb | Malt 50 lb
+     Yeast 400 g total
+     NOTE: enzyme in their note is "100 mL" (unknown type),
+     so we DO NOT guess gluco here. Amylo schedule only.
+     ------------------------------------------------------------ */
+  MOONSHINE_350_COOKER: {
+    id: "MOONSHINE_350_COOKER",
+    name: "Moonshine (350 Cooker Bill)",
+    family: MASH_FAMILIES.MOONSHINE,
+    fermentOnGrain: true,
+
+    fermentables: {
+      corn: { lb_per_gal: 1.142857 },         // 400 / 350
+      malted_barley: { lb_per_gal: 0.142857 },// 50 / 350
+      sugar: { type: "GRANULATED", lb_per_gal: 0.571429 } // 200 / 350
+    },
+
+    enzymes: {
+      amylo_300: { applies_to: "CORN_ONLY" },
+      // glucoamylase intentionally omitted (unknown in their 100 mL note)
+    },
+
+    yeast_family: "GRAIN",
+    // their yeast is effectively 1.142857 g/gal; our rules file is 1.0 g/gal
+    // We’ll accept your standards for now; if you want exact, we can add per-definition pitch later.
     nutrients_required: true
   },
 
@@ -73,10 +101,7 @@ export const MASH_DEFINITIONS = {
       corn: { lb_per_gal: 3.0 },
       malted_barley: { lb_per_gal: 0.75 },
       wheat: { lb_per_gal: 0.5 },
-      sugar: {
-        type: "GRANULATED",
-        lb_per_gal: 0.75
-      }
+      sugar: { type: "GRANULATED", lb_per_gal: 0.75 }
     },
 
     enzymes: {
@@ -89,8 +114,9 @@ export const MASH_DEFINITIONS = {
   },
 
   /* ------------------------------------------------------------
-     RUM — BASE (VOLUME-BASED, REAL WORLD)
-     SugarRite L350 + Molasses measured in GALLONS
+     RUM — BASE (REAL WORLD, VOLUME-BASED)
+     55 gal reference:
+     L350 = 14 gal | Molasses = 1 gal
      ------------------------------------------------------------ */
   RUM_BASE: {
     id: "RUM_BASE",
@@ -101,10 +127,10 @@ export const MASH_DEFINITIONS = {
     fermentables: {
       l350: {
         type: "L350",
-        gal_per_gal: 0.18    // example ratio, adjust if needed
+        gal_per_gal: 0.254545  // 14 / 55
       },
       molasses: {
-        gal_per_gal: 0.05    // example ratio, adjust if needed
+        gal_per_gal: 0.018182  // 1 / 55
       }
     },
 
