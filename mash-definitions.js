@@ -1,19 +1,15 @@
 /* ============================================================
    797 DISTILLERY — MASH DEFINITIONS
    Canonical mash bill definitions ONLY
-   No calculations, no scaling logic
    ============================================================ */
 
 import { MASH_FAMILIES } from "./mash-rules.js";
 
-/* =========================
-   MASH DEFINITIONS
-   ========================= */
 export const MASH_DEFINITIONS = {
 
   /* ------------------------------------------------------------
-     MOONSHINE — BASE (CANONICAL, REAL WORLD)
-     Based on proven 55-gallon recipe:
+     MOONSHINE — BASE (REAL WORLD)
+     55 gal reference:
      Corn 66 lb | Sugar 100 lb | Malt 15 lb
      ------------------------------------------------------------ */
   MOONSHINE_BASE: {
@@ -23,25 +19,17 @@ export const MASH_DEFINITIONS = {
     fermentOnGrain: true,
 
     fermentables: {
-      corn: {
-        lb_per_gal: 1.20     // 66 lb @ 55 gal
-      },
-      malted_barley: {
-        lb_per_gal: 0.27     // 15 lb @ 55 gal
-      },
+      corn: { lb_per_gal: 1.20 },
+      malted_barley: { lb_per_gal: 0.27 },
       sugar: {
         type: "GRANULATED",
-        lb_per_gal: 1.82     // 100 lb @ 55 gal
+        lb_per_gal: 1.82
       }
     },
 
     enzymes: {
-      amylo_300: {
-        applies_to: "CORN_ONLY"
-      },
-      glucoamylase: {
-        applies_to: "TOTAL_GRAIN"
-      }
+      amylo_300: { applies_to: "CORN_ONLY" },
+      glucoamylase: { applies_to: "TOTAL_GRAIN" }
     },
 
     yeast_family: "GRAIN",
@@ -50,7 +38,6 @@ export const MASH_DEFINITIONS = {
 
   /* ------------------------------------------------------------
      GRAIN WHISKEY — BASE (NO SUGAR)
-     Traditional grain-forward mash
      ------------------------------------------------------------ */
   GRAIN_WHISKEY_BASE: {
     id: "GRAIN_WHISKEY_BASE",
@@ -59,24 +46,14 @@ export const MASH_DEFINITIONS = {
     fermentOnGrain: true,
 
     fermentables: {
-      corn: {
-        lb_per_gal: 3.5
-      },
-      malted_barley: {
-        lb_per_gal: 1.0
-      },
-      wheat: {
-        lb_per_gal: 0.5
-      }
+      corn: { lb_per_gal: 3.5 },
+      malted_barley: { lb_per_gal: 1.0 },
+      wheat: { lb_per_gal: 0.5 }
     },
 
     enzymes: {
-      amylo_300: {
-        applies_to: "CORN_ONLY"
-      },
-      glucoamylase: {
-        applies_to: "TOTAL_GRAIN"
-      }
+      amylo_300: { applies_to: "CORN_ONLY" },
+      glucoamylase: { applies_to: "TOTAL_GRAIN" }
     },
 
     yeast_family: "GRAIN",
@@ -85,7 +62,6 @@ export const MASH_DEFINITIONS = {
 
   /* ------------------------------------------------------------
      HYBRID WHISKEY — BASE (SUGAR ASSIST)
-     Grain-forward with controlled yield boost
      ------------------------------------------------------------ */
   HYBRID_WHISKEY_BASE: {
     id: "HYBRID_WHISKEY_BASE",
@@ -94,15 +70,9 @@ export const MASH_DEFINITIONS = {
     fermentOnGrain: true,
 
     fermentables: {
-      corn: {
-        lb_per_gal: 3.0
-      },
-      malted_barley: {
-        lb_per_gal: 0.75
-      },
-      wheat: {
-        lb_per_gal: 0.5
-      },
+      corn: { lb_per_gal: 3.0 },
+      malted_barley: { lb_per_gal: 0.75 },
+      wheat: { lb_per_gal: 0.5 },
       sugar: {
         type: "GRANULATED",
         lb_per_gal: 0.75
@@ -110,12 +80,8 @@ export const MASH_DEFINITIONS = {
     },
 
     enzymes: {
-      amylo_300: {
-        applies_to: "CORN_ONLY"
-      },
-      glucoamylase: {
-        applies_to: "TOTAL_GRAIN"
-      }
+      amylo_300: { applies_to: "CORN_ONLY" },
+      glucoamylase: { applies_to: "TOTAL_GRAIN" }
     },
 
     yeast_family: "GRAIN",
@@ -123,9 +89,8 @@ export const MASH_DEFINITIONS = {
   },
 
   /* ------------------------------------------------------------
-     RUM — BASE
-     SugarRite L350 + Molasses
-     No enzymes
+     RUM — BASE (VOLUME-BASED, REAL WORLD)
+     SugarRite L350 + Molasses measured in GALLONS
      ------------------------------------------------------------ */
   RUM_BASE: {
     id: "RUM_BASE",
@@ -136,10 +101,10 @@ export const MASH_DEFINITIONS = {
     fermentables: {
       l350: {
         type: "L350",
-        lb_per_gal: 1.9
+        gal_per_gal: 0.18    // example ratio, adjust if needed
       },
       molasses: {
-        lb_per_gal: 0.5
+        gal_per_gal: 0.05    // example ratio, adjust if needed
       }
     },
 
@@ -150,7 +115,3 @@ export const MASH_DEFINITIONS = {
   }
 
 };
-
-/* =========================
-   END OF DEFINITIONS
-   ========================= */
