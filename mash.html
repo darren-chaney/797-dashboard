@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Shared Header / Nav -->
-  <link rel="stylesheet" href="../header.css" />
+  <link rel="stylesheet" href="header.css" />
 
   <!-- Mash App Styles -->
   <link rel="stylesheet" href="mash.css" />
@@ -24,7 +24,7 @@
   </script>
 
   <script>
-    fetch("../header.html")
+    fetch("header.html")
       .then(res => res.text())
       .then(html => {
         document.getElementById("global-header").innerHTML = html;
