@@ -2,106 +2,52 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>797 Distillery — Mash Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>797 Distillery — Mash Builder</title>
 
-  <!-- Shared Header / Nav -->
-  <link rel="stylesheet" href="header.css" />
-
-  <!-- Mash App Styles -->
-  <link rel="stylesheet" href="mash.css" />
+  <link rel="stylesheet" href="mash.css?v=1.0.0" />
 </head>
-
 <body>
-
-  <!-- GLOBAL HEADER -->
-  <div id="global-header"></div>
-
-  <script>
-    const PAGE_TITLE = "Mash Builder";
-    const PAGE_SUBTITLE =
-      "Build, scale, and log mash bills for 797 Distillery.";
-  </script>
-
-  <script>
-    fetch("header.html")
-      .then(res => res.text())
-      .then(html => {
-        document.getElementById("global-header").innerHTML = html;
-      });
-  </script>
-
-  <!-- PAGE CONTENT -->
   <main class="mash-container">
 
-    <!-- MASH SETUP -->
-    <section class="panel">
+    <div class="panel mash-panel">
       <h2>Mash Setup</h2>
 
-      <div class="grid">
-
+      <div class="mash-grid">
         <div>
-          <label>Mash Type</label>
-          <select id="mashSelect">
-            <option value="">Select mash…</option>
-            <option value="MOONSHINE_BASE">Moonshine Base</option>
-            <option value="GRAIN_WHISKEY_BASE">Grain Whiskey Base</option>
-            <option value="HYBRID_WHISKEY_BASE">Hybrid Whiskey</option>
-            <option value="RUM_BASE">Rum Wash</option>
-          </select>
+          <label for="mashSelect">Mash Type</label>
+          <select id="mashSelect"></select>
         </div>
 
         <div>
-          <label>Fill Volume (gal)</label>
-          <input
-            type="number"
-            id="fillGal"
-            min="1"
-            step="1"
-            placeholder="e.g. 235"
-          />
+          <label for="fillGal">Fill Volume (gal)</label>
+          <input id="fillGal" type="number" step="1" min="1" placeholder="e.g. 55 or 235" />
         </div>
-      <div>
-        <label>Target Wash ABV (%)</label>
-        <input
-          type="number"
-          id="targetABV"
-          step="0.1"
-          min="6"
-          max="11.5"
-          placeholder="optional"
-        />
+
+        <div>
+          <label for="targetABV">Target Wash ABV (%)</label>
+          <input id="targetABV" type="number" step="0.1" min="6" max="14" placeholder="optional" />
+        </div>
       </div>
 
+      <div class="actions">
+        <button id="btnBuildMash" class="primary">Build Mash</button>
+        <button id="btnStartMash" class="warn" disabled>Start Mash (Log)</button>
       </div>
+    </div>
 
-      <button id="btnBuildMash" class="primary">
-        Build Mash
-      </button>
-    </section>
-
-    <!-- RESULTS -->
-    <section class="panel" id="resultsPanel" hidden>
+    <div id="resultsPanel" class="panel" hidden>
       <h2>Mash Bill</h2>
-
       <div id="mashResults"></div>
+    </div>
 
-      <button id="btnStartMash" class="warn">
-        Start Mash (Lock & Create Log)
-      </button>
-    </section>
-
-    <!-- LOG -->
-    <section class="panel" id="logPanel" hidden>
+    <div id="logPanel" class="panel" hidden>
       <h2>Production Log</h2>
       <div id="logView"></div>
-    </section>
+    </div>
 
   </main>
 
-  <!-- SCRIPTS -->
-  <script type="module" src="mash-ui.js"></script>
-
+  <script type="module" src="mash-ui.js?v=1.0.0"></script>
 </body>
 </html>
-
