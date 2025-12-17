@@ -13,6 +13,8 @@ import { MASH_DEFINITIONS } from "./mash-definitions.js";
    ========================= */
 const mashSelect = document.getElementById("mashSelect");
 const fillGalInput = document.getElementById("fillGal");
+const targetABVInput = document.getElementById("targetABV");
+
 const btnBuildMash = document.getElementById("btnBuildMash");
 const btnStartMash = document.getElementById("btnStartMash");
 
@@ -33,6 +35,7 @@ let currentMash = null;
 btnBuildMash.onclick = () => {
   const mashId = mashSelect.value;
   const fillGal = Number(fillGalInput.value);
+  const targetABV = Number(targetABVInput.value) || null;
 
   if (!mashId || !fillGal) {
     alert("Select a mash and enter fill volume");
@@ -40,7 +43,7 @@ btnBuildMash.onclick = () => {
   }
 
   try {
-    currentMash = scaleMash(mashId, fillGal);
+    currentMash = scaleMash(mashId, fillGal, targetABV);
     renderMash(currentMash);
     resultsPanel.hidden = false;
   } catch (err) {
@@ -49,7 +52,7 @@ btnBuildMash.onclick = () => {
 };
 
 /* =========================
-   START MASH (LOCK)
+   START MASH (LOCK + LOG)
    ========================= */
 btnStartMash.onclick = () => {
   if (!currentMash) return;
@@ -72,6 +75,7 @@ btnStartMash.onclick = () => {
   btnStartMash.disabled = true;
   mashSelect.disabled = true;
   fillGalInput.disabled = true;
+  targetABVInput.disabled = true;
 
   logPanel.hidden = false;
 };
@@ -90,11 +94,11 @@ function renderMash(mash) {
     <ul>
   `;
 
-  for (const k in f) {
-    if (f[k].lb !== undefined) {
-      html += `<li>${k}: ${f[k].lb} lb</li>`;
-    } else if (f[k].gal !== undefined) {
-      html += `<li>${k}: ${f[k].gal} gal</li>`;
+  for (const key in f) {
+    if (f[key].lb !== undefined) {
+      html += `<li>${key}: ${f[key].lb} lb</li>`;
+    } else if (f[key].gal !== undefined) {
+      html += `<li>${key}: ${f[key].gal} gal</li>`;
     }
   }
 
@@ -113,7 +117,10 @@ function renderMash(mash) {
     html += `<li>Glucoamylase: ${mash.enzymes.glucoamylase_ml} mL</li>`;
   }
 
-  if (!mash.enzymes.amylo_300_ml && !mash.enzymes.glucoamylase_ml) {
+  if (
+    !mash.enzymes.amylo_300_ml &&
+    !mash.enzymes.glucoamylase_ml
+  ) {
     html += `<li>None</li>`;
   }
 
@@ -126,20 +133,24 @@ function renderMash(mash) {
       <li>Nutrients: ${mash.nutrients_g} g</li>
     </ul>
 
-    <h3>Estimates</h3>
+    <h3>Fermentation Estimates</h3>
     <ul>
       <li>OG: ${mash.totals.og}</li>
       <li>Wash ABV: ${mash.totals.washABV_percent}%</li>
       <li>Pure Alcohol: ${mash.totals.pureAlcohol_gal} gal</li>
     </ul>
+
+    <h3>Stripping Run (Estimated)</h3>
+    <ul>
+      <li>Low Wines: ${mash.stripping.low_wines_gal} gal @ 35%</li>
+    </ul>
   `;
 
-  if (mash.warnings.length) {
+  if (mash.abvAdjustment?.clamped) {
     html += `
-      <h3>Warnings</h3>
-      <ul>
-        ${mash.warnings.map(w => `<li>${w}</li>`).join("")}
-      </ul>
+      <p style="color:#f59e0b;">
+        Target ABV was limited to fermentation tolerance.
+      </p>
     `;
   }
 
