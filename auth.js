@@ -13,7 +13,7 @@
 // 🔧 DEV MODE BYPASS
 // Set to true during heavy development to auto-unlock
 // Set to false for normal internal use
-const DEV_BYPASS = true;
+const DEV_BYPASS = false;
 
 // 🔐 ACCESS PHRASE (exact match)
 const ACCESS_PHRASE = "ourMoonshine25!";
