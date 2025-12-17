@@ -1,75 +1,42 @@
 /* ============================================================
-   797 DISTILLERY — MASH STORAGE
-   localStorage persistence ONLY
+   797 DISTILLERY — MASH STORAGE (localStorage)
    ============================================================ */
 
-const LS_MASH_RUNS_KEY = "797_mash_runs_v1";
-const LS_MASH_LOGS_KEY = "797_mash_logs_v1";
+const LS_RUNS = "mash_runs_v1";
+const LS_LOGS = "mash_logs_v1";
 
-/* =========================
-   INTERNAL HELPERS
-   ========================= */
-function read(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key)) || [];
-  } catch {
-    return [];
+function readJSON(key, fallback){
+  try{
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  }catch(e){
+    return fallback;
   }
 }
 
-function write(key, value) {
+function writeJSON(key, value){
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-/* =========================
-   MASH RUNS
-   ========================= */
-export function getMashRuns() {
-  return read(LS_MASH_RUNS_KEY);
-}
-
-export function saveMashRun(mashRun) {
-  const runs = read(LS_MASH_RUNS_KEY);
-  runs.push({
-    ...mashRun,
-    saved_at: new Date().toISOString()
+export function saveMashRun(run){
+  const arr = readJSON(LS_RUNS, []);
+  arr.unshift({
+    saved_at: new Date().toISOString(),
+    run
   });
-  write(LS_MASH_RUNS_KEY, runs);
+  writeJSON(LS_RUNS, arr);
 }
 
-export function getMashRunById(id) {
-  return read(LS_MASH_RUNS_KEY).find(r => r.mashId === id);
+export function saveMashLog(log){
+  const arr = readJSON(LS_LOGS, []);
+  arr.unshift(log);
+  writeJSON(LS_LOGS, arr);
 }
 
-/* =========================
-   MASH LOGS
-   ========================= */
-export function getMashLogs() {
-  return read(LS_MASH_LOGS_KEY);
+export function listMashRuns(){
+  return readJSON(LS_RUNS, []);
 }
 
-export function saveMashLog(log) {
-  const logs = read(LS_MASH_LOGS_KEY);
-  logs.push(log);
-  write(LS_MASH_LOGS_KEY, logs);
+export function listMashLogs(){
+  return readJSON(LS_LOGS, []);
 }
-
-export function updateMashLog(updatedLog) {
-  const logs = read(LS_MASH_LOGS_KEY).map(log =>
-    log.meta.created_at === updatedLog.meta.created_at ? updatedLog : log
-  );
-  write(LS_MASH_LOGS_KEY, logs);
-}
-
-/* =========================
-   CLEAR (DEV / RESET ONLY)
-   ========================= */
-export function clearAllMashData() {
-  localStorage.removeItem(LS_MASH_RUNS_KEY);
-  localStorage.removeItem(LS_MASH_LOGS_KEY);
-}
-
-/* =========================
-   END OF STORAGE
-   ========================= */
-
