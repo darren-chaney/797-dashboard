@@ -4,7 +4,6 @@
    ============================================================ */
 
 import { scaleMash } from "./mash-engine.js";
-import { buildTopUpMash } from "./mash-topup.js";
 import { createMashLog } from "./mash-log.js";
 import { saveMashRun, saveMashLog } from "./mash-storage.js";
 import { MASH_DEFINITIONS } from "./mash-definitions.js";
@@ -92,7 +91,11 @@ function renderMash(mash) {
   `;
 
   for (const k in f) {
-    html += `<li>${k}: ${f[k].lb} lb</li>`;
+    if (f[k].lb !== undefined) {
+      html += `<li>${k}: ${f[k].lb} lb</li>`;
+    } else if (f[k].gal !== undefined) {
+      html += `<li>${k}: ${f[k].gal} gal</li>`;
+    }
   }
 
   html += `
@@ -108,6 +111,10 @@ function renderMash(mash) {
 
   if (mash.enzymes.glucoamylase_ml) {
     html += `<li>Glucoamylase: ${mash.enzymes.glucoamylase_ml} mL</li>`;
+  }
+
+  if (!mash.enzymes.amylo_300_ml && !mash.enzymes.glucoamylase_ml) {
+    html += `<li>None</li>`;
   }
 
   html += `
@@ -166,4 +173,3 @@ function renderLog(log) {
 /* =========================
    END OF UI
    ========================= */
-
