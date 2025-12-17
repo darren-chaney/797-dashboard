@@ -229,13 +229,9 @@ function showOutputFromDraft(draft){
         </td>
         <td class="muted">${delta === 0 ? "—" : delta.toFixed(2)}</td>
         <td class="muted">
-          ${f.source === "manual" ? "Manual" : "Generated"}
-          ${
-            f.source === "manual"
-              ? ` • <button data-del="${f.id}">✕</button>`
-              : ""
-          }
-        </td>
+           ${f.source === "manual" ? "Manual" : "Generated"}
+           • <button data-del="${f.id}" title="Remove flavor">✕</button>
+         </td>
       </tr>
     `);
   });
