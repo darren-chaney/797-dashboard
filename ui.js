@@ -36,6 +36,33 @@ function formatMl(n){
 function formatL(n){ return (Number(n||0)).toFixed(3); }
 
 /* ------------------------------
+   Inputs (RESTORED — REQUIRED)
+   ------------------------------ */
+function getInputs(){
+  const sampleSizeMl = Number(readRad("sampleSize"));
+  const baseSpiritType = el("baseSpiritType")?.value || "Moonshine";
+  const flavorConcept = el("flavorConcept")?.value || "";
+  const flavorStrength = readRad("strength") || "Strong";
+
+  const sweet = readRad("sweetness");
+  const sweetnessPercent =
+    (sweet === "none" || sweet == null) ? null : Number(sweet);
+
+  const baseProof = Number(el("baseProof")?.value || 155);
+  const targetProof = Number(el("targetProof")?.value || 60);
+
+  return {
+    sampleSizeMl,
+    baseSpiritType,
+    flavorConcept,
+    flavorStrength,
+    sweetnessPercent,
+    baseProof,
+    targetProof
+  };
+}
+
+/* ------------------------------
    Storage
    ------------------------------ */
 function loadJSON(key, fallback){
@@ -63,15 +90,13 @@ function renderDraftList(){
     return;
   }
 
-  box.innerHTML = drafts.slice().reverse().slice(0,8).map(d=>{
-    return `
-      <div style="padding:8px 0; border-bottom:1px solid #334155;">
-        <b>${escapeHtml(d.sampleId)}</b><br>
-        <span class="muted">${escapeHtml(d.sampleDefinition.flavorConcept || "")}</span><br>
-        <button data-load="${d.sampleId}">Load</button>
-      </div>
-    `;
-  }).join("");
+  box.innerHTML = drafts.slice().reverse().slice(0,8).map(d=>`
+    <div style="padding:8px 0; border-bottom:1px solid #334155;">
+      <b>${escapeHtml(d.sampleId)}</b><br>
+      <span class="muted">${escapeHtml(d.sampleDefinition.flavorConcept || "")}</span><br>
+      <button data-load="${d.sampleId}">Load</button>
+    </div>
+  `).join("");
 
   box.querySelectorAll("[data-load]").forEach(btn=>{
     btn.onclick = ()=>{
@@ -92,7 +117,7 @@ function renderDraftList(){
 let currentDraft = null;
 
 /* ------------------------------
-   Normalize flavors (BACKWARD SAFE)
+   Normalize flavors (safe)
    ------------------------------ */
 function normalizeFlavors(draft){
   draft.ingredients.flavors = (draft.ingredients.flavors || []).map(f => ({
@@ -147,7 +172,7 @@ function showOutputFromDraft(draft){
     `);
   }
 
-  // Flavors (generated + manual, removable)
+  // Flavors
   draft.ingredients.flavors.forEach(f=>{
     const delta = f.appliedMl - f.suggestedMl;
 
@@ -166,13 +191,13 @@ function showOutputFromDraft(draft){
         <td class="muted">${delta===0?"—":delta.toFixed(2)}</td>
         <td class="muted">
           ${f.source==="manual"?"Manual":"Generated"}
-          • <button data-del="${f.id}" title="Remove flavor">✕</button>
+          • <button data-del="${f.id}">✕</button>
         </td>
       </tr>
     `);
   });
 
-  // Add flavor row
+  // Add flavor
   tbody.insertAdjacentHTML("beforeend", `
     <tr>
       <td colspan="5">
