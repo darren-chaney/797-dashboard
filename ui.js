@@ -136,25 +136,37 @@ function renderDraftList(){
    ------------------------------ */
 let currentDraft = null;
 
+/* ============================================================
+   🔧 NEW: Normalize flavor objects (backward compatible)
+   ============================================================ */
+function normalizeFlavors(draft){
+  if (!draft?.ingredients?.flavors) return;
+
+  draft.ingredients.flavors = draft.ingredients.flavors.map(f => ({
+    id: f.id || sbUuid(f.source === "manual" ? "manual" : "gen"),
+    name: f.name || "",
+    category: f.category || null,
+    suggestedMl: Number(f.suggestedMl ?? f.amountMl ?? 0),
+    appliedMl: Number(f.appliedMl ?? f.adjustedMl ?? f.amountMl ?? 0),
+    source: f.source || "generated"
+  }));
+}
+
 /* ------------------------------
-   Output rendering (ADJUSTABLE FLAVORS)
+   Output rendering (FLAVORS EXTENDED)
    ------------------------------ */
 function showOutputFromDraft(draft){
   currentDraft = draft;
+
+  // 🔧 Normalize flavors ONCE per render
+  normalizeFlavors(draft);
 
   const outputPanel = el("outputPanel");
   if (!outputPanel) return;
   outputPanel.style.display = "block";
 
   const btnSaveDraft = el("btnSaveDraft");
-  const btnExportDraft = el("btnExportDraft");
-  const btnDuplicate = el("btnDuplicate");
-  const btnPromote = el("btnPromote");
-
   if (btnSaveDraft) btnSaveDraft.disabled = false;
-  if (btnExportDraft) btnExportDraft.disabled = false;
-  if (btnDuplicate) btnDuplicate.disabled = false;
-  if (btnPromote) btnPromote.disabled = (draft?.sampleDefinition?.sampleSizeMl !== 375);
 
   const meta = el("sampleMeta");
   if (meta){
@@ -162,117 +174,125 @@ function showOutputFromDraft(draft){
       `${draft.sampleId} • ${draft.sampleDefinition.sampleSizeMl} mL • ${draft.sampleDefinition.baseSpiritType}`;
   }
 
-  const ingredientTable = el("ingredientTable");
-  if (!ingredientTable) return;
-
-  const tbody = ingredientTable.querySelector("tbody");
+  const tbody = el("ingredientTable")?.querySelector("tbody");
   if (!tbody) return;
   tbody.innerHTML = "";
 
-  // Rows we display
-  const rows = [];
+  /* ---------- FIXED ROWS ---------- */
 
-  // Base spirit (fixed)
-  rows.push({
-    type:"fixed",
-    name:`Base Spirit (${draft?.ingredients?.baseSpirit?.proof ?? "?"} proof)`,
-    ml:Number(draft?.ingredients?.baseSpirit?.amountMl || 0),
-    notes:"R&D base"
-  });
+  const base = draft.ingredients.baseSpirit;
+  tbody.insertAdjacentHTML("beforeend", `
+    <tr>
+      <td><b>Base Spirit (${base.proof} proof)</b></td>
+      <td>${formatMl(base.amountMl)}</td>
+      <td>${formatL(mlToL(base.amountMl))}</td>
+      <td class="muted">—</td>
+      <td class="muted">R&D base</td>
+    </tr>
+  `);
 
-  // Water (fixed)
-  if (draft?.ingredients?.water){
-    rows.push({
-      type:"fixed",
-      name:`Water (to ${draft.ingredients.water.targetProof} proof)`,
-      ml:Number(draft.ingredients.water.amountMl || 0),
-      notes:"Bench proofing"
-    });
-  }
-
-  // Flavors (editable)
-  const flavors = (draft?.ingredients?.flavors || []);
-  flavors.forEach((f, i)=>{
-    if (f.adjustedMl == null) f.adjustedMl = Number(f.amountMl || 0);
-    rows.push({
-      type:"flavor",
-      flavorIndex:i,
-      name:f.name,
-      suggested:Number(f.amountMl || 0),
-      adjusted:Number(f.adjustedMl || 0),
-      notes:"Taste-adjusted"
-    });
-  });
-
-  // Sweetener (fixed for now)
-  if (draft?.ingredients?.sweetener?.enabled){
-    rows.push({
-      type:"fixed",
-      name:"HFCS-42",
-      ml:Number(draft.ingredients.sweetener.amountMl || 0),
-      notes:`${draft.ingredients.sweetener.targetPercent}% sweetness`
-    });
-  }
-
-  // Render rows
-  rows.forEach(r=>{
-    const tr = document.createElement("tr");
-
-    if (r.type === "fixed"){
-      const ml = Number(r.ml || 0);
-      tr.innerHTML = `
-        <td><b>${escapeHtml(r.name)}</b></td>
-        <td>${formatMl(ml)}</td>
-        <td>${formatL(mlToL(ml))}</td>
+  const water = draft.ingredients.water;
+  if (water){
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td><b>Water (to ${water.targetProof} proof)</b></td>
+        <td>${formatMl(water.amountMl)}</td>
+        <td>${formatL(mlToL(water.amountMl))}</td>
         <td class="muted">—</td>
-        <td class="muted">${escapeHtml(r.notes || "Fixed")}</td>
-      `;
-    } else {
-      const delta = (r.adjusted - r.suggested);
-      tr.innerHTML = `
-        <td><b>${escapeHtml(r.name)}</b></td>
-        <td>${formatMl(r.suggested)}</td>
+        <td class="muted">Bench proofing</td>
+      </tr>
+    `);
+  }
+
+  /* ---------- FLAVOR ROWS (DYNAMIC) ---------- */
+
+  draft.ingredients.flavors.forEach(f=>{
+    const delta = f.appliedMl - f.suggestedMl;
+
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
         <td>
-          <input
-            type="number"
-            step="0.01"
-            value="${String(r.adjusted)}"
-            data-flavor-index="${String(r.flavorIndex)}"
+          ${
+            f.source === "manual"
+              ? `<input type="text" value="${escapeHtml(f.name)}"
+                   data-name="${f.id}" placeholder="Flavor name" />`
+              : `<b>${escapeHtml(f.name)}</b>`
+          }
+        </td>
+        <td>${formatMl(f.suggestedMl)}</td>
+        <td>
+          <input type="number" step="0.01"
+            value="${f.appliedMl}"
+            data-ml="${f.id}"
             class="adjust-input"
-            style="width:110px;"
-          />
+            style="width:110px;" />
         </td>
         <td class="muted">${delta === 0 ? "—" : delta.toFixed(2)}</td>
-        <td class="muted">${escapeHtml(r.notes || "")}</td>
-      `;
-    }
-
-    tbody.appendChild(tr);
+        <td class="muted">
+          ${f.source === "manual" ? "Manual" : "Generated"}
+          ${
+            f.source === "manual"
+              ? ` • <button data-del="${f.id}">✕</button>`
+              : ""
+          }
+        </td>
+      </tr>
+    `);
   });
+
+  /* ---------- ADD FLAVOR BUTTON ---------- */
+  tbody.insertAdjacentHTML("beforeend", `
+    <tr>
+      <td colspan="5">
+        <button id="btnAddFlavor">+ Add Flavor</button>
+      </td>
+    </tr>
+  `);
+
+  el("btnAddFlavor").onclick = ()=>{
+    currentDraft.ingredients.flavors.push({
+      id: sbUuid("manual"),
+      name: "",
+      category: null,
+      suggestedMl: 0,
+      appliedMl: 0,
+      source: "manual"
+    });
+    showOutputFromDraft(currentDraft);
+  };
 }
 
 /* ------------------------------
-   Adjustment listener (delegated)
+   Delegated flavor edits
    ------------------------------ */
-document.addEventListener("input", (e)=>{
-  const t = e.target;
-  if (!t || !t.classList || !t.classList.contains("adjust-input")) return;
+document.addEventListener("input", e=>{
   if (!currentDraft) return;
 
-  const idx = Number(t.dataset.flavorIndex);
-  if (!Number.isFinite(idx)) return;
+  // Adjust mL
+  if (e.target.matches("[data-ml]")){
+    const f = currentDraft.ingredients.flavors.find(x=>x.id===e.target.dataset.ml);
+    if (f) f.appliedMl = Number(e.target.value) || 0;
+  }
 
-  const val = Number(t.value);
-  if (!Number.isFinite(val)) return;
+  // Rename manual flavor
+  if (e.target.matches("[data-name]")){
+    const f = currentDraft.ingredients.flavors.find(x=>x.id===e.target.dataset.name);
+    if (f && f.source==="manual") f.name = e.target.value;
+  }
+});
 
-  const flavor = currentDraft?.ingredients?.flavors?.[idx];
-  if (!flavor) return;
+/* ------------------------------
+   Delete manual flavor
+   ------------------------------ */
+document.addEventListener("click", e=>{
+  if (!currentDraft) return;
+  if (!e.target.matches("[data-del]")) return;
 
-  flavor.adjustedMl = val;
+  const id = e.target.dataset.del;
+  currentDraft.ingredients.flavors =
+    currentDraft.ingredients.flavors.filter(f=>f.id!==id);
 
-  // enable saving
-  const btnSaveDraft = el("btnSaveDraft");
-  if (btnSaveDraft) btnSaveDraft.disabled = false;
+  showOutputFromDraft(currentDraft);
 });
 
 /* ------------------------------
@@ -297,7 +317,6 @@ function loadDraftIntoUI(d){
   if (el("baseProof")) el("baseProof").value = d?.sampleDefinition?.baseProof ?? 155;
   if (el("targetProof")) el("targetProof").value = d?.sampleDefinition?.targetProof ?? 60;
 
-  // Sweetness radios
   if (d?.ingredients?.sweetener?.enabled){
     setRad("sweetness", String(d.ingredients.sweetener.targetPercent ?? 12));
   } else {
@@ -306,72 +325,31 @@ function loadDraftIntoUI(d){
 }
 
 /* ------------------------------
-   Init (GUARDED)
+   Init
    ------------------------------ */
 function init(){
   renderDraftList();
 
-  const btnGenerate = el("btnGenerate");
-  if (btnGenerate){
-    btnGenerate.onclick = ()=>{
-      const res = generateSample(getInputs());
-      if (!res || !res.ok) {
-        alert(res?.error || "Generate failed.");
-        return;
-      }
-      showOutputFromDraft(res.draft);
-      saveJSON(LS_LAST_KEY, res.draft);
-    };
-  }
+  el("btnGenerate").onclick = ()=>{
+    const res = generateSample(getInputs());
+    if (!res || !res.ok){
+      alert(res?.error || "Generate failed.");
+      return;
+    }
+    showOutputFromDraft(res.draft);
+    saveJSON(LS_LAST_KEY, res.draft);
+  };
 
-  const btnSaveDraft = el("btnSaveDraft");
-  if (btnSaveDraft){
-    btnSaveDraft.onclick = ()=>{
-      if (currentDraft) saveDraft(currentDraft);
-    };
-  }
+  el("btnSaveDraft").onclick = ()=>{
+    if (currentDraft) saveDraft(currentDraft);
+  };
 
-  const btnLoadLast = el("btnLoadLast");
-  if (btnLoadLast){
-    btnLoadLast.onclick = ()=>{
-      const last = loadJSON(LS_LAST_KEY, null);
-      if (!last) return;
-      loadDraftIntoUI(last);
-      showOutputFromDraft(last);
-    };
-  }
-
-  const btnExportDraft = el("btnExportDraft");
-  if (btnExportDraft){
-    btnExportDraft.onclick = ()=>{
-      if (currentDraft){
-        downloadJSON(`${currentDraft.sampleId}.json`, currentDraft);
-      }
-    };
-  }
-
-  // Optional: keep your clear button if it exists
-  const btnClear = el("btnClear");
-  if (btnClear){
-    btnClear.onclick = ()=>{
-      if (el("flavorConcept")) el("flavorConcept").value = "";
-      setRad("sampleSize", "250");
-      setRad("strength", "Strong");
-      setRad("sweetness", "12");
-      if (el("baseSpiritType")) el("baseSpiritType").value = "Moonshine";
-      if (el("baseProof")) el("baseProof").value = 155;
-      if (el("targetProof")) el("targetProof").value = 60;
-
-      currentDraft = null;
-      const op = el("outputPanel");
-      if (op) op.style.display = "none";
-
-      if (btnSaveDraft) btnSaveDraft.disabled = true;
-      const ed = el("btnExportDraft"); if (ed) ed.disabled = true;
-      const du = el("btnDuplicate"); if (du) du.disabled = true;
-      const pr = el("btnPromote"); if (pr) pr.disabled = true;
-    };
-  }
+  el("btnLoadLast").onclick = ()=>{
+    const last = loadJSON(LS_LAST_KEY, null);
+    if (!last) return;
+    loadDraftIntoUI(last);
+    showOutputFromDraft(last);
+  };
 }
 
 document.addEventListener("DOMContentLoaded", init);
