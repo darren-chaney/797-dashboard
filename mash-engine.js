@@ -1,6 +1,6 @@
 /* ============================================================
    797 DISTILLERY — MASH ENGINE
-   Scaling, yield, gravity, and enforcement logic
+   Scaling, yield, ABV targeting, stripping estimates
    ============================================================ */
 
 import {
@@ -13,185 +13,168 @@ import {
 
 import { MASH_DEFINITIONS } from "./mash-definitions.js";
 
-/* =========================
-   UTILITY
-   ========================= */
-function round(value, decimals = 2) {
-  return Number(value.toFixed(decimals));
+function round(v, d = 2) {
+  return Number(v.toFixed(d));
 }
 
-/* ============================================================
-   SCALE MASH
-   ============================================================ */
-export function scaleMash(mashId, fillGal) {
-  const mash = MASH_DEFINITIONS[mashId];
-  if (!mash) throw new Error("Unknown mash definition");
-
-  const scaled = {
-    mashId,
-    name: mash.name,
-    family: mash.family,
-    fillGal,
-    fermentOnGrain: mash.fermentOnGrain,
+/* =========================
+   CORE SCALER
+   ========================= */
+function scaleBaseMash(mash, fillGal) {
+  const out = {
     fermentables: {},
-    enzymes: {},
-    yeast: null,
-    nutrients_g: 0
+    totalGrainLb: 0,
+    gravityPoints: 0
   };
 
-  let totalGrainLb = 0;
-  let gravityPoints = 0;
-
-  /* =========================
-     FERMENTABLES
-     ========================= */
   for (const key in mash.fermentables) {
     const f = mash.fermentables[key];
 
-    /* ---------- WEIGHT-BASED (lb/gal) ---------- */
     if (f.lb_per_gal !== undefined) {
       const lb = f.lb_per_gal * fillGal;
-
-      scaled.fermentables[key] = {
-        lb: round(lb, 1),
-        type: f.type || null
-      };
+      out.fermentables[key] = { lb: round(lb, 1), type: f.type || null };
 
       let gpKey = key.toUpperCase();
       if (gpKey === "SUGAR") gpKey = "GRANULATED_SUGAR";
 
-      const gpPerLb = GRAVITY_POINTS[gpKey] || 0;
-      gravityPoints += lb * gpPerLb;
+      out.gravityPoints += lb * (GRAVITY_POINTS[gpKey] || 0);
 
-      if (!["sugar", "l350", "molasses"].includes(key)) {
-        totalGrainLb += lb;
+      if (!["sugar"].includes(key)) {
+        out.totalGrainLb += lb;
       }
     }
 
-    /* ---------- VOLUME-BASED (gal/gal) — RUM ---------- */
     if (f.gal_per_gal !== undefined) {
       const gal = f.gal_per_gal * fillGal;
+      out.fermentables[key] = { gal: round(gal, 2), type: f.type || null };
 
-      scaled.fermentables[key] = {
-        gal: round(gal, 2),
-        type: f.type || null
-      };
-
-      const gpPerLb = GRAVITY_POINTS[key.toUpperCase()] || 0;
-
-      /*
-        Convert gallons → pounds using water equivalent (8.34 lb/gal)
-        then apply gravity points
-      */
-      gravityPoints += gal * 8.34 * gpPerLb;
+      out.gravityPoints += gal * 8.34 * (GRAVITY_POINTS[key.toUpperCase()] || 0);
     }
   }
 
-  /* =========================
-     OG / ABV / YIELD
-     ========================= */
-  const og = 1 + gravityPoints / fillGal / 1000;
-  const washABV = (og - 1.0) * 131;
-  const pureAlcoholGal = fillGal * washABV / 100;
+  return out;
+}
 
-  /* =========================
-     ENZYMES (GRAIN ONLY)
-     ========================= */
+/* =========================
+   TARGET ABV ADJUSTMENT
+   ========================= */
+function adjustSugarForTargetABV({
+  mash,
+  fillGal,
+  targetABV,
+  base
+}) {
+  const MIN_ABV = 6.0;
+  const MAX_ABV = 11.5;
+
+  const clampedABV = Math.min(Math.max(targetABV, MIN_ABV), MAX_ABV);
+
+  const targetOG = 1 + clampedABV / 131;
+  const targetGP = (targetOG - 1) * 1000 * fillGal;
+
+  const grainGP = base.gravityPoints -
+    (base.fermentables.sugar?.lb || 0) * GRAVITY_POINTS.GRANULATED_SUGAR;
+
+  const neededSugarGP = targetGP - grainGP;
+  const neededSugarLb = neededSugarGP / GRAVITY_POINTS.GRANULATED_SUGAR;
+
+  base.fermentables.sugar.lb = round(neededSugarLb, 1);
+  base.gravityPoints = grainGP + neededSugarLb * GRAVITY_POINTS.GRANULATED_SUGAR;
+
+  return {
+    clamped: clampedABV !== targetABV,
+    targetABV: clampedABV
+  };
+}
+
+/* =========================
+   STRIPPING RUN ESTIMATE
+   ========================= */
+function calculateStripping({ fillGal, washABV }) {
+  const recovery = 0.90;
+  const lowWinesABV = 0.35;
+
+  const pureAlcohol = fillGal * (washABV / 100);
+  const recovered = pureAlcohol * recovery;
+  const lowWinesGal = recovered / lowWinesABV;
+
+  return {
+    recovery_percent: 90,
+    low_wines_abv: 35,
+    low_wines_gal: round(lowWinesGal, 2)
+  };
+}
+
+/* =========================
+   PUBLIC API
+   ========================= */
+export function scaleMash(mashId, fillGal, targetABV = null) {
+  const mash = MASH_DEFINITIONS[mashId];
+  if (!mash) throw new Error("Unknown mash");
+
+  const base = scaleBaseMash(mash, fillGal);
+
+  let abvAdjust = null;
+  if (targetABV && mash.fermentables.sugar) {
+    abvAdjust = adjustSugarForTargetABV({
+      mash,
+      fillGal,
+      targetABV,
+      base
+    });
+  }
+
+  const og = 1 + base.gravityPoints / fillGal / 1000;
+  const washABV = (og - 1) * 131;
+  const pureAlcohol = fillGal * washABV / 100;
+
+  const enzymes = {};
   if (mash.enzymes) {
-    const cornLb = scaled.fermentables.corn?.lb || 0;
-
-    if (mash.enzymes.amylo_300) {
-      scaled.enzymes.amylo_300_ml = round(
-        cornLb * ENZYMES.AMYLO_300.dose_ml_per_lb_corn,
+    if (mash.enzymes.amylo_300 && base.fermentables.corn) {
+      enzymes.amylo_300_ml = round(
+        base.fermentables.corn.lb *
+          ENZYMES.AMYLO_300.dose_ml_per_lb_corn,
         1
       );
     }
 
     if (mash.enzymes.glucoamylase) {
-      scaled.enzymes.glucoamylase_ml = round(
-        totalGrainLb * ENZYMES.GLUCOAMYLASE.dose_ml_per_lb_grain,
+      enzymes.glucoamylase_ml = round(
+        base.totalGrainLb *
+          ENZYMES.GLUCOAMYLASE.dose_ml_per_lb_grain,
         1
       );
     }
   }
 
-  /* =========================
-     YEAST
-     ========================= */
-  if (mash.yeast_family === "GRAIN") {
-    scaled.yeast = {
-      name: YEAST.GRAIN.name,
-      grams: round(fillGal * YEAST.GRAIN.pitch_g_per_gal, 1)
-    };
-  } else {
-    scaled.yeast = {
-      name: YEAST.RUM.name,
-      grams: round(fillGal * YEAST.RUM.pitch_g_per_gal, 1)
-    };
-  }
+  const yeast =
+    mash.yeast_family === "RUM"
+      ? {
+          name: YEAST.RUM.name,
+          grams: round(fillGal * YEAST.RUM.pitch_g_per_gal, 1)
+        }
+      : {
+          name: YEAST.GRAIN.name,
+          grams: round(fillGal * YEAST.GRAIN.pitch_g_per_gal, 1)
+        };
 
-  /* =========================
-     NUTRIENTS
-     ========================= */
-  if (mash.nutrients_required) {
-    scaled.nutrients_g = round(fillGal * 1.0, 1);
-  }
-
-  /* =========================
-     ENFORCEMENT / WARNINGS
-     ========================= */
-  const warnings = [];
-
-  if (og > FERMENTATION.og_limits.SUGAR_ASSIST_MAX) {
-    warnings.push("OG exceeds clean fermentation limit");
-  }
-
-  if (mash.fermentOnGrain && fillGal > STILLS.ON_GRAIN.max_charge_gal) {
-    warnings.push("Fill exceeds on-grain still charge capacity");
-  }
-
-  /* =========================
-     OUTPUT
-     ========================= */
   return {
-    ...scaled,
+    mashId,
+    name: mash.name,
+    fillGal,
+    fermentables: base.fermentables,
+    enzymes,
+    yeast,
+    nutrients_g: mash.nutrients_required ? round(fillGal, 1) : 0,
+
     totals: {
-      gravityPoints: round(gravityPoints, 0),
-      totalGrainLb: round(totalGrainLb, 1),
       og: round(og, 4),
       washABV_percent: round(washABV, 2),
-      pureAlcohol_gal: round(pureAlcoholGal, 2)
+      pureAlcohol_gal: round(pureAlcohol, 2)
     },
-    warnings
+
+    stripping: calculateStripping({ fillGal, washABV }),
+
+    abvAdjustment: abvAdjust
   };
 }
-
-/* ============================================================
-   STILL COMPATIBILITY CHECK
-   ============================================================ */
-export function checkStillCompatibility({
-  fermentOnGrain,
-  chargeGal,
-  stillType
-}) {
-  if (stillType === "OFF_GRAIN") {
-    if (fermentOnGrain) {
-      return { ok: false, reason: "Off-grain still cannot accept on-grain mash" };
-    }
-    if (chargeGal > STILLS.OFF_GRAIN.max_charge_gal) {
-      return { ok: false, reason: "Charge exceeds off-grain still capacity" };
-    }
-  }
-
-  if (stillType === "ON_GRAIN") {
-    if (chargeGal > STILLS.ON_GRAIN.max_charge_gal) {
-      return { ok: false, reason: "Charge exceeds on-grain still capacity" };
-    }
-  }
-
-  return { ok: true };
-}
-
-/* =========================
-   END OF ENGINE
-   ========================= */
