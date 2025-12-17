@@ -1,6 +1,6 @@
 /* ============================================================
    797 DISTILLERY — MASH ENGINE
-   All calculations and enforcement logic
+   Scaling, yield, gravity, and enforcement logic
    ============================================================ */
 
 import {
@@ -20,9 +20,9 @@ function round(value, decimals = 2) {
   return Number(value.toFixed(decimals));
 }
 
-/* =========================
+/* ============================================================
    SCALE MASH
-   ========================= */
+   ============================================================ */
 export function scaleMash(mashId, fillGal) {
   const mash = MASH_DEFINITIONS[mashId];
   if (!mash) throw new Error("Unknown mash definition");
@@ -39,47 +39,68 @@ export function scaleMash(mashId, fillGal) {
     nutrients_g: 0
   };
 
-  /* -------- Fermentables -------- */
   let totalGrainLb = 0;
   let gravityPoints = 0;
 
+  /* =========================
+     FERMENTABLES
+     ========================= */
   for (const key in mash.fermentables) {
     const f = mash.fermentables[key];
-    const lb = f.lb_per_gal * fillGal;
 
-    scaled.fermentables[key] = {
-      lb: round(lb, 1),
-      type: f.type || null
-    };
+    /* ---------- WEIGHT-BASED (lb/gal) ---------- */
+    if (f.lb_per_gal !== undefined) {
+      const lb = f.lb_per_gal * fillGal;
 
-    // Gravity points
-    let gpKey = key.toUpperCase();
-    if (gpKey === "SUGAR") gpKey = "GRANULATED_SUGAR";
+      scaled.fermentables[key] = {
+        lb: round(lb, 1),
+        type: f.type || null
+      };
 
-    const gpPerLb = GRAVITY_POINTS[gpKey];
-    if (gpPerLb) {
+      let gpKey = key.toUpperCase();
+      if (gpKey === "SUGAR") gpKey = "GRANULATED_SUGAR";
+
+      const gpPerLb = GRAVITY_POINTS[gpKey] || 0;
       gravityPoints += lb * gpPerLb;
+
+      if (!["sugar", "l350", "molasses"].includes(key)) {
+        totalGrainLb += lb;
+      }
     }
 
-    // Grain tracking
-    if (key !== "sugar" && key !== "l350" && key !== "molasses") {
-      totalGrainLb += lb;
+    /* ---------- VOLUME-BASED (gal/gal) — RUM ---------- */
+    if (f.gal_per_gal !== undefined) {
+      const gal = f.gal_per_gal * fillGal;
+
+      scaled.fermentables[key] = {
+        gal: round(gal, 2),
+        type: f.type || null
+      };
+
+      const gpPerLb = GRAVITY_POINTS[key.toUpperCase()] || 0;
+
+      /*
+        Convert gallons → pounds using water equivalent (8.34 lb/gal)
+        then apply gravity points
+      */
+      gravityPoints += gal * 8.34 * gpPerLb;
     }
   }
 
-  /* -------- OG -------- */
+  /* =========================
+     OG / ABV / YIELD
+     ========================= */
   const og = 1 + gravityPoints / fillGal / 1000;
-
-  /* -------- Wash ABV -------- */
   const washABV = (og - 1.0) * 131;
-
-  /* -------- Alcohol Yield -------- */
   const pureAlcoholGal = fillGal * washABV / 100;
 
-  /* -------- Enzymes -------- */
+  /* =========================
+     ENZYMES (GRAIN ONLY)
+     ========================= */
   if (mash.enzymes) {
+    const cornLb = scaled.fermentables.corn?.lb || 0;
+
     if (mash.enzymes.amylo_300) {
-      const cornLb = scaled.fermentables.corn?.lb || 0;
       scaled.enzymes.amylo_300_ml = round(
         cornLb * ENZYMES.AMYLO_300.dose_ml_per_lb_corn,
         1
@@ -94,7 +115,9 @@ export function scaleMash(mashId, fillGal) {
     }
   }
 
-  /* -------- Yeast -------- */
+  /* =========================
+     YEAST
+     ========================= */
   if (mash.yeast_family === "GRAIN") {
     scaled.yeast = {
       name: YEAST.GRAIN.name,
@@ -107,12 +130,16 @@ export function scaleMash(mashId, fillGal) {
     };
   }
 
-  /* -------- Nutrients -------- */
+  /* =========================
+     NUTRIENTS
+     ========================= */
   if (mash.nutrients_required) {
     scaled.nutrients_g = round(fillGal * 1.0, 1);
   }
 
-  /* -------- Enforcement -------- */
+  /* =========================
+     ENFORCEMENT / WARNINGS
+     ========================= */
   const warnings = [];
 
   if (og > FERMENTATION.og_limits.SUGAR_ASSIST_MAX) {
@@ -123,7 +150,9 @@ export function scaleMash(mashId, fillGal) {
     warnings.push("Fill exceeds on-grain still charge capacity");
   }
 
-  /* -------- Output -------- */
+  /* =========================
+     OUTPUT
+     ========================= */
   return {
     ...scaled,
     totals: {
@@ -137,9 +166,9 @@ export function scaleMash(mashId, fillGal) {
   };
 }
 
-/* =========================
+/* ============================================================
    STILL COMPATIBILITY CHECK
-   ========================= */
+   ============================================================ */
 export function checkStillCompatibility({
   fermentOnGrain,
   chargeGal,
@@ -147,25 +176,16 @@ export function checkStillCompatibility({
 }) {
   if (stillType === "OFF_GRAIN") {
     if (fermentOnGrain) {
-      return {
-        ok: false,
-        reason: "Off-grain still cannot accept on-grain mash"
-      };
+      return { ok: false, reason: "Off-grain still cannot accept on-grain mash" };
     }
     if (chargeGal > STILLS.OFF_GRAIN.max_charge_gal) {
-      return {
-        ok: false,
-        reason: "Charge exceeds off-grain still capacity"
-      };
+      return { ok: false, reason: "Charge exceeds off-grain still capacity" };
     }
   }
 
   if (stillType === "ON_GRAIN") {
     if (chargeGal > STILLS.ON_GRAIN.max_charge_gal) {
-      return {
-        ok: false,
-        reason: "Charge exceeds on-grain still capacity"
-      };
+      return { ok: false, reason: "Charge exceeds on-grain still capacity" };
     }
   }
 
@@ -175,4 +195,3 @@ export function checkStillCompatibility({
 /* =========================
    END OF ENGINE
    ========================= */
-
