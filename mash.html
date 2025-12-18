@@ -17,11 +17,11 @@
 
   <script>
     const PAGE_TITLE = "Mash Builder";
-    const PAGE_SUBTITLE = "Mash + ferment + stripping run estimates (engine-locked rules).";
+    const PAGE_SUBTITLE = "Moonshine + Rum — built for your 55/235 tanks and 53/150 stills.";
     fetch("header.html?v=1.0.0")
       .then(r => r.text())
       .then(html => (document.getElementById("global-header").innerHTML = html))
-      .catch(() => {});
+      .catch(()=>{});
   </script>
 
   <main class="mash-container">
@@ -30,7 +30,7 @@
         <h1>Mash Builder</h1>
         <div class="sub">Moonshine + Rum — built for your 55/235 tanks and 53/150 stills.</div>
       </div>
-      <div class="engine-stamp" id="engineStamp">ENGINE VERSION: …</div>
+      <div class="engine-stamp" id="engineStamp">ENGINE VERSION: (loading…)</div>
     </div>
 
     <section class="panel">
@@ -89,6 +89,8 @@
         <button id="btnRecalc" class="btn">Recalculate</button>
         <button id="btnReset" class="btn btn2">Reset</button>
       </div>
+
+      <div id="fatalError" class="fatal" style="display:none"></div>
     </section>
 
     <section class="panel">
@@ -118,13 +120,13 @@
     </section>
   </main>
 
-  <!-- Core app scripts -->
+  <!-- Load order matters -->
   <script src="mash-definitions.js?v=1.0.0"></script>
   <script src="mash-rules.js?v=1.0.0"></script>
   <script src="mash-engine.js?v=1.0.0"></script>
   <script src="mash-ui.js?v=1.0.0"></script>
 
-  <!-- Optional modules (stubs ok) -->
+  <!-- Optional modules (safe stubs) -->
   <script src="mash-storage.js?v=1.0.0"></script>
   <script src="mash-log.js?v=1.0.0"></script>
   <script src="mash-topup.js?v=1.0.0"></script>
