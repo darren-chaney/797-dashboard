@@ -3,7 +3,14 @@
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
-import { MASH_DEFINITIONS } from "./mash-definitions.js";
+
+/* =========================
+   GLOBAL DEFINITIONS (rule)
+   ========================= */
+const DEFS = window.MASH_DEFS;
+if (!DEFS || !DEFS.RECIPES) {
+  throw new Error("MASH_DEFS.RECIPES not found (mash-definitions.js not loaded)");
+}
 
 /* =========================
    GLOBAL APIs (yesterday behavior)
@@ -47,28 +54,29 @@ function titleCase(s){
   return String(s).replace(/_/g, " ");
 }
 
+/* =========================
+   POPULATE MASH SELECT
+   ========================= */
 function populateMashSelect(){
   mashSelect.innerHTML = `<option value="">Select mash...</option>`;
-  const ids = Object.keys(MASH_DEFINITIONS);
-  ids.forEach(id => {
-    const m = MASH_DEFINITIONS[id];
+  Object.keys(DEFS.RECIPES).forEach(id => {
+    const m = DEFS.RECIPES[id];
     const opt = document.createElement("option");
     opt.value = id;
-    opt.textContent = m.name;
+    opt.textContent = m.label; // yesterday behavior
     mashSelect.appendChild(opt);
   });
 }
 
 function updateHint(){
   const mashId = mashSelect.value;
-  if (!mashId) {
+  if (!mashId || !targetHint) {
     if (targetHint) targetHint.textContent = "";
     return;
   }
-  const def = MASH_DEFINITIONS[mashId];
-  if (!targetHint) return;
 
-  if (def.family === "RUM"){
+  const def = DEFS.RECIPES[mashId];
+  if (def.kind === "rum") {
     targetHint.textContent = "Rum: Target Wash ABV is ignored (rule).";
   } else {
     targetHint.textContent =
@@ -106,12 +114,12 @@ btnBuildMash.onclick = () => {
 btnStartMash.onclick = () => {
   if (!currentMash) return;
 
-  const def = MASH_DEFINITIONS[currentMash.mashId];
+  const def = DEFS.RECIPES[currentMash.mashId];
 
   const log = createMashLog({
     mashId: currentMash.mashId,
-    mashName: currentMash.name,
-    family: def.family,
+    mashName: def.label,
+    family: def.kind?.toUpperCase(),
     fillGal: currentMash.fillGal,
     fermentOnGrain: currentMash.fermentOnGrain
   });
@@ -121,7 +129,6 @@ btnStartMash.onclick = () => {
 
   renderLog(log);
   logPanel.hidden = false;
-
   btnStartMash.disabled = true;
 };
 
@@ -143,7 +150,6 @@ function renderMash(mash){
   });
 
   html += `</ul>`;
-
   mashResults.innerHTML = html;
 }
 
