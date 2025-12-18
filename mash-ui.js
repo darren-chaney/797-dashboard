@@ -4,15 +4,20 @@
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
 import { MASH_DEFINITIONS } from "./mash-definitions.js";
-import { saveMashRun, saveMashLog } from "./mash-storage.js";
 
 /* =========================
-   GLOBAL LOG API (yesterday behavior)
+   GLOBAL APIs (yesterday behavior)
    ========================= */
 const createMashLog = window.createMashLog;
-if (typeof createMashLog !== "function") {
+const saveMashRun   = window.saveMashRun;
+const saveMashLog   = window.saveMashLog;
+
+if (typeof createMashLog !== "function")
   throw new Error("createMashLog not found on window (mash-log.js not loaded)");
-}
+if (typeof saveMashRun !== "function")
+  throw new Error("saveMashRun not found on window (mash-storage.js not loaded)");
+if (typeof saveMashLog !== "function")
+  throw new Error("saveMashLog not found on window (mash-storage.js not loaded)");
 
 const mashSelect = document.getElementById("mashSelect");
 const fillGalInput = document.getElementById("fillGal");
@@ -75,9 +80,7 @@ populateMashSelect();
 setStamp("loaded");
 updateHint();
 
-mashSelect.addEventListener("change", () => {
-  updateHint();
-});
+mashSelect.addEventListener("change", updateHint);
 
 btnBuildMash.onclick = () => {
   setStamp("build");
@@ -128,49 +131,18 @@ function renderMash(mash){
   let html = `
     <p><strong>${mash.name}</strong></p>
     <p>Fill Volume: <strong>${mash.fillGal} gal</strong></p>
+    <h3>Fermentables</h3>
+    <ul>
   `;
 
-  html += `<h3>Fermentables</h3><ul>`;
   Object.keys(f).forEach(key => {
     if (f[key].lb !== undefined)
       html += `<li>${titleCase(key)}: ${f[key].lb} lb</li>`;
     else if (f[key].gal !== undefined)
       html += `<li>${titleCase(key)}: ${f[key].gal} gal</li>`;
   });
+
   html += `</ul>`;
-
-  html += `<h3>Enzymes</h3><ul>`;
-  if (mash.enzymes?.amylo_300_ml)
-    html += `<li>Amylo 300: ${mash.enzymes.amylo_300_ml} mL</li>`;
-  if (mash.enzymes?.glucoamylase_ml)
-    html += `<li>Glucoamylase: ${mash.enzymes.glucoamylase_ml} mL</li>`;
-  if (!mash.enzymes?.amylo_300_ml && !mash.enzymes?.glucoamylase_ml)
-    html += `<li>None</li>`;
-  html += `</ul>`;
-
-  html += `
-    <h3>Yeast & Nutrients</h3>
-    <ul>
-      <li>Yeast: ${mash.yeast.name} — ${mash.yeast.grams} g</li>
-      <li>Nutrients: ${mash.nutrients_g} g</li>
-    </ul>
-
-    <h3>Fermentation Estimates</h3>
-    <ul>
-      <li>OG: ${mash.totals.og}</li>
-      <li>Wash ABV: ${mash.totals.washABV_percent}%</li>
-      <li>Pure Alcohol: ${mash.totals.pureAlcohol_gal} gal</li>
-    </ul>
-
-    <h3>Stripping Run (Estimated — NO CUTS)</h3>
-    <ul>
-      <li>Style: ${mash.stripping.strip_style}</li>
-      <li>Wash Charged: ${mash.stripping.wash_charged_gal} gal</li>
-      <li>Recovery: ${mash.stripping.recovery_percent}%</li>
-      <li>Low Wines Avg: ${mash.stripping.low_wines_abv}%</li>
-      <li><strong>Low Wines: ${mash.stripping.low_wines_gal} gal</strong></li>
-    </ul>
-  `;
 
   mashResults.innerHTML = html;
 }
