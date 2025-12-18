@@ -4,7 +4,14 @@
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
-import { MASH_DEFS } from "./mash-definitions.js";
+
+/* =========================
+   GLOBAL DEFINITIONS (REQUIRED)
+   ========================= */
+const MASH_DEFS = window.MASH_DEFS;
+if (!MASH_DEFS || !MASH_DEFS.RECIPES) {
+  throw new Error("MASH_DEFS not loaded — mash-definitions.js missing");
+}
 
 const mashSelect = document.getElementById("mashSelect");
 const fillGalInput = document.getElementById("fillGal");
@@ -33,7 +40,7 @@ const targetHint = document.getElementById("targetHint");
 let currentMash = null;
 
 /* =========================
-   Inject Mode selector (no layout change)
+   Inject Mode selector (NO layout change)
    ========================= */
 (function injectModeSelector(){
   const mashGrid = document.querySelector(".mash-grid");
@@ -116,6 +123,7 @@ btnBuildMash.onclick = () => {
 
 btnStartMash.onclick = () => {
   if (!currentMash) return;
+
   if (!window.createMashLog || !window.saveMashRun || !window.saveMashLog) {
     alert("Mash logging functions not loaded.");
     return;
