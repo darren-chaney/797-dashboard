@@ -214,3 +214,20 @@ button:hover{
   border-radius:10px;
   margin-bottom:14px;
 }
+/* FIX: rumAdjustMode checkbox alignment (baseline layout) */
+.lockrow{
+  align-self:start;
+}
+
+.lockrow label.checkbox{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  line-height:1.25;
+  max-width:520px;
+}
+
+.lockrow label.checkbox input{
+  margin-top:2px;
+  flex:0 0 auto;
+}
