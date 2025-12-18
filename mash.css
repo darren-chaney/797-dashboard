@@ -1,279 +1,220 @@
-/* ============================================================
-   Mash Builder — Layout + UI
-   Stable, compact, readable
-   ============================================================ */
-
 :root{
   --bg:#0f172a;
   --panel:#111c33;
   --border:#334155;
   --text:#e5e7eb;
   --muted:#9ca3af;
-  --accent:#38bdf8;
-  --good:#22c55e;
-  --warn:#f59e0b;
+  --btn:#0b1223;
 }
 
-/* ---------- GLOBAL ---------- */
+*{ box-sizing:border-box; }
 
-*,
-*::before,
-*::after{
-  box-sizing:border-box;
-}
-
-html, body{
+body{
   margin:0;
-  padding:0;
   background:var(--bg);
   color:var(--text);
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
 }
 
-body{
-  min-height:100vh;
-}
-
-main{
+main.mash-container{
   max-width:1100px;
   margin:0 auto;
-  padding:28px 20px 40px;
+  padding:28px 18px 40px;
 }
 
-/* ---------- HEADERS ---------- */
-
-h1{
-  font-size:1.6rem;
-  margin:0 0 4px;
+.page-head h1{
+  margin:0 0 6px;
+  font-size:1.8rem;
 }
 
 .subtitle{
   color:var(--muted);
-  font-size:0.95rem;
-  margin-bottom:10px;
+  margin-bottom:8px;
 }
 
-#engineStamp{
-  font-size:0.8rem;
+.engine-stamp{
   color:var(--muted);
-  margin-bottom:16px;
+  font-size:0.85rem;
+  margin-bottom:14px;
 }
-
-/* ---------- PANELS ---------- */
 
 .panel{
   background:var(--panel);
   border:1px solid var(--border);
-  border-radius:12px;
-  padding:18px 20px;
+  border-radius:16px;
+  padding:20px;
   margin-bottom:18px;
-
-  /* CRITICAL: prevent flex/grid height explosions */
-  min-height:0;
 }
 
 .panel h2{
-  font-size:1.05rem;
   margin:0 0 14px;
+  font-size:1.15rem;
 }
 
-/* ---------- GRID / ROWS ---------- */
-
-.grid{
+/* --- setup grid --- */
+.form-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:16px;
-  min-height:0; /* critical */
+  gap:14px 18px;
 }
 
-@media (max-width:900px){
-  .grid{
-    grid-template-columns:1fr;
-  }
+@media (max-width: 900px){
+  .form-grid{ grid-template-columns:1fr; }
 }
 
-.row{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-bottom:8px;
-  min-height:0;
-}
-
-.row label{
-  flex:0 0 200px;
-  font-size:0.9rem;
-  color:var(--text);
-}
-
-.row input,
-.row select{
-  flex:1;
-  min-width:0;
-}
-
-/* ---------- FORM CONTROLS ---------- */
-
-input,
-select,
-button{
-  background:#0b1223;
-  color:var(--text);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:7px 10px;
-  font-size:0.9rem;
-}
-
-input:focus,
-select:focus{
-  outline:none;
-  border-color:var(--accent);
-}
-
-input[type="checkbox"]{
-  width:auto;
-  transform:scale(1.05);
-}
-
-button{
-  cursor:pointer;
-  padding:8px 14px;
-}
-
-button.primary{
-  border-color:var(--accent);
-  color:var(--accent);
-}
-
-button.secondary{
-  border-color:var(--border);
-  color:var(--text);
-}
-
-/* ---------- HELPER / EXPLANATORY TEXT ---------- */
-
-.small,
-.helper-text,
-.hint{
-  font-size:0.85rem;
-  color:var(--muted);
-  line-height:1.3;
-  max-width:420px; /* KEY FIX */
-  white-space:normal;
-}
-
-.long-label{
+.field label{
   display:block;
-  font-size:0.85rem;
-  color:var(--muted);
-  max-width:420px;
-  line-height:1.3;
-  margin-top:4px;
+  font-size:0.9rem;
+  margin:0 0 6px;
 }
 
-/* ---------- KEY / VALUE BLOCKS ---------- */
+.field input,
+.field select{
+  width:100%;
+  background:var(--btn);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px 12px;
+  color:var(--text);
+  font-size:1rem;
+}
 
+.field input:focus,
+.field select:focus{
+  outline:none;
+  border-color:#64748b;
+}
+
+.hint{
+  margin-top:6px;
+  font-size:0.85rem;
+  color:var(--muted);
+  line-height:1.25;
+}
+
+/* ✅ ONLY checkbox fix — compact, no stretching, looks normal */
+.checkbox-field{
+  grid-column: 1 / -1;
+}
+.checkbox-wrap{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  margin-top:2px;
+  color:var(--text);
+  user-select:none;
+}
+.checkbox-wrap input{
+  margin-top:2px;
+  width:16px;
+  height:16px;
+  flex:0 0 auto;
+}
+.checkbox-wrap span{
+  display:block;
+  max-width:520px;     /* prevents runaway line length */
+  line-height:1.25;
+  color:var(--muted);  /* matches old helper style */
+}
+
+/* buttons */
+.btn-row{
+  display:flex;
+  gap:12px;
+  margin-top:16px;
+}
+
+.btn{
+  background:var(--btn);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:12px;
+  padding:10px 18px;
+  font-size:1rem;
+  cursor:pointer;
+}
+
+.btn:hover{
+  border-color:#64748b;
+}
+
+.status{
+  margin-top:10px;
+  color:var(--muted);
+  font-size:0.9rem;
+}
+
+/* --- results --- */
+.results-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px 18px;
+}
+
+@media (max-width: 900px){
+  .results-grid{ grid-template-columns:1fr; }
+}
+
+.results-card{
+  background:rgba(0,0,0,0.10);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px 14px 12px;
+}
+
+.results-card h3{
+  margin:0 0 10px;
+  font-size:1.0rem;
+}
+
+/* key/value lines */
 .kv{
   display:flex;
   justify-content:space-between;
   gap:12px;
-  margin-bottom:6px;
-  min-height:0;
+  margin-bottom:7px;
 }
 
 .kv .k{
   color:var(--muted);
-  font-size:0.85rem;
+  font-size:0.9rem;
 }
 
 .kv .v{
-  font-size:0.9rem;
+  font-size:0.95rem;
   text-align:right;
 }
 
-/* ---------- BADGES ---------- */
+.small{
+  color:var(--muted);
+  font-size:0.85rem;
+  line-height:1.25;
+  margin-top:10px;
+}
 
 .badge{
   display:inline-block;
-  font-size:0.7rem;
-  padding:2px 6px;
-  border-radius:6px;
+  margin-left:8px;
+  padding:2px 8px;
+  border-radius:10px;
   border:1px solid var(--border);
   color:var(--muted);
-  margin-left:6px;
+  font-size:0.75rem;
 }
 
-/* ---------- SCENARIO TOOLS ---------- */
-
-.scenario-tools{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:10px;
-  min-height:0;
-}
-
-.scenario-tools input{
-  max-width:260px;
-}
-
-/* ---------- RULES BLOCK ---------- */
-
-#ruleBlock{
-  margin-top:8px;
-}
-
-#ruleNotes{
-  font-size:0.85rem;
-  color:var(--muted);
-  line-height:1.35;
-}
-
-/* ---------- STATUS / ERRORS ---------- */
-
-#scenarioStatus{
-  font-size:0.85rem;
-  color:var(--good);
-  margin-top:6px;
-}
-
-#fatalError{
-  display:none;
+/* fatal */
+.fatal{
   white-space:pre-wrap;
   background:#3b0f1e;
   border:1px solid #7f1d1d;
   color:#fecaca;
   padding:12px;
-  border-radius:8px;
-  font-size:0.85rem;
-  margin-bottom:16px;
+  border-radius:10px;
+  margin-bottom:14px;
 }
 
-/* ---------- FOOTER SPACING SAFETY ---------- */
-
-.panel:last-child{
-  margin-bottom:0;
+.rule-notes{
+  color:var(--muted);
+  font-size:0.9rem;
+  line-height:1.3;
 }
-/* ============================================================
-   FIX: Rum adjust checkbox label blowing up layout
-   (surgical – no redesign)
-   ============================================================ */
-
-/* Keep checkbox + label compact and inline */
-.row.checkbox-row{
-  align-items:flex-start;
-}
-
-/* Constrain the long label text */
-.row.checkbox-row label{
-  max-width:360px;
-  line-height:1.25;
-  white-space:normal;
-}
-
-/* Prevent flexbox from forcing vertical expansion */
-.row.checkbox-row{
-  min-height:unset;
-}
-
