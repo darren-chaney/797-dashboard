@@ -1,10 +1,8 @@
 /* ============================================================
-   797 DISTILLERY — TOP-UP ENGINE (placeholder)
-   We'll wire this once the base mash math is fully trusted.
+   mash-topup.js
+   SAFE stub — no exports, no modules
    ============================================================ */
 
-export function calculateTopUpPlan() {
-  return {
-    note: "Top-up module not wired yet. Base mash + ABV target + stripping are locked first."
-  };
-}
+(function(){
+  window.MASH_TOPUP = {};
+})();
