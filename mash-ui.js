@@ -1,6 +1,7 @@
 /* ============================================================
    mash-ui.js
-   Modular UI wiring — simple & trusted
+   Modular UI — MATCHES mash-engine v3.1.0 (SOLID)
+   No scenarios. No redesign. No guessing.
    ============================================================ */
 
 (function(){
@@ -15,6 +16,11 @@
     });
   }
 
+  function setEngineStamp(v){
+    const e = el("engineStamp");
+    if (e) e.textContent = "ENGINE VERSION: " + v;
+  }
+
   function setFatal(msg){
     const box = el("fatalError");
     if (!box) return;
@@ -27,12 +33,6 @@
     if (!box) return;
     box.style.display = "none";
     box.textContent = "";
-  }
-
-  function setEngineStamp(v){
-    const stamp = el("engineStamp");
-    if (!stamp) return;
-    stamp.textContent = "ENGINE VERSION: " + v;
   }
 
   function populate(){
@@ -63,67 +63,62 @@
   function updateTargetHint(kind){
     const h = el("targetHint");
     if (!h) return;
+    h.textContent =
+      kind === "rum"
+        ? "Rum: Target Wash ABV ignored (rule)."
+        : "Moonshine: raising Target ABV increases sugar only.";
+  }
 
-    if (kind === "rum"){
-      h.textContent = "Rum: Target Wash ABV is ignored (rule).";
+  function render(res){
+    setEngineStamp(res.engineVersion);
+
+    const b = res.batch;
+    const s = res.strip;
+
+    updateTargetHint(b.kind);
+
+    /* MODULE: Fermentables */
+    if (b.kind === "moonshine"){
+      el("ingredients").innerHTML = `
+        Corn: ${fmt(b.ingredients.cornLb,1)} lb<br>
+        Malted Barley: ${fmt(b.ingredients.maltLb,1)} lb<br>
+        Sugar: <b>${fmt(b.ingredients.sugarLb,1)} lb</b>
+      `;
     } else {
-      h.textContent = "Moonshine: raising Target ABV increases sugar only.";
+      el("ingredients").innerHTML = `
+        L350: ${fmt(b.ingredients.l350Gal,2)} gal<br>
+        Molasses: ${fmt(b.ingredients.molassesGal,2)} gal
+      `;
     }
+
+    /* MODULE: Wash */
+    el("washBlock").innerHTML = `
+      Wash ABV: <b>${fmt(b.washAbvPct,1)}%</b>
+    `;
+
+    /* MODULE: Strip */
+    el("stripBlock").innerHTML = `
+      Still: ${res.still.name}<br>
+      Planned Charge: ${fmt(s.plannedCharge,1)} gal<br>
+      Charge Used: ${fmt(s.chargeUsed,1)} gal<br>
+      Low Wines: <b>${fmt(s.lowWinesGal,2)} gal @ ${fmt(s.lowWinesAbvPct,1)}%</b>
+    `;
   }
 
   function recalc(){
     clearFatal();
 
     try{
-      const input = {
+      const res = window.MASH_ENGINE.computeBatch({
         mashId: el("mashSelect").value,
         fillGal: Number(el("fillGal").value),
         targetAbvPct: Number(el("targetAbv").value),
         stillId: el("stillSelect").value,
         chargeFillPct: Number(el("chargeFillPct").value),
         stripLowWinesAbvPct: Number(el("stripProof").value)
-      };
+      });
 
-      const res = window.MASH_ENGINE.compute(input);
-
-      setEngineStamp(res.engineVersion);
-      updateTargetHint(res.batch.kind);
-
-      /* Fermentables */
-      if (res.batch.kind === "moonshine"){
-        el("ingredients").innerHTML = `
-          Corn: ${fmt(res.batch.grains.cornLb,1)} lb<br>
-          Malted Barley: ${fmt(res.batch.grains.maltLb,1)} lb<br>
-          Sugar: <b>${fmt(res.batch.sugarLb,1)} lb</b>
-        `;
-      } else {
-        el("ingredients").innerHTML = `
-          L350: ${fmt(res.batch.l350Gal,2)} gal<br>
-          Molasses: ${fmt(res.batch.molassesGal,2)} gal
-        `;
-      }
-
-      /* Fermentation */
-      el("yeastBlock").textContent =
-        fmt(res.fermentation.yeastG,0) + " g";
-
-      el("nutrientBlock").textContent =
-        fmt(res.fermentation.nutrientsG,0) + " g";
-
-      el("phBlock").textContent =
-        res.fermentation.targetPh;
-
-      /* Wash */
-      el("washBlock").innerHTML = `
-        Wash ABV: <b>${fmt(res.batch.washAbv,1)}%</b><br>
-        Pure Alcohol: ${fmt(res.batch.pureAlcoholGal,2)} gal
-      `;
-
-      /* Strip */
-      el("stripBlock").innerHTML = `
-        Planned Charge: ${fmt(res.strip.chargeUsed,1)} gal<br>
-        Low Wines: <b>${fmt(res.strip.lowWines,2)} gal @ ${fmt(res.strip.stripAbv,1)}%</b>
-      `;
+      render(res);
     }catch(err){
       setFatal(
         "Mash Builder error:\n" +
@@ -143,15 +138,15 @@
       "chargeFillPct",
       "stripProof"
     ].forEach(id=>{
-      el(id).addEventListener("input", recalc);
       el(id).addEventListener("change", recalc);
+      el(id).addEventListener("input", recalc);
     });
   }
 
   function init(){
     try{
-      if (!window.MASH_DEFS) throw new Error("MASH_DEFS missing");
       if (!window.MASH_ENGINE) throw new Error("MASH_ENGINE missing");
+      if (!window.MASH_DEFS) throw new Error("MASH_DEFS missing");
 
       populate();
       wire();
