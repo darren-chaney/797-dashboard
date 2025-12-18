@@ -255,3 +255,25 @@ button.secondary{
 .panel:last-child{
   margin-bottom:0;
 }
+/* ============================================================
+   FIX: Rum adjust checkbox label blowing up layout
+   (surgical – no redesign)
+   ============================================================ */
+
+/* Keep checkbox + label compact and inline */
+.row.checkbox-row{
+  align-items:flex-start;
+}
+
+/* Constrain the long label text */
+.row.checkbox-row label{
+  max-width:360px;
+  line-height:1.25;
+  white-space:normal;
+}
+
+/* Prevent flexbox from forcing vertical expansion */
+.row.checkbox-row{
+  min-height:unset;
+}
+
