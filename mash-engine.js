@@ -6,11 +6,11 @@ import {
   GRAVITY_POINTS,
   ENZYMES,
   YEAST,
-  STILLS,
+  STILLS as RULE_STILLS,
   FERMENTATION
 } from "./mash-rules.js";
 
-export const ENGINE_VERSION = "mash-engine v3.2.2 (DEFS-LATE-BIND)";
+export const ENGINE_VERSION = "mash-engine v3.2.3 (STILL-AWARE)";
 
 function round(v, d = 2) {
   return Number(Number(v).toFixed(d));
@@ -157,11 +157,11 @@ function calculateStrip({ washChargedGal, washABV }) {
 /* =========================
    PUBLIC API
    ========================= */
-export function scaleMash(mashId, fillGal, targetABV = null) {
+export function scaleMash(mashId, fillGal, targetABV = null, stillId = "OFF_GRAIN") {
 
   const DEFS = window.MASH_DEFS;
   if (!DEFS || !DEFS.RECIPES) {
-    throw new Error("Mash definitions not available yet");
+    throw new Error("Mash definitions not available");
   }
 
   const raw = DEFS.RECIPES[mashId];
@@ -175,7 +175,15 @@ export function scaleMash(mashId, fillGal, targetABV = null) {
   const og = 1 + totalGP / fill / 1000;
   const washABV = (og - 1) * 131;
 
-  const washChargedGal = Math.min(fill, STILLS.OFF_GRAIN.max_charge_gal);
+  /* =========================
+     STILL RESOLUTION
+     ========================= */
+  const still =
+    DEFS.STILLS && DEFS.STILLS[stillId]
+      ? DEFS.STILLS[stillId]
+      : RULE_STILLS.OFF_GRAIN;
+
+  const washChargedGal = Math.min(fill, still.max_charge_gal);
 
   return {
     engineVersion: ENGINE_VERSION,
@@ -183,12 +191,18 @@ export function scaleMash(mashId, fillGal, targetABV = null) {
     name: mash.name,
     family: mash.family,
     fillGal: round(fill, 2),
+
+    stillId,
+    stillName: still.name,
+
     fermentOnGrain: mash.fermentOnGrain,
     fermentables: base.fermentables,
+
     totals: {
       og: round(og, 4),
       washABV_percent: round(washABV, 2)
     },
+
     stripping: calculateStrip({ washChargedGal, washABV }),
     warnings: []
   };
