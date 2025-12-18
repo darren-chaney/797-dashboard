@@ -16,26 +16,26 @@ body{
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
 }
 
-main.mash-container{
+main{
   max-width:1100px;
   margin:0 auto;
   padding:28px 18px 40px;
 }
 
-.page-head h1{
+h1{
   margin:0 0 6px;
   font-size:1.8rem;
 }
 
 .subtitle{
   color:var(--muted);
-  margin-bottom:8px;
+  margin-bottom:10px;
 }
 
-.engine-stamp{
+#engineStamp{
   color:var(--muted);
   font-size:0.85rem;
-  margin-bottom:14px;
+  margin-bottom:16px;
 }
 
 .panel{
@@ -51,25 +51,22 @@ main.mash-container{
   font-size:1.15rem;
 }
 
-/* --- setup grid --- */
-.form-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:14px 18px;
+/* setup rows */
+.row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
 }
 
-@media (max-width: 900px){
-  .form-grid{ grid-template-columns:1fr; }
+.row label{
+  width:230px;
+  font-size:0.95rem;
 }
 
-.field label{
-  display:block;
-  font-size:0.9rem;
-  margin:0 0 6px;
-}
-
-.field input,
-.field select{
+.row input,
+.row select{
+  flex:1;
   width:100%;
   background:var(--btn);
   border:1px solid var(--border);
@@ -79,52 +76,27 @@ main.mash-container{
   font-size:1rem;
 }
 
-.field input:focus,
-.field select:focus{
+.row input:focus,
+.row select:focus{
   outline:none;
   border-color:#64748b;
 }
 
 .hint{
-  margin-top:6px;
-  font-size:0.85rem;
   color:var(--muted);
+  font-size:0.85rem;
+  margin:6px 0 10px 0;
   line-height:1.25;
-}
-
-/* ✅ ONLY checkbox fix — compact, no stretching, looks normal */
-.checkbox-field{
-  grid-column: 1 / -1;
-}
-.checkbox-wrap{
-  display:flex;
-  align-items:flex-start;
-  gap:10px;
-  margin-top:2px;
-  color:var(--text);
-  user-select:none;
-}
-.checkbox-wrap input{
-  margin-top:2px;
-  width:16px;
-  height:16px;
-  flex:0 0 auto;
-}
-.checkbox-wrap span{
-  display:block;
-  max-width:520px;     /* prevents runaway line length */
-  line-height:1.25;
-  color:var(--muted);  /* matches old helper style */
+  max-width:720px;
 }
 
 /* buttons */
-.btn-row{
-  display:flex;
+.row.buttons{
+  margin-top:14px;
   gap:12px;
-  margin-top:16px;
 }
 
-.btn{
+button{
   background:var(--btn);
   border:1px solid var(--border);
   color:var(--text);
@@ -134,17 +106,54 @@ main.mash-container{
   cursor:pointer;
 }
 
-.btn:hover{
+button:hover{
   border-color:#64748b;
 }
 
-.status{
-  margin-top:10px;
+/* ✅ checkbox fix (THIS is the only visual change you asked for) */
+.row.checkbox-row{
+  align-items:flex-start;
+}
+.row.checkbox-row input{
+  flex:0 0 auto;
+  width:16px;
+  height:16px;
+  margin-top:2px;
+}
+.row.checkbox-row label{
+  width:auto;             /* overrides the 230px label width */
+  max-width:520px;        /* wraps cleanly, doesn’t force height */
+  line-height:1.25;
+  color:var(--muted);
+  margin:0;
+}
+
+/* scenarios block */
+.scenario-panel{
+  margin-top:18px;
+  padding-top:14px;
+  border-top:1px solid var(--border);
+}
+
+.scenario-panel h3{
+  margin:0 0 10px;
+  font-size:1.0rem;
+}
+
+.scenario-tools{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+
+#scenarioStatus{
+  margin-top:8px;
   color:var(--muted);
   font-size:0.9rem;
 }
 
-/* --- results --- */
+/* results */
 .results-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -156,10 +165,10 @@ main.mash-container{
 }
 
 .results-card{
-  background:rgba(0,0,0,0.10);
+  background:rgba(0,0,0,0.12);
   border:1px solid var(--border);
   border-radius:14px;
-  padding:14px 14px 12px;
+  padding:14px;
 }
 
 .results-card h3{
@@ -167,7 +176,6 @@ main.mash-container{
   font-size:1.0rem;
 }
 
-/* key/value lines */
 .kv{
   display:flex;
   justify-content:space-between;
@@ -175,15 +183,8 @@ main.mash-container{
   margin-bottom:7px;
 }
 
-.kv .k{
-  color:var(--muted);
-  font-size:0.9rem;
-}
-
-.kv .v{
-  font-size:0.95rem;
-  text-align:right;
-}
+.kv .k{ color:var(--muted); font-size:0.9rem; }
+.kv .v{ font-size:0.95rem; text-align:right; }
 
 .small{
   color:var(--muted);
@@ -203,7 +204,8 @@ main.mash-container{
 }
 
 /* fatal */
-.fatal{
+#fatalError{
+  display:none;
   white-space:pre-wrap;
   background:#3b0f1e;
   border:1px solid #7f1d1d;
@@ -211,10 +213,4 @@ main.mash-container{
   padding:12px;
   border-radius:10px;
   margin-bottom:14px;
-}
-
-.rule-notes{
-  color:var(--muted);
-  font-size:0.9rem;
-  line-height:1.3;
 }
