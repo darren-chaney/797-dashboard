@@ -4,10 +4,7 @@
   --border:#334155;
   --text:#e5e7eb;
   --muted:#9ca3af;
-  --btn:#0b1223;
 }
-
-*{ box-sizing:border-box; }
 
 body{
   margin:0;
@@ -16,218 +13,118 @@ body{
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
 }
 
-main{
+.mash-container{
   max-width:1100px;
   margin:0 auto;
-  padding:28px 18px 40px;
+  padding:24px 18px 40px;
 }
 
-h1{
-  margin:0 0 6px;
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  margin-bottom:24px;
+}
+
+.topbar h1{
+  margin:0;
   font-size:1.8rem;
 }
 
-.subtitle{
+.sub{
   color:var(--muted);
-  margin-bottom:10px;
-}
-
-#engineStamp{
-  color:var(--muted);
-  font-size:0.85rem;
-  margin-bottom:16px;
-}
-
-.panel{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:20px;
-  margin-bottom:18px;
-}
-
-.panel h2{
-  margin:0 0 14px;
-  font-size:1.15rem;
-}
-
-/* setup rows */
-.row{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  margin-bottom:10px;
-}
-
-.row label{
-  width:230px;
   font-size:0.95rem;
 }
 
-.row input,
-.row select{
-  flex:1;
-  width:100%;
-  background:var(--btn);
-  border:1px solid var(--border);
-  border-radius:10px;
-  padding:10px 12px;
-  color:var(--text);
-  font-size:1rem;
+.engine-stamp{
+  font-size:0.75rem;
+  color:var(--muted);
 }
 
-.row input:focus,
-.row select:focus{
-  outline:none;
-  border-color:#64748b;
+.module{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:18px;
+  margin-bottom:18px;
+}
+
+.module h2{
+  margin:0 0 14px;
+  font-size:1.1rem;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:14px;
+}
+
+label{
+  display:block;
+  font-size:0.85rem;
+  margin-bottom:4px;
+  color:var(--muted);
+}
+
+input, select{
+  width:100%;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:#0b1223;
+  color:var(--text);
 }
 
 .hint{
+  font-size:0.75rem;
   color:var(--muted);
-  font-size:0.85rem;
-  margin:6px 0 10px 0;
-  line-height:1.25;
-  max-width:720px;
+  margin-top:4px;
 }
 
-/* buttons */
-.row.buttons{
-  margin-top:14px;
-  gap:12px;
-}
-
-button{
-  background:var(--btn);
+.block{
+  padding:10px;
+  background:#0b1223;
   border:1px solid var(--border);
-  color:var(--text);
-  border-radius:12px;
-  padding:10px 18px;
-  font-size:1rem;
-  cursor:pointer;
+  border-radius:8px;
+  line-height:1.5;
 }
 
-button:hover{
-  border-color:#64748b;
-}
-
-/* ✅ checkbox fix (THIS is the only visual change you asked for) */
-.row.checkbox-row{
-  align-items:flex-start;
-}
-.row.checkbox-row input{
-  flex:0 0 auto;
-  width:16px;
-  height:16px;
-  margin-top:2px;
-}
-.row.checkbox-row label{
-  width:auto;             /* overrides the 230px label width */
-  max-width:520px;        /* wraps cleanly, doesn’t force height */
-  line-height:1.25;
-  color:var(--muted);
-  margin:0;
-}
-
-/* scenarios block */
-.scenario-panel{
-  margin-top:18px;
-  padding-top:14px;
-  border-top:1px solid var(--border);
-}
-
-.scenario-panel h3{
-  margin:0 0 10px;
-  font-size:1.0rem;
-}
-
-.scenario-tools{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:8px;
-}
-
-#scenarioStatus{
-  margin-top:8px;
-  color:var(--muted);
+.readonly{
+  padding:8px 10px;
+  background:#0b1223;
+  border-radius:8px;
+  border:1px solid var(--border);
   font-size:0.9rem;
 }
 
-/* results */
-.results-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:14px 18px;
+.results .block{
+  margin-bottom:10px;
 }
 
-@media (max-width: 900px){
-  .results-grid{ grid-template-columns:1fr; }
-}
-
-.results-card{
-  background:rgba(0,0,0,0.12);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:14px;
-}
-
-.results-card h3{
-  margin:0 0 10px;
-  font-size:1.0rem;
-}
-
-.kv{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:7px;
-}
-
-.kv .k{ color:var(--muted); font-size:0.9rem; }
-.kv .v{ font-size:0.95rem; text-align:right; }
-
-.small{
-  color:var(--muted);
-  font-size:0.85rem;
-  line-height:1.25;
+.actions{
+  text-align:right;
   margin-top:10px;
 }
 
-.badge{
-  display:inline-block;
-  margin-left:8px;
-  padding:2px 8px;
+.btn{
+  padding:10px 16px;
   border-radius:10px;
   border:1px solid var(--border);
-  color:var(--muted);
-  font-size:0.75rem;
+  background:#0b1223;
+  color:#fff;
+  cursor:pointer;
 }
 
-/* fatal */
-#fatalError{
-  display:none;
-  white-space:pre-wrap;
-  background:#3b0f1e;
-  border:1px solid #7f1d1d;
-  color:#fecaca;
+.btn:hover{
+  background:#111c33;
+}
+
+.fatal{
+  margin-top:16px;
   padding:12px;
-  border-radius:10px;
-  margin-bottom:14px;
-}
-/* FIX: rumAdjustMode checkbox alignment (baseline layout) */
-.lockrow{
-  align-self:start;
-}
-
-.lockrow label.checkbox{
-  display:flex;
-  align-items:flex-start;
-  gap:10px;
-  line-height:1.25;
-  max-width:520px;
-}
-
-.lockrow label.checkbox input{
-  margin-top:2px;
-  flex:0 0 auto;
+  background:#3b0f16;
+  border:1px solid #7f1d1d;
+  border-radius:8px;
+  white-space:pre-wrap;
 }
