@@ -5,8 +5,7 @@
 
 (function(){
   window.MASH_LOG = {
-    write: function(){
-      // no-op
-    }
+    start: function(){ /* stub */ },
+    add: function(){ /* stub */ }
   };
 })();
