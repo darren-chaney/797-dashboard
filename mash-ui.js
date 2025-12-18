@@ -1,18 +1,16 @@
 /* ============================================================
    797 DISTILLERY — MASH UI
-   Step 1: Add Production / Planning mode selector (NO redesign)
+   Step 1 (corrected): Mode selector, globals-only, no redesign
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
 import { MASH_DEFS } from "./mash-definitions.js";
-import { createMashLog } from "./mash-log.js";
-import { saveMashRun, saveMashLog } from "./mash-storage.js";
 
 const mashSelect = document.getElementById("mashSelect");
 const fillGalInput = document.getElementById("fillGal");
 const targetABVInput = document.getElementById("targetABV");
 
-/* 🔹 NEW: mode selector */
+/* 🔹 Mode selector */
 const modeSelect = document.createElement("select");
 modeSelect.id = "modeSelect";
 modeSelect.innerHTML = `
@@ -35,7 +33,7 @@ const targetHint = document.getElementById("targetHint");
 let currentMash = null;
 
 /* =========================
-   Inject Mode selector (NO layout changes)
+   Inject Mode selector (no layout change)
    ========================= */
 (function injectModeSelector(){
   const mashGrid = document.querySelector(".mash-grid");
@@ -82,13 +80,10 @@ function updateHint(){
   }
 
   const def = MASH_DEFS.RECIPES[mashId];
-  if (def.kind === "rum"){
-    targetHint.textContent =
-      "Rum: Target Wash ABV behavior depends on selected mode.";
-  } else {
-    targetHint.textContent =
-      "Moonshine: Target Wash ABV behavior depends on selected mode.";
-  }
+  targetHint.textContent =
+    def.kind === "rum"
+      ? "Rum: Target Wash ABV behavior depends on selected mode."
+      : "Moonshine: Target Wash ABV behavior depends on selected mode.";
 }
 
 populateMashSelect();
@@ -110,7 +105,6 @@ btnBuildMash.onclick = () => {
   if (!mashId) return alert("Select a mash type.");
   if (!fillGal || fillGal <= 0) return alert("Enter a valid fill volume.");
 
-  /* 🔹 Pass mode through (engine will use later) */
   currentMash = scaleMash(mashId, fillGal, targetABV, mode);
 
   renderMash(currentMash);
@@ -122,10 +116,14 @@ btnBuildMash.onclick = () => {
 
 btnStartMash.onclick = () => {
   if (!currentMash) return;
+  if (!window.createMashLog || !window.saveMashRun || !window.saveMashLog) {
+    alert("Mash logging functions not loaded.");
+    return;
+  }
 
   const def = MASH_DEFS.RECIPES[currentMash.mashId];
 
-  const log = createMashLog({
+  const log = window.createMashLog({
     mashId: currentMash.mashId,
     mashName: currentMash.name,
     family: def.kind,
@@ -134,12 +132,11 @@ btnStartMash.onclick = () => {
     mode: modeSelect.value
   });
 
-  saveMashRun(currentMash);
-  saveMashLog(log);
+  window.saveMashRun(currentMash);
+  window.saveMashLog(log);
 
   renderLog(log);
   logPanel.hidden = false;
-
   btnStartMash.disabled = true;
 };
 
