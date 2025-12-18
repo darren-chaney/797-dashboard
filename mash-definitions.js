@@ -4,7 +4,7 @@
    ============================================================ */
 
 (function(){
-  const DEF_VERSION = "mash-definitions v1.1.0";
+  const DEF_VERSION = "mash-definitions v1.2.0";
 
   const TANKS = [
     { id:"tank55",  name:"55 gal tank (working fill 55)", workingFillGal:55 },
@@ -12,10 +12,11 @@
   ];
 
   const STILLS = [
-    { id:"still53",  name:"53 gal off-grain",  capacityGal:53 },
+    { id:"still53",  name:"53 gal off-grain", capacityGal:53 },
     { id:"still150", name:"150 gal jacketed (on-grain)", capacityGal:150 }
   ];
 
+  // Ground truth @ 55 gal
   const RECIPES = {
     moonshine_sugarhead: {
       id:"moonshine_sugarhead",
@@ -39,7 +40,7 @@
       l350Gal:14,
       molassesGal:1,
       yeast:"C-70 (rum)",
-      notes:"L350 + molasses in gallons. Target ABV does NOT auto-adjust rum."
+      notes:"L350 + molasses in gallons. Target ABV does NOT auto-adjust rum unless dedicated mode is enabled."
     }
   };
 
@@ -48,9 +49,10 @@
     tankId:"tank55",
     stillId:"still53",
     fillGal:55,
-    targetWashAbvPct: 8.0,      // your screenshot example
-    stripLowWinesAbvPct: 35.0,  // your reality
-    chargeFillPct: 95           // helps land near your “~16 gal max” rum strips when appropriate
+    targetWashAbvPct: 8.0,
+    stripLowWinesAbvPct: 35.0,
+    chargeFillPct: 95,
+    rumAdjustMode: false
   };
 
   window.MASH_DEFS = { DEF_VERSION, TANKS, STILLS, RECIPES, DEFAULTS };
