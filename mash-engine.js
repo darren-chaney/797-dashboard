@@ -1,219 +1,160 @@
 /* ============================================================
    mash-engine.js
-   SOLID, LOCKED engine for Mash Builder
+   Solid engine (ABV normalized once, rules enforced, charge-based strip)
    ============================================================ */
 
 (function(){
 
-  const ENGINE_VERSION = "mash-engine v3.0.0 (ABV-LOCKED)";
+  const ENGINE_VERSION = "mash-engine v3.1.0 (SOLID)";
 
-  /* ============================
-     CONSTANTS (REALITY-BASED)
-     ============================ */
-
-  // Ethanol yield (real world, calibrated to Darren’s data)
-  // ~0.062 gal pure ethanol per lb fermentable sugar
+  // Realistic yield calibration (not textbook)
   const ETHANOL_GAL_PER_LB_SUGAR = 0.062;
 
-  // Grain contribution (conservative; sugar drives ABV)
+  // Conservative grain contribution (sugarhead is sugar-driven)
   const CORN_SUGAR_EQ_PER_LB = 0.10;
   const MALT_SUGAR_EQ_PER_LB = 0.18;
 
-  // Rum sugar equivalents (lb fermentable per gallon)
+  // Rum fermentable equivalents (lb sugar-eq per gallon)
   const L350_SUGAR_EQ_PER_GAL = 6.0;
   const MOLASSES_SUGAR_EQ_PER_GAL = 5.0;
 
-  // Safety bounds
-  const MAX_MOONSHINE_ABV = 15.0;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const isNum = (v) => typeof v === "number" && isFinite(v);
 
-  /* ============================
-     UTILITIES
-     ============================ */
-
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
+  // THE fix: normalize input ABV to percent (8 means 8%, 0.08 becomes 8%)
   function normalizeAbvPct(v){
-    if (!isFinite(v)) return 0;
-
-    // If user entered 0.08 → assume 8%
-    if (v > 0 && v < 1) return v * 100;
-
-    return clamp(v, 0, 20);
+    const n = Number(v);
+    if (!isFinite(n)) return 0;
+    if (n > 0 && n < 1) return n * 100;  // 0.08 -> 8
+    return n;                             // 8 -> 8
   }
 
   function scale(base, baseVol, targetVol){
-    return base * (targetVol / baseVol);
+    return baseVol > 0 ? base * (targetVol / baseVol) : 0;
   }
 
-  function ethanolFromSugar(lbSugar){
-    return lbSugar * ETHANOL_GAL_PER_LB_SUGAR;
+  function ethanolFromSugarLb(lb){
+    return lb * ETHANOL_GAL_PER_LB_SUGAR;
   }
 
-  function washAbv(volumeGal, ethanolGal){
+  function washAbvPct(volumeGal, ethanolGal){
     return volumeGal > 0 ? (ethanolGal / volumeGal) * 100 : 0;
   }
 
-  /* ============================
-     MOONSHINE ENGINE
-     ============================ */
-
-  function buildMoonshine(recipe, volumeGal, targetAbvInput){
+  function buildMoonshine(recipe, fillGal, targetAbvPctInput){
     const baseVol = recipe.baseVolumeGal;
 
-    // Fixed grain bill (scaled by volume ONLY)
-    const cornLb = scale(66, baseVol, volumeGal);
-    const maltLb = scale(15, baseVol, volumeGal);
+    const cornLb = scale(recipe.grains.find(g=>g.key==="corn")?.lb || 66, baseVol, fillGal);
+    const maltLb = scale(recipe.grains.find(g=>g.key==="malt")?.lb || 15, baseVol, fillGal);
 
-    // Grain ethanol (minor contributor)
     const grainSugarEq =
-      cornLb * CORN_SUGAR_EQ_PER_LB +
-      maltLb * MALT_SUGAR_EQ_PER_LB;
+      (cornLb * CORN_SUGAR_EQ_PER_LB) +
+      (maltLb * MALT_SUGAR_EQ_PER_LB);
 
-    const grainEthanol = ethanolFromSugar(grainSugarEq);
+    const grainEthanol = ethanolFromSugarLb(grainSugarEq);
 
-    // Baseline sugar (scaled recipe)
-    const baselineSugarLb = scale(100, baseVol, volumeGal);
-    const baselineSugarEthanol = ethanolFromSugar(baselineSugarLb);
+    const baselineSugarLb = scale(recipe.sugarLb, baseVol, fillGal);
+    const baselineEthanol = grainEthanol + ethanolFromSugarLb(baselineSugarLb);
+    const baselineAbv = washAbvPct(fillGal, baselineEthanol);
 
-    const baselineEthanol = grainEthanol + baselineSugarEthanol;
-    const baselineAbv = washAbv(volumeGal, baselineEthanol);
+    // Enforce rules:
+    // - target ABV can only increase sugar (never decrease)
+    // - clamp to sane max
+    const rawTarget = normalizeAbvPct(targetAbvPctInput);
+    const target = clamp(rawTarget, baselineAbv, window.MASH_RULES.RULES.MOONSHINE.maxWashAbvPct);
 
-    // Normalize + clamp target ABV
-    const targetAbv = clamp(
-      normalizeAbvPct(targetAbvInput),
-      baselineAbv,
-      MAX_MOONSHINE_ABV
-    );
+    const ethanolNeeded = (fillGal * target) / 100;
+    const sugarEthanolNeeded = Math.max(ethanolFromSugarLb(baselineSugarLb), ethanolNeeded - grainEthanol);
+    const finalSugarLb = sugarEthanolNeeded / ETHANOL_GAL_PER_LB_SUGAR;
 
-    // Ethanol required for target ABV
-    const ethanolRequired = (volumeGal * targetAbv) / 100;
-
-    // Sugar ethanol required after grain contribution
-    const sugarEthanolRequired = Math.max(
-      baselineSugarEthanol,
-      ethanolRequired - grainEthanol
-    );
-
-    // Convert ethanol → sugar
-    const finalSugarLb = sugarEthanolRequired / ETHANOL_GAL_PER_LB_SUGAR;
-
-    const finalEthanol =
-      grainEthanol + ethanolFromSugar(finalSugarLb);
+    const finalEthanol = grainEthanol + ethanolFromSugarLb(finalSugarLb);
+    const finalAbv = washAbvPct(fillGal, finalEthanol);
 
     return {
-      kind: "moonshine",
-      volumeGal,
-      grains: {
+      kind:"moonshine",
+      fillGal,
+      baselineAbvPct: baselineAbv,
+      targetAbvPct: target,
+      washAbvPct: finalAbv,
+      ingredients: {
         cornLb,
-        maltLb
+        maltLb,
+        sugarLb: finalSugarLb
       },
-      sugarLb: finalSugarLb,
-      washAbv: washAbv(volumeGal, finalEthanol),
-      notes: [
-        "Grain bill fixed (scaled by volume only)",
-        "Sugar never decreases below recipe baseline",
-        "Target ABV normalized and clamped"
-      ]
+      meta: {
+        yeast: recipe.yeast,
+        notes: recipe.notes
+      }
     };
   }
 
-  /* ============================
-     RUM ENGINE
-     ============================ */
-
-  function buildRum(recipe, volumeGal){
+  function buildRum(recipe, fillGal){
     const baseVol = recipe.baseVolumeGal;
 
-    const l350Gal = scale(14, baseVol, volumeGal);
-    const molassesGal = scale(1, baseVol, volumeGal);
+    const l350Gal = scale(recipe.l350Gal, baseVol, fillGal);
+    const molassesGal = scale(recipe.molassesGal, baseVol, fillGal);
 
     const sugarEq =
-      l350Gal * L350_SUGAR_EQ_PER_GAL +
-      molassesGal * MOLASSES_SUGAR_EQ_PER_GAL;
+      (l350Gal * L350_SUGAR_EQ_PER_GAL) +
+      (molassesGal * MOLASSES_SUGAR_EQ_PER_GAL);
 
-    const ethanol = ethanolFromSugar(sugarEq);
-    const abv = washAbv(volumeGal, ethanol);
+    const ethanol = ethanolFromSugarLb(sugarEq);
+    const abv = washAbvPct(fillGal, ethanol);
 
     return {
-      kind: "rum",
-      volumeGal,
-      l350Gal,
-      molassesGal,
-      washAbv: abv,
-      notes: [
-        "Target Wash ABV ignored for rum",
-        "Wash ABV derived from L350 + molasses only"
-      ]
+      kind:"rum",
+      fillGal,
+      washAbvPct: abv,
+      ingredients: { l350Gal, molassesGal },
+      meta: { yeast: recipe.yeast, notes: recipe.notes }
     };
   }
 
-  /* ============================
-     STRIPPING RUN
-     ============================ */
+  function estimateStrip({ washAbvPct, fermenterFillGal, stillCapacityGal, chargeFillPct, lowWinesAbvPct }){
+    const fillPct = clamp(Number(chargeFillPct || 90), 50, 98) / 100;
+    const plannedCharge = stillCapacityGal * fillPct;
 
-  function estimateStrip({
-    washAbv,
-    fermenterVol,
-    stillCapacity,
-    chargeFillPct,
-    stripAbv
-  }){
-    const chargePlanned = stillCapacity * (chargeFillPct / 100);
-    const chargeUsed = Math.min(chargePlanned, fermenterVol);
+    // Rule: based on charge size, not fermenter size
+    const chargeUsed = Math.min(plannedCharge, fermenterFillGal);
 
-    const ethanol = chargeUsed * (washAbv / 100);
-    const lowWines = ethanol / (stripAbv / 100);
+    const lwAbv = clamp(Number(lowWinesAbvPct || 35), 15, 60);
 
-    return {
-      chargeUsed,
-      lowWines,
-      stripAbv
-    };
+    const ethanolInCharge = chargeUsed * (washAbvPct / 100);
+    const lowWinesGal = ethanolInCharge / (lwAbv / 100);
+
+    return { plannedCharge, chargeUsed, lowWinesGal, lowWinesAbvPct: lwAbv };
   }
 
-  /* ============================
-     PUBLIC API
-     ============================ */
-
-  function compute(input){
+  function computeBatch(input){
     const defs = window.MASH_DEFS;
+    if (!defs) throw new Error("MASH_DEFS not loaded");
+
     const recipe = defs.RECIPES[input.mashId];
-    const still = defs.STILLS.find(s => s.id === input.stillId);
+    if (!recipe) throw new Error("Unknown mashId: " + input.mashId);
+
+    const still = defs.STILLS.find(s => s.id === input.stillId) || defs.STILLS[0];
+
+    const fillGal = clamp(Number(input.fillGal || 0), 1, 1000);
 
     let batch;
-
     if (recipe.kind === "moonshine"){
-      batch = buildMoonshine(
-        recipe,
-        input.fillGal,
-        input.targetAbvPct
-      );
+      batch = buildMoonshine(recipe, fillGal, input.targetAbvPct);
+    } else if (recipe.kind === "rum"){
+      batch = buildRum(recipe, fillGal);
     } else {
-      batch = buildRum(
-        recipe,
-        input.fillGal
-      );
+      throw new Error("Unsupported recipe kind: " + recipe.kind);
     }
 
     const strip = estimateStrip({
-      washAbv: batch.washAbv,
-      fermenterVol: input.fillGal,
-      stillCapacity: still.capacityGal,
+      washAbvPct: batch.washAbvPct,
+      fermenterFillGal: fillGal,
+      stillCapacityGal: still.capacityGal,
       chargeFillPct: input.chargeFillPct,
-      stripAbv: input.stripLowWinesAbvPct
+      lowWinesAbvPct: input.stripLowWinesAbvPct
     });
 
-    return {
-      engineVersion: ENGINE_VERSION,
-      batch,
-      strip,
-      still
-    };
+    return { engineVersion: ENGINE_VERSION, batch, still, strip };
   }
 
-  window.MASH_ENGINE = {
-    ENGINE_VERSION,
-    compute
-  };
-
+  window.MASH_ENGINE = { ENGINE_VERSION, computeBatch };
 })();
