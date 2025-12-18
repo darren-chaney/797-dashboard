@@ -7,7 +7,6 @@
 
   <!-- Shared header -->
   <link rel="stylesheet" href="header.css?v=1.0.0" />
-
   <!-- Mash app css -->
   <link rel="stylesheet" href="mash.css?v=1.0.0" />
 </head>
@@ -17,7 +16,7 @@
 
   <script>
     const PAGE_TITLE = "Mash Builder";
-    const PAGE_SUBTITLE = "Moonshine + Rum — built for your 55/235 tanks and 53/150 stills.";
+    const PAGE_SUBTITLE = "Baseline recipes + ABV-driven scenario projections (saved test batches).";
     fetch("header.html?v=1.0.0")
       .then(r => r.text())
       .then(html => (document.getElementById("global-header").innerHTML = html))
@@ -28,7 +27,7 @@
     <div class="topbar">
       <div class="titleblock">
         <h1>Mash Builder</h1>
-        <div class="sub">Moonshine + Rum — built for your 55/235 tanks and 53/150 stills.</div>
+        <div class="sub">Baseline recipes + ABV-driven scenario projections (saved test batches).</div>
       </div>
       <div class="engine-stamp" id="engineStamp">ENGINE VERSION: (loading…)</div>
     </div>
@@ -43,18 +42,19 @@
         </div>
 
         <div>
-          <label for="tankSelect">Tank (working fill)</label>
+          <label for="tankSelect">Tank (quick fill)</label>
           <select id="tankSelect"></select>
+          <div class="hint">Selecting a tank sets Fill Volume to that working fill.</div>
         </div>
 
         <div>
           <label for="fillGal">Fill Volume (gal)</label>
           <input id="fillGal" type="number" min="1" step="0.5" />
-          <div class="hint">Tip: 55 or 235 (in a 265)</div>
+          <div class="hint">You can type any value (not locked).</div>
         </div>
 
         <div>
-          <label for="targetAbv">Target Wash ABV (%)</label>
+          <label for="targetAbv">Scenario Target Wash ABV (%)</label>
           <input id="targetAbv" type="number" min="1" max="20" step="0.1" />
           <div class="hint" id="targetHint"></div>
         </div>
@@ -67,21 +67,21 @@
         <div>
           <label for="stripProof">Low Wines Avg (strip) %ABV</label>
           <input id="stripProof" type="number" min="15" max="60" step="0.5" />
-          <div class="hint">Default 35% matches your “no cuts” strip reality.</div>
+          <div class="hint">Used for no-cuts strip estimate.</div>
         </div>
 
         <div>
           <label for="chargeFillPct">Charge Fill % of still</label>
           <input id="chargeFillPct" type="number" min="50" max="98" step="1" />
-          <div class="hint">Used for “charge size”, not fermenter size.</div>
+          <div class="hint">Charge-based (not fermenter-based).</div>
         </div>
 
         <div class="lockrow">
           <label class="checkbox">
-            <input type="checkbox" id="lockToRecipe" checked />
-            Lock to Known Recipe (ground truth)
+            <input type="checkbox" id="rumAdjustMode" />
+            Adjust rum L350 gallons to hit Target ABV (dedicated mode)
           </label>
-          <div class="hint">When ON, 55-gal moonshine & rum recipes are your baseline truth.</div>
+          <div class="hint">OFF by default (rule). When ON, L350 can only increase (never decrease).</div>
         </div>
       </div>
 
@@ -94,17 +94,47 @@
     </section>
 
     <section class="panel">
+      <h2>Scenario (Save a test batch)</h2>
+
+      <div class="scenario-grid">
+        <div>
+          <label for="scenarioName">Scenario Name</label>
+          <input id="scenarioName" type="text" placeholder="e.g. Moonshine 9.5% test" />
+          <div class="hint">Saved locally (browser). Doesn’t change your base recipe.</div>
+        </div>
+
+        <div class="scenario-actions">
+          <button id="btnSaveScenario" class="btn">Save Scenario</button>
+          <button id="btnExportScenario" class="btn btn2">Export JSON</button>
+        </div>
+
+        <div>
+          <label for="savedScenarioSelect">Saved Scenarios</label>
+          <select id="savedScenarioSelect"></select>
+          <div class="hint">Pick one to load settings and compare projections.</div>
+        </div>
+
+        <div class="scenario-actions">
+          <button id="btnLoadScenario" class="btn">Load</button>
+          <button id="btnDeleteScenario" class="btn btn2">Delete</button>
+        </div>
+      </div>
+
+      <div class="small" id="scenarioStatus" style="margin-top:10px;color:#9ca3af;"></div>
+    </section>
+
+    <section class="panel">
       <h2>Results</h2>
 
       <div class="results">
         <div class="card">
-          <div class="cardtitle">Ingredients</div>
-          <div id="ingredients"></div>
+          <div class="cardtitle">Baseline (Ground Truth)</div>
+          <div id="baselineBlock"></div>
         </div>
 
         <div class="card">
-          <div class="cardtitle">Fermentation + Wash</div>
-          <div id="washBlock"></div>
+          <div class="cardtitle">Scenario Projection</div>
+          <div id="scenarioBlock"></div>
         </div>
 
         <div class="card">
@@ -124,10 +154,10 @@
   <script src="mash-definitions.js?v=1.0.0"></script>
   <script src="mash-rules.js?v=1.0.0"></script>
   <script src="mash-engine.js?v=1.0.0"></script>
+  <script src="mash-storage.js?v=1.0.0"></script>
   <script src="mash-ui.js?v=1.0.0"></script>
 
-  <!-- Optional modules (safe stubs) -->
-  <script src="mash-storage.js?v=1.0.0"></script>
+  <!-- Optional stubs (safe) -->
   <script src="mash-log.js?v=1.0.0"></script>
   <script src="mash-topup.js?v=1.0.0"></script>
 </body>
