@@ -1,5 +1,5 @@
 /* ============================================================
-   797 DISTILLERY — MASH UI (yesterday layout, fixed + stamped)
+   797 DISTILLERY — MASH UI (still selection restored)
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
@@ -21,9 +21,15 @@ function getLogAPI(){
   };
 }
 
+/* =========================
+   ELEMENTS
+   ========================= */
 const mashSelect = document.getElementById("mashSelect");
 const fillGalInput = document.getElementById("fillGal");
 const targetABVInput = document.getElementById("targetABV");
+
+/* NEW: still selector (already in layout historically) */
+let stillSelect = null;
 
 const btnBuildMash = document.getElementById("btnBuildMash");
 const btnStartMash = document.getElementById("btnStartMash");
@@ -40,6 +46,9 @@ const targetHint = document.getElementById("targetHint");
 let currentMash = null;
 let mashSelectPopulated = false;
 
+/* =========================
+   HELPERS
+   ========================= */
 function setStamp(extra = ""){
   if (!engineStamp) return;
   engineStamp.textContent =
@@ -51,11 +60,10 @@ function titleCase(s){
 }
 
 /* =========================
-   POPULATE SELECT (retry-safe)
+   POPULATE MASH SELECT
    ========================= */
 function populateMashSelect(){
   if (mashSelectPopulated) return;
-
   const defs = getDefs();
   if (!defs) return;
 
@@ -69,17 +77,40 @@ function populateMashSelect(){
   });
 
   mashSelectPopulated = true;
-  updateHint();
 }
 
-/* retry until definitions exist */
-const defsWait = setInterval(() => {
-  if (getDefs()) {
-    clearInterval(defsWait);
-    populateMashSelect();
-  }
-}, 250);
+/* =========================
+   POPULATE STILL SELECT
+   ========================= */
+function ensureStillSelect(){
+  if (stillSelect) return;
 
+  const defs = getDefs();
+  if (!defs || !defs.STILLS) return;
+
+  // Create selector (same panel, no layout changes)
+  stillSelect = document.createElement("select");
+  stillSelect.id = "stillSelect";
+
+  Object.keys(defs.STILLS).forEach(key => {
+    const s = defs.STILLS[key];
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = s.name;
+    stillSelect.appendChild(opt);
+  });
+
+  // Default to off-grain 53 gal
+  stillSelect.value = "OFF_GRAIN";
+
+  // Insert after Fill Volume field
+  const fillField = fillGalInput.parentElement;
+  fillField.after(stillSelect);
+}
+
+/* =========================
+   HINT
+   ========================= */
 function updateHint(){
   const defs = getDefs();
   if (!defs || !targetHint) return;
@@ -98,6 +129,18 @@ function updateHint(){
       "Moonshine: raising Target ABV increases sugar only (never decreases).";
   }
 }
+
+/* =========================
+   WAIT FOR DEFINITIONS
+   ========================= */
+const defsWait = setInterval(() => {
+  if (getDefs()) {
+    clearInterval(defsWait);
+    populateMashSelect();
+    ensureStillSelect();
+    updateHint();
+  }
+}, 200);
 
 /* =========================
    INIT
@@ -120,10 +163,12 @@ btnBuildMash.onclick = () => {
   const tRaw = String(targetABVInput.value ?? "").trim();
   const targetABV = tRaw === "" ? null : Number(tRaw);
 
+  const stillId = stillSelect ? stillSelect.value : "OFF_GRAIN";
+
   if (!mashId) return alert("Select a mash type.");
   if (!fillGal || fillGal <= 0) return alert("Enter a valid fill volume.");
 
-  currentMash = scaleMash(mashId, fillGal, targetABV);
+  currentMash = scaleMash(mashId, fillGal, targetABV, stillId);
 
   renderMash(currentMash);
   resultsPanel.hidden = false;
@@ -171,6 +216,7 @@ function renderMash(mash){
   let html = `
     <p><strong>${mash.name}</strong></p>
     <p>Fill Volume: <strong>${mash.fillGal} gal</strong></p>
+    <p>Still: <strong>${mash.stillName || "53 gal Off-Grain"}</strong></p>
     <h3>Fermentables</h3>
     <ul>
   `;
