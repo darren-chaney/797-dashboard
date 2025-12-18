@@ -1,69 +1,57 @@
 /* ============================================================
-   797 DISTILLERY — MASH DEFINITIONS
+   mash-definitions.js
+   Tanks, stills, recipes, defaults
    ============================================================ */
 
-import { MASH_FAMILIES } from "./mash-rules.js";
+(function(){
+  const DEF_VERSION = "mash-definitions v1.1.0";
 
-export const MASH_DEFINITIONS = {
-  MOONSHINE_BASE: {
-    id: "MOONSHINE_BASE",
-    name: "Moonshine Base Mash",
-    family: MASH_FAMILIES.MOONSHINE,
-    fermentOnGrain: true,
+  const TANKS = [
+    { id:"tank55",  name:"55 gal tank (working fill 55)", workingFillGal:55 },
+    { id:"tank235", name:"235 gal tank (working fill 235 in 265)", workingFillGal:235 }
+  ];
 
-    // 55 gal reference: Corn 66 | Sugar 100 | Malt 15
-    fermentables: {
-      corn: { lb_per_gal: 1.20 },
-      malted_barley: { lb_per_gal: 0.2727 },
-      sugar: { lb_per_gal: 1.8182, type: "GRANULATED" }
+  const STILLS = [
+    { id:"still53",  name:"53 gal off-grain",  capacityGal:53 },
+    { id:"still150", name:"150 gal jacketed (on-grain)", capacityGal:150 }
+  ];
+
+  const RECIPES = {
+    moonshine_sugarhead: {
+      id:"moonshine_sugarhead",
+      label:"Moonshine Base Mash (Sugarhead)",
+      kind:"moonshine",
+      baseVolumeGal:55,
+      grains: [
+        { key:"corn", label:"Corn (ground)", lb:66 },
+        { key:"malt", label:"Malted Barley", lb:15 }
+      ],
+      sugarLb:100,
+      yeast:"Red Star Distillers Yeast (grain)",
+      notes:"180°F water soak + Amylo 300 + gluco. Ferment ~80–85°F. Nutrients used."
     },
 
-    enzymes: {
-      amylo_300: { applies_to: "CORN_ONLY" },
-      glucoamylase: { applies_to: "TOTAL_GRAIN" }
-    },
+    rum_l350_molasses: {
+      id:"rum_l350_molasses",
+      label:"Rum Base (L350 + Molasses)",
+      kind:"rum",
+      baseVolumeGal:55,
+      l350Gal:14,
+      molassesGal:1,
+      yeast:"C-70 (rum)",
+      notes:"L350 + molasses in gallons. Target ABV does NOT auto-adjust rum."
+    }
+  };
 
-    yeast_family: "GRAIN",
-    nutrients_required: true
-  },
+  const DEFAULTS = {
+    mashId:"moonshine_sugarhead",
+    tankId:"tank55",
+    stillId:"still53",
+    fillGal:55,
+    targetWashAbvPct: 8.0,      // your screenshot example
+    stripLowWinesAbvPct: 35.0,  // your reality
+    chargeFillPct: 95           // helps land near your “~16 gal max” rum strips when appropriate
+  };
 
-  HYBRID_WHISKEY_BASE: {
-    id: "HYBRID_WHISKEY_BASE",
-    name: "Hybrid Whiskey Mash (Sugar Assist)",
-    family: MASH_FAMILIES.HYBRID_WHISKEY,
-    fermentOnGrain: true,
-
-    fermentables: {
-      corn: { lb_per_gal: 3.0 },
-      malted_barley: { lb_per_gal: 0.75 },
-      wheat: { lb_per_gal: 0.5 },
-      sugar: { lb_per_gal: 0.75, type: "GRANULATED" }
-    },
-
-    enzymes: {
-      amylo_300: { applies_to: "CORN_ONLY" },
-      glucoamylase: { applies_to: "TOTAL_GRAIN" }
-    },
-
-    yeast_family: "GRAIN",
-    nutrients_required: true
-  },
-
-  RUM_BASE: {
-    id: "RUM_BASE",
-    name: "Rum Wash Base",
-    family: MASH_FAMILIES.RUM,
-    fermentOnGrain: false,
-
-    // 55 gal reference: L350 = 14 gal, Molasses = 1 gal
-    fermentables: {
-      l350: { type: "L350", gal_per_gal: 14 / 55 },
-      molasses: { type: "MOLASSES", gal_per_gal: 1 / 55 }
-    },
-
-    enzymes: null,
-
-    yeast_family: "RUM",
-    nutrients_required: true
-  }
-};
+  window.MASH_DEFS = { DEF_VERSION, TANKS, STILLS, RECIPES, DEFAULTS };
+})();
