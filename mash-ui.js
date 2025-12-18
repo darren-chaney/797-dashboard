@@ -1,56 +1,65 @@
 /* ============================================================
    mash-ui.js
    Baseline vs Scenario display + save/load scenarios
+   (updated for strip efficiency fields)
    ============================================================ */
 
 (function(){
 
-  const $ = (id) => document.getElementById(id);
+  var $ = function(id){ return document.getElementById(id); };
 
-  function fmt(v, d=2){
+  function fmt(v, d){
+    if (d === undefined) d = 2;
     if (!isFinite(v)) return "—";
-    const p = Math.pow(10, d);
-    const r = Math.round((v + Number.EPSILON)*p)/p;
+    var p = Math.pow(10, d);
+    var r = Math.round((v + Number.EPSILON)*p)/p;
     return r.toLocaleString(undefined,{ minimumFractionDigits:d, maximumFractionDigits:d });
   }
 
   function kv(k, v){
-    return `<div class="kv"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+    return '<div class="kv"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';
   }
 
   function setFatal(msg){
-    const box = $("fatalError");
+    var box = $("fatalError");
     box.style.display = "";
     box.textContent = msg;
   }
 
   function clearFatal(){
-    const box = $("fatalError");
+    var box = $("fatalError");
     box.style.display = "none";
     box.textContent = "";
   }
 
   function setEngineStamp(){
-    const stamp = $("engineStamp");
-    const v = (window.MASH_ENGINE && window.MASH_ENGINE.ENGINE_VERSION) ? window.MASH_ENGINE.ENGINE_VERSION : "MISSING";
+    var stamp = $("engineStamp");
+    var v = (window.MASH_ENGINE && window.MASH_ENGINE.ENGINE_VERSION) ? window.MASH_ENGINE.ENGINE_VERSION : "MISSING";
     stamp.textContent = "ENGINE VERSION: " + v;
   }
 
   function populate(){
-    const defs = window.MASH_DEFS;
+    var defs = window.MASH_DEFS;
 
     $("mashSelect").innerHTML = "";
-    Object.values(defs.RECIPES).forEach(r => $("mashSelect").appendChild(new Option(r.label, r.id)));
+    Object.keys(defs.RECIPES).forEach(function(k){
+      var r = defs.RECIPES[k];
+      $("mashSelect").appendChild(new Option(r.label, r.id));
+    });
 
     $("tankSelect").innerHTML = "";
-    defs.TANKS.forEach(t => $("tankSelect").appendChild(new Option(t.name, t.id)));
+    defs.TANKS.forEach(function(t){
+      $("tankSelect").appendChild(new Option(t.name, t.id));
+    });
 
     $("stillSelect").innerHTML = "";
-    defs.STILLS.forEach(s => $("stillSelect").appendChild(new Option(s.name, s.id)));
+    defs.STILLS.forEach(function(s){
+      $("stillSelect").appendChild(new Option(s.name, s.id));
+    });
   }
 
   function applyDefaults(){
-    const d = window.MASH_DEFS.DEFAULTS;
+    var d = window.MASH_DEFS.DEFAULTS;
     $("mashSelect").value = d.mashId;
     $("tankSelect").value = d.tankId;
     $("stillSelect").value = d.stillId;
@@ -68,9 +77,9 @@
   }
 
   function setTargetHint(){
-    const defs = window.MASH_DEFS;
-    const recipe = defs.RECIPES[$("mashSelect").value];
-    const h = $("targetHint");
+    var defs = window.MASH_DEFS;
+    var recipe = defs.RECIPES[$("mashSelect").value];
+    var h = $("targetHint");
 
     if (recipe.kind === "moonshine"){
       h.textContent = "Moonshine: Target ABV increases sugar only (never decreases). Grain fixed.";
@@ -82,8 +91,8 @@
   }
 
   function applyTankWorkingFill(){
-    const defs = window.MASH_DEFS;
-    const t = defs.TANKS.find(x => x.id === $("tankSelect").value);
+    var defs = window.MASH_DEFS;
+    var t = defs.TANKS.filter(function(x){ return x.id === $("tankSelect").value; })[0];
     if (t) $("fillGal").value = t.workingFillGal;
   }
 
@@ -92,13 +101,13 @@
   }
 
   function refreshScenarioList(){
-    const sel = $("savedScenarioSelect");
+    var sel = $("savedScenarioSelect");
     sel.innerHTML = "";
-    const items = window.MASH_STORAGE.list();
+    var items = window.MASH_STORAGE.list();
 
     sel.appendChild(new Option(items.length ? "Select a saved scenario…" : "(none saved yet)", ""));
-    items.forEach(s => {
-      const label = `${s.name || "(unnamed)"} — ${new Date(s.savedAt).toLocaleString()}`;
+    items.forEach(function(s){
+      var label = (s.name || "(unnamed)") + " — " + new Date(s.savedAt).toLocaleString();
       sel.appendChild(new Option(label, s.id));
     });
   }
@@ -118,72 +127,74 @@
   function render(res){
     $("engineStamp").textContent = "ENGINE VERSION: " + res.engineVersion;
 
-    // Baseline block
-    const b = res.baseline;
-    const g = res.guidance;
+    var b = res.baseline;
+    var s = res.scenario;
+    var g = res.guidance;
 
-    let baselineLines = [];
-    baselineLines.push(kv("Wash ABV", `${fmt(b.washAbvPct,1)} %`));
-    baselineLines.push(kv("Pure Alcohol", `${fmt(b.pureAlcoholGal,2)} gal`));
+    // Baseline
+    var baselineLines = [];
+    baselineLines.push(kv("Wash ABV", fmt(b.washAbvPct,1) + " %"));
+    baselineLines.push(kv("Pure Alcohol", fmt(b.pureAlcoholGal,2) + " gal"));
 
     if (b.kind === "moonshine"){
-      baselineLines.push(kv("Corn", `${fmt(b.ingredients.cornLb,1)} lb`));
-      baselineLines.push(kv("Malted barley", `${fmt(b.ingredients.maltLb,1)} lb`));
-      baselineLines.push(kv("Sugar", `${fmt(b.ingredients.sugarLb,1)} lb`));
+      baselineLines.push(kv("Corn", fmt(b.ingredients.cornLb,1) + " lb"));
+      baselineLines.push(kv("Malted barley", fmt(b.ingredients.maltLb,1) + " lb"));
+      baselineLines.push(kv("Sugar", fmt(b.ingredients.sugarLb,1) + " lb"));
     } else {
-      baselineLines.push(kv("L350", `${fmt(b.ingredients.l350Gal,2)} gal`));
-      baselineLines.push(kv("Molasses", `${fmt(b.ingredients.molassesGal,2)} gal`));
+      baselineLines.push(kv("L350", fmt(b.ingredients.l350Gal,2) + " gal"));
+      baselineLines.push(kv("Molasses", fmt(b.ingredients.molassesGal,2) + " gal"));
     }
 
-    baselineLines.push(`<div class="small" style="margin-top:10px">
-      <b>Yeast:</b> ${fmt(g.yeastG,0)} g (recommended)<br>
-      <b>Nutrients:</b> ${fmt(g.nutrientsG,0)} g<br>
-      <b>Target pH:</b> ${g.targetPhRange} (nominal ${fmt(g.targetPhNominal,1)})
-    </div>`);
+    baselineLines.push(
+      '<div class="small" style="margin-top:10px">' +
+      '<b>Yeast:</b> ' + fmt(g.yeastG,0) + ' g (recommended)<br>' +
+      '<b>Nutrients:</b> ' + fmt(g.nutrientsG,0) + ' g<br>' +
+      '<b>Target pH:</b> ' + g.targetPhRange + ' (nominal ' + fmt(g.targetPhNominal,1) + ')' +
+      '</div>'
+    );
 
     $("baselineBlock").innerHTML = baselineLines.join("");
 
-    // Scenario block
-    const s = res.scenario;
-    let scenarioLines = [];
-
-    scenarioLines.push(kv("Scenario Target ABV", `${fmt(res.input.targetAbvPct,1)} %`));
-    scenarioLines.push(kv("Projected Wash ABV", `${fmt(s.washAbvPct,1)} %`));
-    scenarioLines.push(kv("Projected Pure Alcohol", `${fmt(s.pureAlcoholGal,2)} gal`));
-    scenarioLines.push(kv("Δ Pure Alcohol", `${fmt(s.pureAlcoholGal - b.pureAlcoholGal,2)} gal`));
+    // Scenario
+    var scenarioLines = [];
+    scenarioLines.push(kv("Scenario Target ABV", fmt(res.input.targetAbvPct,1) + " %"));
+    scenarioLines.push(kv("Projected Wash ABV", fmt(s.washAbvPct,1) + " %"));
+    scenarioLines.push(kv("Projected Pure Alcohol", fmt(s.pureAlcoholGal,2) + " gal"));
+    scenarioLines.push(kv("Δ Pure Alcohol", fmt(s.pureAlcoholGal - b.pureAlcoholGal,2) + " gal"));
 
     if (s.kind === "moonshine"){
-      scenarioLines.push(kv("Sugar (projected)", `${fmt(s.ingredients.sugarLb,1)} lb`));
-      scenarioLines.push(kv("Δ Sugar", `${fmt(s.deltas.sugarLb,1)} lb <span class="badge">increase-only</span>`));
+      scenarioLines.push(kv("Sugar (projected)", fmt(s.ingredients.sugarLb,1) + " lb"));
+      scenarioLines.push(kv("Δ Sugar", fmt(s.deltas.sugarLb,1) + ' lb <span class="badge">increase-only</span>'));
     } else {
-      scenarioLines.push(kv("L350 (projected)", `${fmt(s.ingredients.l350Gal,2)} gal`));
-      scenarioLines.push(kv("Δ L350", `${fmt(s.deltas.l350Gal,2)} gal <span class="badge">increase-only</span>`));
-      scenarioLines.push(kv("Molasses", `${fmt(s.ingredients.molassesGal,2)} gal`));
+      scenarioLines.push(kv("L350 (projected)", fmt(s.ingredients.l350Gal,2) + " gal"));
+      scenarioLines.push(kv("Δ L350", fmt(s.deltas.l350Gal,2) + ' gal <span class="badge">increase-only</span>'));
+      scenarioLines.push(kv("Molasses", fmt(s.ingredients.molassesGal,2) + " gal"));
     }
 
     if (s.notes && s.notes.length){
-      scenarioLines.push(`<div class="small" style="margin-top:10px">${s.notes.map(x=>"• "+x).join("<br>")}</div>`);
+      scenarioLines.push('<div class="small" style="margin-top:10px">' + s.notes.map(function(x){ return "• " + x; }).join("<br>") + "</div>");
     }
 
     $("scenarioBlock").innerHTML = scenarioLines.join("");
 
-    // Strip block (scenario-based)
-    const st = res.strip;
-    $("stripBlock").innerHTML = `
-      ${kv("Still", res.still.name)}
-      ${kv("Planned charge", `${fmt(st.plannedCharge,2)} gal`)}
-      ${kv("Charge used", `${fmt(st.chargeUsed,2)} gal <span class="badge">charge-based</span>`)}
-      ${kv("Ethanol in charge", `${fmt(st.ethanolInCharge,2)} gal`)}
-      ${kv("Low wines (no cuts)", `${fmt(st.lowWinesGal,2)} gal @ ${fmt(st.lowWinesAbvPct,1)}% <span class="badge">NO CUTS</span>`)}
-      <div class="small" style="margin-top:10px">
-        Per-run estimate. For multiple charges from one tank, run multiple times.
-      </div>
-    `;
+    // Strip block (scenario-based + efficiency)
+    var st = res.strip;
+
+    $("stripBlock").innerHTML =
+      kv("Still", res.still.name) +
+      kv("Planned charge", fmt(st.plannedCharge,2) + " gal") +
+      kv("Charge used", fmt(st.chargeUsed,2) + ' gal <span class="badge">charge-based</span>') +
+      kv("Wash ABV (scenario)", fmt(st.washAbvPct,1) + " %") +
+      kv("Ethanol in charge (theoretical)", fmt(st.ethanolInChargeTheo,2) + " gal") +
+      kv("Strip recovery efficiency", fmt(st.stripRecoveryEff * 100,0) + " %") +
+      kv("Ethanol recovered (estimated)", fmt(st.ethanolRecovered,2) + " gal") +
+      kv("Low wines (no cuts)", fmt(st.lowWinesGal,2) + " gal @ " + fmt(st.lowWinesAbvPct,1) + '% <span class="badge">NO CUTS</span>') +
+      '<div class="small" style="margin-top:10px">Calibrated to your still/run reality (recovery efficiency). Per-run estimate.</div>';
 
     // Rules
-    const ruleLines = window.MASH_RULES.ruleNotesFor(res.recipe.kind, res.input.rumAdjustMode);
+    var ruleLines = window.MASH_RULES.ruleNotesFor(res.recipe.kind, res.input.rumAdjustMode);
     $("ruleBlock").style.display = "";
-    $("ruleNotes").innerHTML = ruleLines.map(s => `<div>• ${s}</div>`).join("");
+    $("ruleNotes").innerHTML = ruleLines.map(function(x){ return "<div>• " + x + "</div>"; }).join("");
   }
 
   function recalc(){
@@ -192,7 +203,7 @@
     setTargetHint();
 
     try{
-      const res = window.MASH_ENGINE.computeBatch(currentInputs());
+      var res = window.MASH_ENGINE.computeBatch(currentInputs());
       render(res);
     }catch(err){
       setFatal("Mash Builder error:\n" + (err && err.stack ? err.stack : String(err)));
@@ -200,39 +211,37 @@
   }
 
   function saveScenario(){
-    const name = ($("scenarioName").value || "").trim() || "Unnamed scenario";
-    const inputs = currentInputs();
-    const snapshot = window.MASH_ENGINE.computeBatch(inputs);
+    var name = ($("scenarioName").value || "").trim() || "Unnamed scenario";
+    var inputs = currentInputs();
+    var snapshot = window.MASH_ENGINE.computeBatch(inputs);
 
-    const record = {
-      name,
-      inputs,
-      // store key result snapshot for quick review later
+    var record = {
+      name: name,
+      inputs: inputs,
       results: {
         kind: snapshot.recipe.kind,
         baselineAbvPct: snapshot.baseline.washAbvPct,
         scenarioAbvPct: snapshot.scenario.washAbvPct,
         baselinePureAlcoholGal: snapshot.baseline.pureAlcoholGal,
         scenarioPureAlcoholGal: snapshot.scenario.pureAlcoholGal,
-        deltaSugarLb: snapshot.scenario.deltas?.sugarLb ?? 0,
-        deltaL350Gal: snapshot.scenario.deltas?.l350Gal ?? 0
+        deltaSugarLb: (snapshot.scenario.deltas && isFinite(snapshot.scenario.deltas.sugarLb)) ? snapshot.scenario.deltas.sugarLb : 0,
+        deltaL350Gal: (snapshot.scenario.deltas && isFinite(snapshot.scenario.deltas.l350Gal)) ? snapshot.scenario.deltas.l350Gal : 0
       }
     };
 
-    const saved = window.MASH_STORAGE.save(record);
+    var saved = window.MASH_STORAGE.save(record);
     refreshScenarioList();
     $("savedScenarioSelect").value = saved.id;
-    setStatus(`Saved: ${saved.name}`);
+    setStatus("Saved: " + saved.name);
   }
 
   function loadScenario(){
-    const id = $("savedScenarioSelect").value;
+    var id = $("savedScenarioSelect").value;
     if (!id) return;
 
-    const rec = window.MASH_STORAGE.get(id);
+    var rec = window.MASH_STORAGE.get(id);
     if (!rec) return;
 
-    // apply inputs
     $("mashSelect").value = rec.inputs.mashId;
     $("fillGal").value = rec.inputs.fillGal;
     $("targetAbv").value = rec.inputs.targetAbvPct;
@@ -243,12 +252,12 @@
 
     $("scenarioName").value = rec.name || "";
 
-    setStatus(`Loaded: ${rec.name}`);
+    setStatus("Loaded: " + rec.name);
     recalc();
   }
 
   function deleteScenario(){
-    const id = $("savedScenarioSelect").value;
+    var id = $("savedScenarioSelect").value;
     if (!id) return;
     window.MASH_STORAGE.remove(id);
     refreshScenarioList();
@@ -257,17 +266,17 @@
   }
 
   function exportScenario(){
-    const name = ($("scenarioName").value || "").trim() || "scenario";
-    const data = {
-      name,
+    var name = ($("scenarioName").value || "").trim() || "scenario";
+    var data = {
+      name: name,
       exportedAt: new Date().toISOString(),
       inputs: currentInputs(),
       snapshot: window.MASH_ENGINE.computeBatch(currentInputs())
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
-    const a = document.createElement("a");
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
+    var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${name.replace(/[^\w\-]+/g,"_")}.json`;
+    a.download = name.replace(/[^\w\-]+/g,"_") + ".json";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -276,24 +285,22 @@
 
   function wire(){
     $("btnRecalc").onclick = recalc;
-    $("btnReset").onclick = () => { applyDefaults(); recalc(); };
+    $("btnReset").onclick = function(){ applyDefaults(); recalc(); };
 
-    $("mashSelect").addEventListener("change", () => { setTargetHint(); recalc(); });
-    $("tankSelect").addEventListener("change", () => { applyTankWorkingFill(); recalc(); });
+    $("mashSelect").addEventListener("change", function(){ setTargetHint(); recalc(); });
+    $("tankSelect").addEventListener("change", function(){ applyTankWorkingFill(); recalc(); });
     $("stillSelect").addEventListener("change", recalc);
 
-    ["fillGal","targetAbv","stripProof","chargeFillPct"].forEach(id => {
+    ["fillGal","targetAbv","stripProof","chargeFillPct"].forEach(function(id){
       $(id).addEventListener("input", recalc);
     });
 
-    $("rumAdjustMode").addEventListener("change", () => { setTargetHint(); recalc(); });
+    $("rumAdjustMode").addEventListener("change", function(){ setTargetHint(); recalc(); });
 
     $("btnSaveScenario").onclick = saveScenario;
     $("btnLoadScenario").onclick = loadScenario;
     $("btnDeleteScenario").onclick = deleteScenario;
     $("btnExportScenario").onclick = exportScenario;
-
-    $("savedScenarioSelect").addEventListener("change", ()=>{ /* no auto-load */ });
   }
 
   function init(){
@@ -316,4 +323,5 @@
   }
 
   window.addEventListener("DOMContentLoaded", init);
+
 })();
