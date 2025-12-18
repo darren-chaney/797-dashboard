@@ -1,21 +1,14 @@
-/* ============================================================
-   797 DISTILLERY — MASH BUILDER STYLES (mash.html only)
-   ============================================================ */
-
 :root{
   --bg:#0f172a;
   --panel:#111c33;
   --border:#334155;
   --text:#e5e7eb;
   --muted:#9ca3af;
-  --accent:#22c55e;
   --warn:#f59e0b;
-  --btn2:#0b1223; /* ✅ defined */
+  --btn:#111c33;
+  --btn2:#0b1223;
 }
 
-/* =========================
-   PAGE
-   ========================= */
 body{
   margin:0;
   background:var(--bg);
@@ -26,165 +19,153 @@ body{
 .mash-container{
   max-width:1100px;
   margin:0 auto;
-  padding:28px 18px 40px;
+  padding:24px 18px 42px;
 }
 
-/* =========================
-   PANELS
-   ========================= */
+.topbar{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  margin:10px 0 16px;
+}
+
+.titleblock h1{ margin:0; font-size:1.7rem; }
+.sub{ color:var(--muted); margin-top:6px; }
+
+.engine-stamp{
+  font-size:.85rem;
+  color:var(--muted);
+  border:1px solid var(--border);
+  background:rgba(17,28,51,.6);
+  padding:8px 10px;
+  border-radius:10px;
+  white-space:nowrap;
+}
+
 .panel{
   background:var(--panel);
   border:1px solid var(--border);
-  border-radius:12px;
-  padding:20px;
-  margin-bottom:18px;
-}
-
-.panel h2{
-  margin:0 0 14px;
-  font-size:1.1rem;
-  font-weight:600;
-}
-
-.mash-panel{
-  padding:20px 22px 22px;
-}
-
-/* =========================
-   FORM GRID (single system)
-   ========================= */
-.mash-grid{
-  display:grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
-  gap:16px;
-  align-items:end;
+  border-radius:14px;
+  padding:18px;
   margin-bottom:16px;
 }
 
-.mash-grid > div{
-  display:flex;
-  flex-direction:column;
-}
+.panel h2{ margin:0 0 14px; font-size:1.05rem; }
 
-.mash-grid label{
-  font-size:0.85rem;
-  color:var(--muted);
-  margin-bottom:6px;
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:14px;
 }
+@media (max-width: 980px){ .grid{ grid-template-columns:repeat(2, minmax(0, 1fr)); } }
 
-/* unified controls */
-.mash-grid input,
-.mash-grid select{
-  height:44px;
-  padding:0 12px;
-  border-radius:10px;
-  border:1px solid var(--border);
-  background:var(--btn2);
-  color:var(--text);
-  font-size:0.95rem;
-  outline:none;
+label{ display:block; font-size:.9rem; margin-bottom:6px; color:#dbe3f1; }
+
+input, select{
+  width:100%;
   box-sizing:border-box;
-}
-
-.mash-grid input[type="number"]{
-  padding-right:10px;
-}
-
-.mash-grid input:focus,
-.mash-grid select:focus{
-  border-color:var(--accent);
-  box-shadow:0 0 0 1px rgba(34,197,94,0.35);
-}
-
-/* =========================
-   ACTIONS / BUTTONS
-   ========================= */
-.actions{
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
-}
-
-button{
-  appearance:none;
-  border-radius:10px;
-  padding:10px 14px;
-  font-size:0.95rem;
-  cursor:pointer;
-  border:1px solid var(--border);
   background:var(--btn2);
+  border:1px solid var(--border);
   color:var(--text);
+  border-radius:10px;
+  padding:10px 10px;
+  outline:none;
+  font-size:1rem;
 }
 
-button.primary{
-  border-color:var(--accent);
-  color:var(--accent);
+input:focus, select:focus{ border-color:#64748b; }
+
+.hint{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:.82rem;
+  line-height:1.2;
 }
 
-button.warn{
-  border-color:var(--warn);
-  color:var(--warn);
+/* iOS / Safari dropdown caret visibility */
+select{
+  -webkit-appearance:none;
+  appearance:none;
+  padding-right:38px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #cbd5e1 50%),
+    linear-gradient(135deg, #cbd5e1 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position:
+    calc(100% - 18px) 55%,
+    calc(100% - 12px) 55%,
+    0 0;
+  background-size:6px 6px, 6px 6px, 100% 100%;
+  background-repeat:no-repeat;
 }
 
-button:disabled{
-  opacity:0.5;
-  cursor:not-allowed;
-}
+.lockrow{ grid-column: span 2; display:flex; flex-direction:column; justify-content:flex-end; }
 
-/* =========================
-   RESULTS
-   ========================= */
-#mashResults h3{
-  margin:16px 0 6px;
-  font-size:0.95rem;
-  font-weight:600;
-}
+.checkbox{ display:flex; gap:10px; align-items:center; font-size:.95rem; }
 
-#mashResults ul{
-  list-style:none;
-  padding:0;
-  margin:0;
-}
+.actions{ display:flex; gap:10px; margin-top:14px; }
 
-#mashResults li{
+.btn{
+  border:1px solid var(--border);
+  background:var(--btn);
+  color:var(--text);
+  padding:10px 14px;
+  border-radius:12px;
+  cursor:pointer;
+  font-size:.95rem;
+}
+.btn:hover{ border-color:#64748b; }
+.btn2{ background:transparent; }
+
+.results{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:12px;
+}
+@media (max-width: 980px){ .results{ grid-template-columns:1fr; } }
+
+.card{
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+  background:rgba(15,23,42,.35);
+}
+.cardtitle{ font-weight:700; margin-bottom:10px; }
+
+.card.warn{ grid-column: 1 / -1; border-color:rgba(245,158,11,.55); }
+
+.kv{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
   padding:6px 0;
-  font-size:0.92rem;
-  border-bottom:1px dashed var(--border);
+  border-bottom:1px dashed rgba(148,163,184,.25);
+}
+.kv:last-child{ border-bottom:none; }
+
+.k{ color:var(--muted); }
+.v{ color:var(--text); font-weight:600; }
+
+.badge{
+  display:inline-block;
+  padding:3px 8px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  color:var(--muted);
+  font-size:.8rem;
+  margin-left:8px;
 }
 
-#mashResults li:last-child{
-  border-bottom:none;
-}
+.small{ font-size:.9rem; color:var(--muted); line-height:1.35; }
 
-.note-warn{
-  margin-top:12px;
-  color:var(--warn);
-  font-size:0.92rem;
-}
-
-/* =========================
-   LOG
-   ========================= */
-#logView ul{
-  list-style:none;
-  padding:0;
-  margin:0;
-}
-
-#logView li{
-  padding:6px 0;
-  font-size:0.9rem;
-  border-bottom:1px solid var(--border);
-}
-
-/* =========================
-   RESPONSIVE
-   ========================= */
-@media (max-width:900px){
-  .mash-grid{
-    grid-template-columns: 1fr;
-  }
-  button{
-    width:100%;
-  }
+.fatal{
+  margin-top:14px;
+  border:1px solid rgba(239,68,68,.55);
+  background:rgba(239,68,68,.08);
+  padding:10px 12px;
+  border-radius:12px;
+  color:#fecaca;
+  font-size:.9rem;
+  white-space:pre-wrap;
 }
