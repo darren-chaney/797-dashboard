@@ -1,109 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>797 Distillery — Mash Builder</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Shared header -->
-  <link rel="stylesheet" href="header.css">
-  <link rel="stylesheet" href="mash.css">
+  <link rel="stylesheet" href="header.css" />
+  <link rel="stylesheet" href="mash.css?v=1.0.0" />
 </head>
 <body>
 
-<div id="global-header"></div>
+  <!-- GLOBAL HEADER -->
+  <div id="global-header"></div>
 
-<script>
-fetch("header.html")
-  .then(r => r.text())
-  .then(html => document.getElementById("global-header").innerHTML = html);
-</script>
+  <script>
+  fetch("header.html")
+    .then(res => res.text())
+    .then(html => { document.getElementById("global-header").innerHTML = html; });
+  </script>
 
-<main>
+  <main class="mash-container">
 
-  <h1>Mash Builder</h1>
-  <div class="subtitle">Moonshine + Rum — built for your 55 / 235 tanks and 53 / 150 stills.</div>
+    <header class="page-head">
+      <h1>Mash Builder</h1>
+      <div class="subtitle">Moonshine + Rum — built for your 55 / 235 tanks and 53 / 150 stills.</div>
+      <!-- Always visible; UI will overwrite with real version -->
+      <div id="engineStamp" class="engine-stamp">ENGINE VERSION: (loading…)</div>
+      <div id="fatalError" class="fatal" style="display:none;"></div>
+    </header>
 
-  <!-- ALWAYS VISIBLE (even if JS fails) -->
-  <div id="engineStamp">ENGINE VERSION: (loading…)</div>
+    <!-- SETUP -->
+    <section class="panel">
+      <h2>Setup</h2>
 
-  <div id="fatalError"></div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="mashSelect">Mash Type</label>
+          <select id="mashSelect"></select>
+        </div>
 
-  <!-- SETUP -->
-  <div class="panel">
-    <h2>Setup</h2>
+        <div class="field">
+          <label for="tankSelect">Tank (working fill)</label>
+          <select id="tankSelect"></select>
+        </div>
 
-    <div class="row">
-      <label>Mash Type</label>
-      <select id="mashSelect"></select>
-    </div>
+        <div class="field">
+          <label for="fillGal">Fill Volume (gal)</label>
+          <input id="fillGal" type="number" step="1" min="1" />
+          <div class="hint">Tip: 55 or 235 (in a 265)</div>
+        </div>
 
-    <div class="row">
-      <label>Tank (working fill)</label>
-      <select id="tankSelect"></select>
-    </div>
+        <div class="field">
+          <label for="targetAbv">Target Wash ABV (%)</label>
+          <input id="targetAbv" type="number" step="0.1" min="0" />
+          <div id="targetHint" class="hint"></div>
+        </div>
 
-    <div class="row">
-      <label>Fill Volume (gal)</label>
-      <input id="fillGal" type="number">
-    </div>
+        <div class="field">
+          <label for="stillSelect">Stripping Still</label>
+          <select id="stillSelect"></select>
+        </div>
 
-    <div class="row">
-      <label>Target Wash ABV (%)</label>
-      <input id="targetAbv" type="number" step="0.1">
-    </div>
+        <div class="field">
+          <label for="stripProof">Low Wines Avg (strip) %ABV</label>
+          <input id="stripProof" type="number" step="1" min="10" max="80" />
+          <div class="hint">Default 35% matches your “no cuts” strip reality.</div>
+        </div>
 
-    <div class="row">
-      <label>Stripping Still</label>
-      <select id="stillSelect"></select>
-    </div>
+        <div class="field">
+          <label for="chargeFillPct">Charge Fill % of still</label>
+          <input id="chargeFillPct" type="number" step="1" min="50" max="98" />
+          <div class="hint">Used for “charge size”, not fermenter size.</div>
+        </div>
 
-    <div class="row">
-      <label>Low Wines Avg (strip) %ABV</label>
-      <input id="stripProof" type="number" step="1">
-    </div>
+        <!-- ✅ Checkbox row fixed: stays compact, doesn’t blow up layout -->
+        <div class="field checkbox-field">
+          <label class="checkbox-wrap">
+            <input type="checkbox" id="rumAdjustMode" />
+            <span>Adjust rum L350 gallons to hit Target ABV (dedicated mode)</span>
+          </label>
+        </div>
+      </div>
 
-    <div class="row">
-      <label>Charge Fill % of still</label>
-      <input id="chargeFillPct" type="number" step="1">
-    </div>
+      <div class="btn-row">
+        <button id="btnRecalc" class="btn">Recalculate</button>
+        <button id="btnReset" class="btn">Reset</button>
+      </div>
 
-    <!-- Checkbox (fixed row class) -->
-    <div class="row checkbox-row">
-      <input type="checkbox" id="rumAdjustMode">
-      <label for="rumAdjustMode">
-        Adjust rum L350 gallons to hit Target ABV (dedicated mode)
-      </label>
-    </div>
+      <div id="scenarioStatus" class="status"></div>
+    </section>
 
-    <div class="row buttons">
-      <button id="btnRecalc">Recalculate</button>
-      <button id="btnReset">Reset</button>
-    </div>
-  </div>
+    <!-- RESULTS -->
+    <section class="panel">
+      <h2>Results</h2>
 
-  <!-- RESULTS -->
-  <div class="panel">
-    <h2>Results</h2>
+      <div class="results-grid">
+        <div class="results-card">
+          <h3>Baseline (Ground Truth)</h3>
+          <div id="baselineBlock"></div>
+        </div>
 
-    <div id="baselineBlock"></div>
-    <div id="scenarioBlock"></div>
-    <div id="stripBlock"></div>
+        <div class="results-card">
+          <h3>Scenario Projection</h3>
+          <div id="scenarioBlock"></div>
+        </div>
 
-    <div id="ruleBlock">
-      <h3>Rule Notes</h3>
-      <div id="ruleNotes"></div>
-    </div>
-  </div>
+        <div class="results-card">
+          <h3>Stripping Run Estimate (NO CUTS)</h3>
+          <div id="stripBlock"></div>
+        </div>
 
-</main>
+        <div class="results-card" id="ruleBlock">
+          <h3>Rule Notes</h3>
+          <div id="ruleNotes" class="rule-notes"></div>
+        </div>
+      </div>
+    </section>
 
-<!-- Scripts -->
-<script src="mash-definitions.js"></script>
-<script src="mash-rules.js"></script>
-<script src="mash-engine.js"></script>
-<script src="mash-storage.js"></script>
-<script src="mash-ui.js"></script>
+  </main>
+
+  <!-- App scripts (globals, not modules) -->
+  <script src="mash-definitions.js?v=1.0.0"></script>
+  <script src="mash-rules.js?v=1.0.0"></script>
+  <script src="mash-engine.js?v=1.0.0"></script>
+  <script src="mash-storage.js?v=1.0.0"></script>
+  <script src="mash-ui.js?v=1.0.0"></script>
 
 </body>
 </html>
