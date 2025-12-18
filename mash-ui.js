@@ -4,8 +4,15 @@
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
 import { MASH_DEFINITIONS } from "./mash-definitions.js";
-import { createMashLog } from "./mash-log.js";
 import { saveMashRun, saveMashLog } from "./mash-storage.js";
+
+/* =========================
+   GLOBAL LOG API (yesterday behavior)
+   ========================= */
+const createMashLog = window.createMashLog;
+if (typeof createMashLog !== "function") {
+  throw new Error("createMashLog not found on window (mash-log.js not loaded)");
+}
 
 const mashSelect = document.getElementById("mashSelect");
 const fillGalInput = document.getElementById("fillGal");
@@ -27,7 +34,8 @@ let currentMash = null;
 
 function setStamp(extra = ""){
   if (!engineStamp) return;
-  engineStamp.textContent = "ENGINE VERSION: " + ENGINE_VERSION + (extra ? ` — ${extra}` : "");
+  engineStamp.textContent =
+    "ENGINE VERSION: " + ENGINE_VERSION + (extra ? ` — ${extra}` : "");
 }
 
 function titleCase(s){
@@ -58,14 +66,9 @@ function updateHint(){
   if (def.family === "RUM"){
     targetHint.textContent = "Rum: Target Wash ABV is ignored (rule).";
   } else {
-    targetHint.textContent = "Moonshine: raising Target ABV increases sugar only (never decreases).";
+    targetHint.textContent =
+      "Moonshine: raising Target ABV increases sugar only (never decreases).";
   }
-}
-
-function fmt(n, d=2){
-  const x = Number(n);
-  if (!isFinite(x)) return String(n);
-  return x.toFixed(d);
 }
 
 populateMashSelect();
@@ -82,7 +85,6 @@ btnBuildMash.onclick = () => {
   const mashId = mashSelect.value;
   const fillGal = Number(fillGalInput.value);
 
-  // IMPORTANT: treat blank as "no targeting"
   const tRaw = String(targetABVInput.value ?? "").trim();
   const targetABV = tRaw === "" ? null : Number(tRaw);
 
@@ -128,25 +130,22 @@ function renderMash(mash){
     <p>Fill Volume: <strong>${mash.fillGal} gal</strong></p>
   `;
 
-  html += `
-    <h3>Fermentables</h3>
-    <ul>
-  `;
-
+  html += `<h3>Fermentables</h3><ul>`;
   Object.keys(f).forEach(key => {
-    if (f[key].lb !== undefined) html += `<li>${titleCase(key)}: ${f[key].lb} lb</li>`;
-    else if (f[key].gal !== undefined) html += `<li>${titleCase(key)}: ${f[key].gal} gal</li>`;
+    if (f[key].lb !== undefined)
+      html += `<li>${titleCase(key)}: ${f[key].lb} lb</li>`;
+    else if (f[key].gal !== undefined)
+      html += `<li>${titleCase(key)}: ${f[key].gal} gal</li>`;
   });
-
   html += `</ul>`;
 
-  html += `
-    <h3>Enzymes</h3>
-    <ul>
-  `;
-  if (mash.enzymes?.amylo_300_ml) html += `<li>Amylo 300: ${mash.enzymes.amylo_300_ml} mL</li>`;
-  if (mash.enzymes?.glucoamylase_ml) html += `<li>Glucoamylase: ${mash.enzymes.glucoamylase_ml} mL</li>`;
-  if (!mash.enzymes?.amylo_300_ml && !mash.enzymes?.glucoamylase_ml) html += `<li>None</li>`;
+  html += `<h3>Enzymes</h3><ul>`;
+  if (mash.enzymes?.amylo_300_ml)
+    html += `<li>Amylo 300: ${mash.enzymes.amylo_300_ml} mL</li>`;
+  if (mash.enzymes?.glucoamylase_ml)
+    html += `<li>Glucoamylase: ${mash.enzymes.glucoamylase_ml} mL</li>`;
+  if (!mash.enzymes?.amylo_300_ml && !mash.enzymes?.glucoamylase_ml)
+    html += `<li>None</li>`;
   html += `</ul>`;
 
   html += `
@@ -166,22 +165,12 @@ function renderMash(mash){
     <h3>Stripping Run (Estimated — NO CUTS)</h3>
     <ul>
       <li>Style: ${mash.stripping.strip_style}</li>
-      <li>Wash Charged (still-based): ${mash.stripping.wash_charged_gal} gal</li>
-      <li>Recovery (calibrated): ${mash.stripping.recovery_percent}%</li>
+      <li>Wash Charged: ${mash.stripping.wash_charged_gal} gal</li>
+      <li>Recovery: ${mash.stripping.recovery_percent}%</li>
       <li>Low Wines Avg: ${mash.stripping.low_wines_abv}%</li>
       <li><strong>Low Wines: ${mash.stripping.low_wines_gal} gal</strong></li>
     </ul>
   `;
-
-  if (mash.abvAdjustment?.clamped) {
-    html += `<div class="note-warn">Target ABV was clamped (engine guardrail).</div>`;
-  }
-
-  if (mash.warnings?.length) {
-    html += `<div class="note-warn"><ul>`;
-    mash.warnings.forEach(w => html += `<li>${w}</li>`);
-    html += `</ul></div>`;
-  }
 
   mashResults.innerHTML = html;
 }
@@ -193,11 +182,9 @@ function renderLog(log){
     <h3>Checkpoints</h3>
     <ul>
   `;
-
   log.checkpoints.forEach(c => {
     html += `<li>${c.checkpoint}</li>`;
   });
-
   html += `</ul>`;
   logView.innerHTML = html;
 }
