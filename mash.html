@@ -5,30 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>797 Distillery — Mash Builder</title>
 
-  <!-- Shared Header CSS -->
+  <!-- Shared header -->
   <link rel="stylesheet" href="header.css?v=1.0.0" />
 
-  <!-- Mash App CSS (unchanged) -->
-  <link rel="stylesheet" href="mash.css?v=1.0.0" />
+  <!-- Mash app css -->
+  <link rel="stylesheet" href="mash.css?v=1.0.1" />
 </head>
 <body>
-
-  <!-- GLOBAL HEADER (shared across dashboards) -->
+  <!-- GLOBAL HEADER -->
   <div id="global-header"></div>
 
   <script>
     const PAGE_TITLE = "Mash Builder";
-    const PAGE_SUBTITLE =
-      "Mash + fermentation planning with charge-based stripping estimates.";
-
+    const PAGE_SUBTITLE = "Mash setup + fermentation + stripping run estimates (no-cuts strip).";
     fetch("header.html?v=1.0.0")
-      .then(res => res.text())
-      .then(html => {
-        document.getElementById("global-header").innerHTML = html;
-      })
-      .catch(() => {
-        console.warn("Global header failed to load");
-      });
+      .then(r => r.text())
+      .then(html => (document.getElementById("global-header").innerHTML = html))
+      .catch(()=>{});
   </script>
 
   <main class="mash-container">
@@ -36,9 +29,7 @@
     <div class="panel mash-panel">
       <div class="panel-head">
         <h2>Mash Setup</h2>
-        <div id="engineStamp" class="engine-stamp">
-          ENGINE VERSION: (loading…)
-        </div>
+        <div id="engineStamp" class="engine-stamp">ENGINE VERSION: (loading…)</div>
       </div>
 
       <div class="mash-grid">
@@ -49,35 +40,19 @@
 
         <div>
           <label for="fillGal">Fill Volume (gal)</label>
-          <input
-            id="fillGal"
-            type="number"
-            step="1"
-            min="1"
-            placeholder="e.g. 55 or 235"
-          />
+          <input id="fillGal" type="number" step="1" min="1" placeholder="e.g. 55 or 235" />
         </div>
 
         <div>
           <label for="targetABV">Target Wash ABV (%)</label>
-          <input
-            id="targetABV"
-            type="number"
-            step="0.1"
-            min="6"
-            max="14"
-            placeholder="optional"
-          />
+          <input id="targetABV" type="number" step="0.1" min="6" max="14" placeholder="optional" />
+          <div class="hint" id="targetHint"></div>
         </div>
       </div>
 
       <div class="actions">
-        <button id="btnBuildMash" class="primary">
-          Build Mash
-        </button>
-        <button id="btnStartMash" class="warn" disabled>
-          Start Mash (Log)
-        </button>
+        <button id="btnBuildMash" class="primary">Build Mash</button>
+        <button id="btnStartMash" class="warn" disabled>Start Mash (Log)</button>
       </div>
     </div>
 
@@ -93,8 +68,7 @@
 
   </main>
 
-  <!-- Mash App JS (module) -->
-  <script type="module" src="mash-ui.js?v=1.0.0"></script>
-
+  <!-- App (module) -->
+  <script type="module" src="mash-ui.js?v=1.0.1"></script>
 </body>
 </html>
