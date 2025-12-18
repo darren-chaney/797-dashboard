@@ -3,107 +3,130 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
   <title>797 Distillery — Mash Builder</title>
 
-  <!-- FORCE NO CACHE (DEV) -->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-
-  <!-- GLOBAL HEADER CSS -->
+  <!-- Shared header -->
   <link rel="stylesheet" href="header.css?v=1.0.0" />
 
-  <!-- MASH APP CSS -->
+  <!-- Mash app css -->
   <link rel="stylesheet" href="mash.css?v=1.0.0" />
 </head>
-
-<body class="dashboard">
-
-  <!-- =========================
-       GLOBAL HEADER
-       ========================= -->
+<body>
+  <!-- GLOBAL HEADER -->
   <div id="global-header"></div>
 
   <script>
-    /* Match pattern used by your other apps */
     const PAGE_TITLE = "Mash Builder";
-    const PAGE_SUBTITLE =
-      "Scale mash bills, target wash ABV, and estimate stripping output.";
+    const PAGE_SUBTITLE = "Mash + ferment + stripping run estimates (engine-locked rules).";
+    fetch("header.html?v=1.0.0")
+      .then(r => r.text())
+      .then(html => (document.getElementById("global-header").innerHTML = html))
+      .catch(() => {});
   </script>
 
-  <script>
-    fetch("header.html")
-      .then(res => res.text())
-      .then(html => {
-        document.getElementById("global-header").innerHTML = html;
-      });
-  </script>
-
-  <!-- =========================
-       APP CONTENT
-       ========================= -->
   <main class="mash-container">
+    <div class="topbar">
+      <div class="titleblock">
+        <h1>Mash Builder</h1>
+        <div class="sub">Moonshine + Rum — built for your 55/235 tanks and 53/150 stills.</div>
+      </div>
+      <div class="engine-stamp" id="engineStamp">ENGINE VERSION: …</div>
+    </div>
 
-    <div class="panel mash-panel">
-      <h2>Mash Setup</h2>
+    <section class="panel">
+      <h2>Setup</h2>
 
-      <div class="mash-grid">
+      <div class="grid">
         <div>
           <label for="mashSelect">Mash Type</label>
           <select id="mashSelect"></select>
         </div>
 
         <div>
-          <label for="fillGal">Fill Volume (gal)</label>
-          <input
-            id="fillGal"
-            type="number"
-            step="1"
-            min="1"
-            placeholder="e.g. 55 or 235"
-          />
+          <label for="tankSelect">Tank (working fill)</label>
+          <select id="tankSelect"></select>
         </div>
 
         <div>
-          <label for="targetABV">Target Wash ABV (%)</label>
-          <input
-            id="targetABV"
-            type="number"
-            step="0.1"
-            min="6"
-            max="14"
-            placeholder="optional"
-          />
+          <label for="fillGal">Fill Volume (gal)</label>
+          <input id="fillGal" type="number" min="1" step="0.5" />
+          <div class="hint">Tip: 55 or 235 (in a 265)</div>
+        </div>
+
+        <div>
+          <label for="targetAbv">Target Wash ABV (%)</label>
+          <input id="targetAbv" type="number" min="1" max="20" step="0.1" />
+          <div class="hint" id="targetHint"></div>
+        </div>
+
+        <div>
+          <label for="stillSelect">Stripping Still</label>
+          <select id="stillSelect"></select>
+        </div>
+
+        <div>
+          <label for="stripProof">Low Wines Avg (strip) %ABV</label>
+          <input id="stripProof" type="number" min="15" max="60" step="0.5" />
+          <div class="hint">Default 35% matches your “no cuts” strip reality.</div>
+        </div>
+
+        <div>
+          <label for="chargeFillPct">Charge Fill % of still</label>
+          <input id="chargeFillPct" type="number" min="50" max="98" step="1" />
+          <div class="hint">Used for “charge size”, not fermenter size.</div>
+        </div>
+
+        <div class="lockrow">
+          <label class="checkbox">
+            <input type="checkbox" id="lockToRecipe" checked />
+            Lock to Known Recipe (ground truth)
+          </label>
+          <div class="hint">When ON, 55-gal moonshine & rum recipes are your baseline truth.</div>
         </div>
       </div>
 
       <div class="actions">
-        <button id="btnBuildMash" class="primary">
-          Build Mash
-        </button>
-        <button id="btnStartMash" class="warn" disabled>
-          Start Mash (Log)
-        </button>
+        <button id="btnRecalc" class="btn">Recalculate</button>
+        <button id="btnReset" class="btn btn2">Reset</button>
       </div>
-    </div>
+    </section>
 
-    <div id="resultsPanel" class="panel" hidden>
-      <h2>Mash Bill</h2>
-      <div id="mashResults"></div>
-    </div>
+    <section class="panel">
+      <h2>Results</h2>
 
-    <div id="logPanel" class="panel" hidden>
-      <h2>Production Log</h2>
-      <div id="logView"></div>
-    </div>
+      <div class="results">
+        <div class="card">
+          <div class="cardtitle">Ingredients</div>
+          <div id="ingredients"></div>
+        </div>
 
+        <div class="card">
+          <div class="cardtitle">Fermentation + Wash</div>
+          <div id="washBlock"></div>
+        </div>
+
+        <div class="card">
+          <div class="cardtitle">Stripping Run Estimate (NO CUTS)</div>
+          <div id="stripBlock"></div>
+        </div>
+
+        <div class="card warn" id="ruleBlock" style="display:none">
+          <div class="cardtitle">Rule Notes</div>
+          <div id="ruleNotes"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <!-- =========================
-       APP SCRIPT
-       ========================= -->
-  <script type="module" src="mash-ui.js?v=1.0.0"></script>
+  <!-- Core app scripts -->
+  <script src="mash-definitions.js?v=1.0.0"></script>
+  <script src="mash-rules.js?v=1.0.0"></script>
+  <script src="mash-engine.js?v=1.0.0"></script>
+  <script src="mash-ui.js?v=1.0.0"></script>
 
+  <!-- Optional modules (stubs ok) -->
+  <script src="mash-storage.js?v=1.0.0"></script>
+  <script src="mash-log.js?v=1.0.0"></script>
+  <script src="mash-topup.js?v=1.0.0"></script>
 </body>
 </html>
