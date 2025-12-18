@@ -1,19 +1,29 @@
 /* ============================================================
    mash-rules.js
-   Non-negotiable rule enforcement notes
+   Non-negotiable rules + guidance values (pH, yeast, nutrients)
    ============================================================ */
 
 (function(){
-  const RULES_VERSION = "mash-rules v1.1.0";
+  const RULES_VERSION = "mash-rules v1.2.0";
 
   const RULES = {
     MOONSHINE: {
       sugarNeverDecreases: true,
       grainBillFixed: true,
-      maxWashAbvPct: 15
+      maxWashAbvPct: 15.0,
+      // guidance
+      targetPh: { nominal: 5.3, range: "5.2–5.6" },
+      yeastGPerGal: 1.0,
+      nutrientsGPerGal: 1.0
     },
     RUM: {
-      ignoreTargetAbv: true
+      ignoreTargetAbvByDefault: true,
+      // dedicated mode exists; only adjusts L350 and only upward
+      adjustModeAllowsIncreaseOnly: true,
+      // guidance
+      targetPh: { nominal: 5.0, range: "4.8–5.2" },
+      yeastGPerGal: 1.0,
+      nutrientsGPerGal: 1.0
     },
     DISTILLATION: {
       strippingNoCuts: true,
@@ -21,7 +31,7 @@
     }
   };
 
-  function ruleNotesFor(kind){
+  function ruleNotesFor(kind, rumAdjustMode){
     if (kind === "moonshine"){
       return [
         "Moonshine: Target Wash ABV can ONLY increase sugar (never decrease).",
@@ -29,10 +39,14 @@
       ];
     }
     if (kind === "rum"){
-      return [
-        "Rum: Target Wash ABV is ignored (no auto-adjust).",
-        "Rum: L350 + molasses remain in gallons (scale only with volume)."
+      const notes = [
+        "Rum: By default Target Wash ABV is ignored (no auto-adjust).",
+        "Rum: L350 + molasses are in gallons (scaled by volume)."
       ];
+      if (rumAdjustMode){
+        notes.push("Rum adjust mode ON: engine increases L350 only (never decreases) to hit Target ABV.");
+      }
+      return notes;
     }
     return [];
   }
