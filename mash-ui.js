@@ -1,5 +1,5 @@
 /* ============================================================
-   797 DISTILLERY — MASH UI (still selection restored)
+   797 DISTILLERY — MASH UI (still + ABV sugar visibility)
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
@@ -28,7 +28,6 @@ const mashSelect = document.getElementById("mashSelect");
 const fillGalInput = document.getElementById("fillGal");
 const targetABVInput = document.getElementById("targetABV");
 
-/* NEW: still selector (already in layout historically) */
 let stillSelect = null;
 
 const btnBuildMash = document.getElementById("btnBuildMash");
@@ -88,7 +87,6 @@ function ensureStillSelect(){
   const defs = getDefs();
   if (!defs || !defs.STILLS) return;
 
-  // Create selector (same panel, no layout changes)
   stillSelect = document.createElement("select");
   stillSelect.id = "stillSelect";
 
@@ -100,10 +98,8 @@ function ensureStillSelect(){
     stillSelect.appendChild(opt);
   });
 
-  // Default to off-grain 53 gal
   stillSelect.value = "OFF_GRAIN";
 
-  // Insert after Fill Volume field
   const fillField = fillGalInput.parentElement;
   fillField.after(stillSelect);
 }
@@ -170,7 +166,7 @@ btnBuildMash.onclick = () => {
 
   currentMash = scaleMash(mashId, fillGal, targetABV, stillId);
 
-  renderMash(currentMash);
+  renderMash(currentMash, targetABV);
   resultsPanel.hidden = false;
   btnStartMash.disabled = false;
 
@@ -210,22 +206,36 @@ btnStartMash.onclick = () => {
 /* =========================
    RENDER
    ========================= */
-function renderMash(mash){
+function renderMash(mash, targetABV){
   const f = mash.fermentables;
+  const defs = getDefs();
+  const base = defs.RECIPES[mash.mashId];
 
   let html = `
     <p><strong>${mash.name}</strong></p>
     <p>Fill Volume: <strong>${mash.fillGal} gal</strong></p>
-    <p>Still: <strong>${mash.stillName || "53 gal Off-Grain"}</strong></p>
+    <p>Still: <strong>${mash.stillName}</strong></p>
     <h3>Fermentables</h3>
     <ul>
   `;
 
   Object.keys(f).forEach(key => {
-    if (f[key].lb !== undefined)
-      html += `<li>${titleCase(key)}: ${f[key].lb} lb</li>`;
-    else if (f[key].gal !== undefined)
+    if (f[key].lb !== undefined) {
+      let note = "";
+      if (
+        key === "sugar" &&
+        targetABV &&
+        base.sugarLb &&
+        f[key].lb > base.sugarLb
+      ) {
+        const delta = (f[key].lb - base.sugarLb).toFixed(1);
+        note = ` <em>(+${delta} lb due to Target ABV)</em>`;
+      }
+      html += `<li>${titleCase(key)}: ${f[key].lb} lb${note}</li>`;
+    }
+    else if (f[key].gal !== undefined) {
       html += `<li>${titleCase(key)}: ${f[key].gal} gal</li>`;
+    }
   });
 
   html += `</ul>`;
