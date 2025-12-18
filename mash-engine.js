@@ -14,41 +14,95 @@ import {
   FERMENTATION
 } from "./mash-rules.js";
 
-import { MASH_DEFINITIONS } from "./mash-definitions.js";
-
-export const ENGINE_VERSION = "mash-engine v3.2.0 (PPG-FIX + CAL-68)";
+export const ENGINE_VERSION = "mash-engine v3.2.1 (GLOBAL-DEFS FIX)";
 
 function round(v, d = 2) {
   return Number(Number(v).toFixed(d));
 }
 
 /* =========================
-   REAL-WORLD EFFICIENCY (planning)
+   LOAD GLOBAL DEFINITIONS (RULE)
+   ========================= */
+const DEFS = window.MASH_DEFS;
+if (!DEFS || !DEFS.RECIPES) {
+  throw new Error("MASH_DEFS.RECIPES not found — mash-definitions.js not loaded");
+}
+
+/* =========================
+   NORMALIZE DEFINITIONS
+   (match yesterday’s engine contract)
+   ========================= */
+function normalizeMash(def){
+  if (!def) return null;
+
+  const fermentables = {};
+
+  if (Array.isArray(def.grains)) {
+    def.grains.forEach(g => {
+      fermentables[g.key] = {
+        lb_per_gal: g.lb / def.baseVolumeGal,
+        type: "grain"
+      };
+    });
+  }
+
+  if (def.sugarLb) {
+    fermentables.sugar = {
+      lb_per_gal: def.sugarLb / def.baseVolumeGal,
+      type: "sugar"
+    };
+  }
+
+  if (def.l350Gal) {
+    fermentables.l350 = {
+      gal_per_gal: def.l350Gal / def.baseVolumeGal,
+      type: "rum"
+    };
+  }
+
+  if (def.molassesGal) {
+    fermentables.molasses = {
+      gal_per_gal: def.molassesGal / def.baseVolumeGal,
+      type: "rum"
+    };
+  }
+
+  const isRum = def.kind === "rum";
+
+  return {
+    id: def.id,
+    name: def.label,
+    family: isRum ? "RUM" : "MOONSHINE",
+    fermentables,
+    yeast_family: isRum ? "RUM" : "GRAIN",
+    fermentOnGrain: !isRum,
+    enzymes: !isRum
+      ? { amylo_300:true, glucoamylase:true }
+      : null,
+    nutrients_required: !isRum
+  };
+}
+
+/* =========================
+   REAL-WORLD EFFICIENCY
    ========================= */
 const EFF = {
-  // Your “180°F water + soak” method isn't full conversion
   GRAIN_GRAVITY: 0.65,
-  // Granulated sugar ferments essentially fully
   SUGAR_GRAVITY: 1.00,
-  // Rum inputs mostly fermentable; molasses less so
   RUM_GRAVITY: 0.90
 };
 
 /* =========================
-   STRIP MODEL (your process)
+   STRIP MODEL (calibrated)
    ========================= */
 const STRIP = {
   STYLE: "FULL_STRIP_NO_CUTS",
-  // Calibrated to your stated reality
-  RECOVERY: 0.68,     // ✅ Darren calibration
-  LOW_WINES_ABV: 0.35 // ✅ default no-cuts avg
+  RECOVERY: 0.68,
+  LOW_WINES_ABV: 0.35
 };
 
 /* =========================
-   BASE SCALE (track GP buckets)
-   units:
-   - "GP" here = points-gallons
-   - OG points = totalGP / gallons
+   BASE SCALE
    ========================= */
 function scaleBaseMash(mash, fillGal) {
   const out = {
@@ -62,7 +116,6 @@ function scaleBaseMash(mash, fillGal) {
   for (const key in mash.fermentables) {
     const f = mash.fermentables[key];
 
-    // lb/gal (grain + granulated sugar)
     if (f.lb_per_gal !== undefined) {
       const lb = f.lb_per_gal * fillGal;
       out.fermentables[key] = { lb: round(lb, 1), type: f.type || null };
@@ -70,7 +123,7 @@ function scaleBaseMash(mash, fillGal) {
       let gpKey = key.toUpperCase();
       if (gpKey === "SUGAR") gpKey = "GRANULATED_SUGAR";
 
-      const gp = lb * (GRAVITY_POINTS[gpKey] || 0); // points-gallons
+      const gp = lb * (GRAVITY_POINTS[gpKey] || 0);
 
       if (key === "sugar") out.gp_sugar_theoretical += gp;
       else {
@@ -79,12 +132,10 @@ function scaleBaseMash(mash, fillGal) {
       }
     }
 
-    // gal/gal (rum)
     if (f.gal_per_gal !== undefined) {
       const gal = f.gal_per_gal * fillGal;
       out.fermentables[key] = { gal: round(gal, 2), type: f.type || null };
 
-      // Convert gallons -> pounds (8.34 lb/gal), then apply PPG
       const lb = gal * 8.34;
       const gp = lb * (GRAVITY_POINTS[key.toUpperCase()] || 0);
       out.gp_rum_theoretical += gp;
@@ -95,52 +146,47 @@ function scaleBaseMash(mash, fillGal) {
 }
 
 function expectedTotalGP(base) {
-  const grain = base.gp_grain_theoretical * EFF.GRAIN_GRAVITY;
-  const sugar = base.gp_sugar_theoretical * EFF.SUGAR_GRAVITY;
-  const rum   = base.gp_rum_theoretical   * EFF.RUM_GRAVITY;
-  return grain + sugar + rum;
+  return (
+    base.gp_grain_theoretical * EFF.GRAIN_GRAVITY +
+    base.gp_sugar_theoretical * EFF.SUGAR_GRAVITY +
+    base.gp_rum_theoretical   * EFF.RUM_GRAVITY
+  );
 }
 
 /* =========================
-   ABV TARGETING (Moonshine)
-   - Adjusts granulated sugar only
-   - HARD RULE: never reduce sugar below base recipe
+   ABV TARGETING (MOONSHINE)
    ========================= */
 function adjustGranulatedSugarForTargetABV({ mash, fillGal, targetABV, base }) {
   const MIN_ABV = 6.0;
   const MAX_ABV = 11.5;
   const clampedABV = Math.min(Math.max(targetABV, MIN_ABV), MAX_ABV);
 
-  // Base recipe sugar (hard minimum)
-  const baseSugarLb = mash.fermentables.sugar.lb_per_gal * fillGal;
+  const baseSugarLb =
+    mash.fermentables.sugar?.lb_per_gal
+      ? mash.fermentables.sugar.lb_per_gal * fillGal
+      : 0;
 
-  // Target OG from ABV (planning)
   const targetOG = 1 + clampedABV / 131;
-
-  // Total points-gallons required
   const targetTotalGP_expected = (targetOG - 1) * 1000 * fillGal;
 
-  // Fixed expected GP from grain + rum (no sugar)
-  const grain_expected = base.gp_grain_theoretical * EFF.GRAIN_GRAVITY;
-  const rum_expected   = base.gp_rum_theoretical   * EFF.RUM_GRAVITY;
-  const fixedExpectedGP = grain_expected + rum_expected;
+  const fixedExpectedGP =
+    base.gp_grain_theoretical * EFF.GRAIN_GRAVITY +
+    base.gp_rum_theoretical   * EFF.RUM_GRAVITY;
 
-  // Required expected sugar GP
   const requiredSugarGP_expected = targetTotalGP_expected - fixedExpectedGP;
-
-  // Convert expected sugar GP -> theoretical sugar GP
-  const requiredSugarGP_theoretical = requiredSugarGP_expected / EFF.SUGAR_GRAVITY;
+  const requiredSugarGP_theoretical =
+    requiredSugarGP_expected / EFF.SUGAR_GRAVITY;
 
   let requiredSugarLb =
     requiredSugarGP_theoretical <= 0
       ? 0
       : requiredSugarGP_theoretical / GRAVITY_POINTS.GRANULATED_SUGAR;
 
-  // 🔒 HARD RULE: never reduce sugar below recipe baseline
   requiredSugarLb = Math.max(baseSugarLb, requiredSugarLb);
 
   base.fermentables.sugar.lb = round(requiredSugarLb, 1);
-  base.gp_sugar_theoretical = requiredSugarLb * GRAVITY_POINTS.GRANULATED_SUGAR;
+  base.gp_sugar_theoretical =
+    requiredSugarLb * GRAVITY_POINTS.GRANULATED_SUGAR;
 
   return {
     clamped: clampedABV !== targetABV,
@@ -149,8 +195,7 @@ function adjustGranulatedSugarForTargetABV({ mash, fillGal, targetABV, base }) {
 }
 
 /* =========================
-   STRIPPING (full strip, no cuts)
-   - Uses still charge size, not fermenter size
+   STRIP CALC
    ========================= */
 function calculateStrip({ washChargedGal, washABV }) {
   const pureAlcohol = washChargedGal * (washABV / 100);
@@ -170,7 +215,8 @@ function calculateStrip({ washChargedGal, washABV }) {
    PUBLIC API
    ========================= */
 export function scaleMash(mashId, fillGal, targetABV = null) {
-  const mash = MASH_DEFINITIONS[mashId];
+  const raw = DEFS.RECIPES[mashId];
+  const mash = normalizeMash(raw);
   if (!mash) throw new Error("Unknown mashId: " + mashId);
 
   const fill = Number(fillGal);
@@ -181,13 +227,12 @@ export function scaleMash(mashId, fillGal, targetABV = null) {
   let warnings = [];
   let abvAdjustment = null;
 
-  // ABV targeting rules
   if (targetABV !== null && targetABV !== undefined && String(targetABV) !== "") {
     const t = Number(targetABV);
     if (isFinite(t)) {
       if (mash.family === "RUM") {
-        warnings.push("Target Wash ABV is disabled for Rum (does not auto-adjust L350/molasses).");
-      } else if (mash.fermentables.sugar?.lb_per_gal !== undefined) {
+        warnings.push("Target Wash ABV is disabled for Rum.");
+      } else if (mash.fermentables.sugar) {
         abvAdjustment = adjustGranulatedSugarForTargetABV({
           mash,
           fillGal: fill,
@@ -198,26 +243,22 @@ export function scaleMash(mashId, fillGal, targetABV = null) {
     }
   }
 
-  // Expected totals (efficiency-adjusted)
   const totalGP_expected = expectedTotalGP(base);
   const og = 1 + totalGP_expected / fill / 1000;
   const washABV = (og - 1) * 131;
   const pureAlcoholGal = fill * washABV / 100;
 
-  // Enzymes
   const enzymes = {};
   if (mash.enzymes) {
     const cornLb = base.fermentables.corn?.lb || 0;
-
-    if (mash.enzymes.amylo_300 && cornLb > 0) {
-      enzymes.amylo_300_ml = round(cornLb * ENZYMES.AMYLO_300.dose_ml_per_lb_corn, 1);
-    }
-    if (mash.enzymes.glucoamylase) {
-      enzymes.glucoamylase_ml = round(base.totalGrainLb * ENZYMES.GLUCOAMYLASE.dose_ml_per_lb_grain, 1);
+    if (cornLb > 0) {
+      enzymes.amylo_300_ml =
+        round(cornLb * ENZYMES.AMYLO_300.dose_ml_per_lb_corn, 1);
+      enzymes.glucoamylase_ml =
+        round(base.totalGrainLb * ENZYMES.GLUCOAMYLASE.dose_ml_per_lb_grain, 1);
     }
   }
 
-  // Yeast
   const yeast =
     mash.yeast_family === "RUM"
       ? { name: YEAST.RUM.name, grams: round(fill * YEAST.RUM.pitch_g_per_gal, 1) }
@@ -225,10 +266,10 @@ export function scaleMash(mashId, fillGal, targetABV = null) {
 
   const nutrients_g = mash.nutrients_required ? round(fill * 1.0, 1) : 0;
 
-  // Guardrail warning
-  if (og > FERMENTATION.og_limits.SUGAR_ASSIST_MAX) warnings.push("OG exceeds clean fermentation limit");
+  if (og > FERMENTATION.og_limits.SUGAR_ASSIST_MAX) {
+    warnings.push("OG exceeds clean fermentation limit");
+  }
 
-  // Strip based on still charge (OFF-GRAIN 53 for strip planning)
   const washChargedGal = Math.min(fill, STILLS.OFF_GRAIN.max_charge_gal);
 
   return {
