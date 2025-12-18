@@ -2,18 +2,18 @@
    797 DISTILLERY — MASH ENGINE (LOCKED TO YOUR PROCESS)
    ============================================================ */
 
-import {
-  GRAVITY_POINTS,
-  ENZYMES,
-  YEAST,
-  STILLS as RULE_STILLS,
-  FERMENTATION
-} from "./mash-rules.js";
-
-export const ENGINE_VERSION = "mash-engine v3.2.3 (STILL-AWARE)";
+export const ENGINE_VERSION = "mash-engine v3.2.4 (GLOBAL-RULES + STILL)";
 
 function round(v, d = 2) {
   return Number(Number(v).toFixed(d));
+}
+
+/* =========================
+   LOAD GLOBAL RULES
+   ========================= */
+const RULES = window.MASH_RULES;
+if (!RULES) {
+  throw new Error("MASH_RULES not loaded");
 }
 
 /* =========================
@@ -107,7 +107,7 @@ function scaleBaseMash(mash, fillGal) {
       let gpKey = key.toUpperCase();
       if (gpKey === "SUGAR") gpKey = "GRANULATED_SUGAR";
 
-      const gp = lb * (GRAVITY_POINTS[gpKey] || 0);
+      const gp = lb * (RULES.GRAVITY_POINTS[gpKey] || 0);
 
       if (key === "sugar") out.gp_sugar_theoretical += gp;
       else {
@@ -122,7 +122,7 @@ function scaleBaseMash(mash, fillGal) {
 
       const lb = gal * 8.34;
       out.gp_rum_theoretical +=
-        lb * (GRAVITY_POINTS[key.toUpperCase()] || 0);
+        lb * (RULES.GRAVITY_POINTS[key.toUpperCase()] || 0);
     }
   }
 
@@ -157,7 +157,12 @@ function calculateStrip({ washChargedGal, washABV }) {
 /* =========================
    PUBLIC API
    ========================= */
-export function scaleMash(mashId, fillGal, targetABV = null, stillId = "OFF_GRAIN") {
+export function scaleMash(
+  mashId,
+  fillGal,
+  targetABV = null,
+  stillId = "OFF_GRAIN"
+) {
 
   const DEFS = window.MASH_DEFS;
   if (!DEFS || !DEFS.RECIPES) {
@@ -181,7 +186,7 @@ export function scaleMash(mashId, fillGal, targetABV = null, stillId = "OFF_GRAI
   const still =
     DEFS.STILLS && DEFS.STILLS[stillId]
       ? DEFS.STILLS[stillId]
-      : RULE_STILLS.OFF_GRAIN;
+      : RULES.STILLS.OFF_GRAIN;
 
   const washChargedGal = Math.min(fill, still.max_charge_gal);
 
@@ -190,6 +195,7 @@ export function scaleMash(mashId, fillGal, targetABV = null, stillId = "OFF_GRAI
     mashId,
     name: mash.name,
     family: mash.family,
+
     fillGal: round(fill, 2),
 
     stillId,
