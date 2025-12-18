@@ -1,5 +1,5 @@
 /* ============================================================
-   797 DISTILLERY — MASH UI
+   797 DISTILLERY — MASH UI (yesterday layout, fixed + stamped)
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
@@ -21,8 +21,14 @@ const logPanel = document.getElementById("logPanel");
 const logView = document.getElementById("logView");
 
 const engineStamp = document.getElementById("engineStamp");
+const targetHint = document.getElementById("targetHint");
 
 let currentMash = null;
+
+function setStamp(extra = ""){
+  if (!engineStamp) return;
+  engineStamp.textContent = "ENGINE VERSION: " + ENGINE_VERSION + (extra ? ` — ${extra}` : "");
+}
 
 function titleCase(s){
   return String(s).replace(/_/g, " ");
@@ -30,7 +36,6 @@ function titleCase(s){
 
 function populateMashSelect(){
   mashSelect.innerHTML = `<option value="">Select mash...</option>`;
-
   const ids = Object.keys(MASH_DEFINITIONS);
   ids.forEach(id => {
     const m = MASH_DEFINITIONS[id];
@@ -41,15 +46,45 @@ function populateMashSelect(){
   });
 }
 
-populateMashSelect();
+function updateHint(){
+  const mashId = mashSelect.value;
+  if (!mashId) {
+    if (targetHint) targetHint.textContent = "";
+    return;
+  }
+  const def = MASH_DEFINITIONS[mashId];
+  if (!targetHint) return;
 
-// Always show the engine version immediately (helps with cache sanity)
-if (engineStamp) engineStamp.textContent = "ENGINE VERSION: " + ENGINE_VERSION;
+  if (def.family === "RUM"){
+    targetHint.textContent = "Rum: Target Wash ABV is ignored (rule).";
+  } else {
+    targetHint.textContent = "Moonshine: raising Target ABV increases sugar only (never decreases).";
+  }
+}
+
+function fmt(n, d=2){
+  const x = Number(n);
+  if (!isFinite(x)) return String(n);
+  return x.toFixed(d);
+}
+
+populateMashSelect();
+setStamp("loaded");
+updateHint();
+
+mashSelect.addEventListener("change", () => {
+  updateHint();
+});
 
 btnBuildMash.onclick = () => {
+  setStamp("build");
+
   const mashId = mashSelect.value;
   const fillGal = Number(fillGalInput.value);
-  const targetABV = (targetABVInput.value === "" ? null : Number(targetABVInput.value));
+
+  // IMPORTANT: treat blank as "no targeting"
+  const tRaw = String(targetABVInput.value ?? "").trim();
+  const targetABV = tRaw === "" ? null : Number(tRaw);
 
   if (!mashId) return alert("Select a mash type.");
   if (!fillGal || fillGal <= 0) return alert("Enter a valid fill volume.");
@@ -59,6 +94,8 @@ btnBuildMash.onclick = () => {
   renderMash(currentMash);
   resultsPanel.hidden = false;
   btnStartMash.disabled = false;
+
+  setStamp("ok");
 };
 
 btnStartMash.onclick = () => {
@@ -89,7 +126,9 @@ function renderMash(mash){
   let html = `
     <p><strong>${mash.name}</strong></p>
     <p>Fill Volume: <strong>${mash.fillGal} gal</strong></p>
+  `;
 
+  html += `
     <h3>Fermentables</h3>
     <ul>
   `;
@@ -124,16 +163,18 @@ function renderMash(mash){
       <li>Pure Alcohol: ${mash.totals.pureAlcohol_gal} gal</li>
     </ul>
 
-    <h3>Stripping Run (Estimated)</h3>
+    <h3>Stripping Run (Estimated — NO CUTS)</h3>
     <ul>
       <li>Style: ${mash.stripping.strip_style}</li>
-      <li>Wash Charged: ${mash.stripping.wash_charged_gal} gal</li>
-      <li>Low Wines: ${mash.stripping.low_wines_gal} gal @ ${mash.stripping.low_wines_abv}%</li>
+      <li>Wash Charged (still-based): ${mash.stripping.wash_charged_gal} gal</li>
+      <li>Recovery (calibrated): ${mash.stripping.recovery_percent}%</li>
+      <li>Low Wines Avg: ${mash.stripping.low_wines_abv}%</li>
+      <li><strong>Low Wines: ${mash.stripping.low_wines_gal} gal</strong></li>
     </ul>
   `;
 
   if (mash.abvAdjustment?.clamped) {
-    html += `<div class="note-warn">Target ABV was clamped to fermentation tolerance.</div>`;
+    html += `<div class="note-warn">Target ABV was clamped (engine guardrail).</div>`;
   }
 
   if (mash.warnings?.length) {
