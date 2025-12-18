@@ -17,7 +17,8 @@
 
   <script>
     const PAGE_TITLE = "Mash Builder";
-    const PAGE_SUBTITLE = "Mash setup + fermentation + stripping run estimates (no-cuts strip).";
+    const PAGE_SUBTITLE =
+      "Mash setup + fermentation + stripping run estimates (no-cuts strip).";
     fetch("header.html?v=1.0.0")
       .then(r => r.text())
       .then(html => (document.getElementById("global-header").innerHTML = html))
@@ -68,7 +69,15 @@
 
   </main>
 
-  <!-- App (module) -->
+  <!-- =========================================================
+       GLOBAL DATA + HELPERS (MUST LOAD BEFORE MODULES)
+       ========================================================= -->
+  <script src="mash-definitions.js?v=1.0.0"></script>
+  <script src="mash-rules.js?v=1.0.0"></script>
+  <script src="mash-log.js?v=1.0.0"></script>
+  <script src="mash-storage.js?v=1.0.0"></script>
+
+  <!-- APP (MODULE) -->
   <script type="module" src="mash-ui.js?v=1.0.1"></script>
 </body>
 </html>
