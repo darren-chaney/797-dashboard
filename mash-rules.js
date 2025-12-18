@@ -1,55 +1,58 @@
 /* ============================================================
-   mash-rules.js
-   Non-negotiable rules + guidance values (pH, yeast, nutrients)
+   797 DISTILLERY — MASH RULES (constants)
    ============================================================ */
 
-(function(){
-  const RULES_VERSION = "mash-rules v1.2.0";
+export const MASH_FAMILIES = {
+  MOONSHINE: "MOONSHINE",
+  GRAIN_WHISKEY: "GRAIN_WHISKEY",
+  HYBRID_WHISKEY: "HYBRID_WHISKEY",
+  RUM: "RUM"
+};
 
-  const RULES = {
-    MOONSHINE: {
-      sugarNeverDecreases: true,
-      grainBillFixed: true,
-      maxWashAbvPct: 15.0,
-      // guidance
-      targetPh: { nominal: 5.3, range: "5.2–5.6" },
-      yeastGPerGal: 1.0,
-      nutrientsGPerGal: 1.0
-    },
-    RUM: {
-      ignoreTargetAbvByDefault: true,
-      // dedicated mode exists; only adjusts L350 and only upward
-      adjustModeAllowsIncreaseOnly: true,
-      // guidance
-      targetPh: { nominal: 5.0, range: "4.8–5.2" },
-      yeastGPerGal: 1.0,
-      nutrientsGPerGal: 1.0
-    },
-    DISTILLATION: {
-      strippingNoCuts: true,
-      lowWinesBasedOnCharge: true
-    }
-  };
+// "Gravity points" per pound per gallon (PPG-ish)
+// IMPORTANT: these are **POINTS**, not decimals.
+// Example: 46 means +0.046 SG from 1 lb in 1 gal (before efficiency).
+export const GRAVITY_POINTS = {
+  CORN: 33,
+  MALTED_BARLEY: 36,
+  WHEAT: 36,
 
-  function ruleNotesFor(kind, rumAdjustMode){
-    if (kind === "moonshine"){
-      return [
-        "Moonshine: Target Wash ABV can ONLY increase sugar (never decrease).",
-        "Moonshine: Grain bill stays fixed (scales only with volume)."
-      ];
-    }
-    if (kind === "rum"){
-      const notes = [
-        "Rum: By default Target Wash ABV is ignored (no auto-adjust).",
-        "Rum: L350 + molasses are in gallons (scaled by volume)."
-      ];
-      if (rumAdjustMode){
-        notes.push("Rum adjust mode ON: engine increases L350 only (never decreases) to hit Target ABV.");
-      }
-      return notes;
-    }
-    return [];
+  GRANULATED_SUGAR: 46,
+
+  // Rum inputs (treated as fermentable sugar equivalents)
+  // Used with: gallons * 8.34 lb/gal * GP
+  L350: 46,
+  MOLASSES: 36
+};
+
+export const ENZYMES = {
+  AMYLO_300: {
+    dose_ml_per_lb_corn: 0.30
+  },
+  GLUCOAMYLASE: {
+    dose_ml_per_lb_grain: 0.25
   }
+};
 
-  window.MASH_RULES = { RULES_VERSION, RULES, ruleNotesFor };
-})();
+export const YEAST = {
+  GRAIN: {
+    name: "Red Star Distillers Yeast",
+    pitch_g_per_gal: 1.0
+  },
+  RUM: {
+    name: "C-70",
+    pitch_g_per_gal: 1.0
+  }
+};
+
+export const STILLS = {
+  OFF_GRAIN: { name: "53 gal Off-Grain Still", max_charge_gal: 53 },
+  ON_GRAIN:  { name: "150 gal Jacketed Still", max_charge_gal: 150 }
+};
+
+// guardrail warnings (you can tune later)
+export const FERMENTATION = {
+  og_limits: {
+    SUGAR_ASSIST_MAX: 1.090
+  }
+};
