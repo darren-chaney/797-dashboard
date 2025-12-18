@@ -5,26 +5,21 @@
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
 
 /* =========================
-   GLOBAL DEFINITIONS (rule)
+   GLOBAL APIs (late bind)
    ========================= */
-const DEFS = window.MASH_DEFS;
-if (!DEFS || !DEFS.RECIPES) {
-  throw new Error("MASH_DEFS.RECIPES not found (mash-definitions.js not loaded)");
+function getDefs(){
+  return window.MASH_DEFS && window.MASH_DEFS.RECIPES
+    ? window.MASH_DEFS
+    : null;
 }
 
-/* =========================
-   GLOBAL APIs (yesterday behavior)
-   ========================= */
-const createMashLog = window.createMashLog;
-const saveMashRun   = window.saveMashRun;
-const saveMashLog   = window.saveMashLog;
-
-if (typeof createMashLog !== "function")
-  throw new Error("createMashLog not found on window (mash-log.js not loaded)");
-if (typeof saveMashRun !== "function")
-  throw new Error("saveMashRun not found on window (mash-storage.js not loaded)");
-if (typeof saveMashLog !== "function")
-  throw new Error("saveMashLog not found on window (mash-storage.js not loaded)");
+function getLogAPI(){
+  return {
+    createMashLog: window.createMashLog,
+    saveMashRun:   window.saveMashRun,
+    saveMashLog:   window.saveMashLog
+  };
+}
 
 const mashSelect = document.getElementById("mashSelect");
 const fillGalInput = document.getElementById("fillGal");
@@ -55,27 +50,33 @@ function titleCase(s){
 }
 
 /* =========================
-   POPULATE MASH SELECT
+   POPULATE SELECT (SAFE)
    ========================= */
 function populateMashSelect(){
+  const defs = getDefs();
+  if (!defs) return;
+
   mashSelect.innerHTML = `<option value="">Select mash...</option>`;
-  Object.keys(DEFS.RECIPES).forEach(id => {
-    const m = DEFS.RECIPES[id];
+  Object.keys(defs.RECIPES).forEach(id => {
+    const m = defs.RECIPES[id];
     const opt = document.createElement("option");
     opt.value = id;
-    opt.textContent = m.label; // yesterday behavior
+    opt.textContent = m.label;
     mashSelect.appendChild(opt);
   });
 }
 
 function updateHint(){
+  const defs = getDefs();
+  if (!defs || !targetHint) return;
+
   const mashId = mashSelect.value;
-  if (!mashId || !targetHint) {
-    if (targetHint) targetHint.textContent = "";
+  if (!mashId) {
+    targetHint.textContent = "";
     return;
   }
 
-  const def = DEFS.RECIPES[mashId];
+  const def = defs.RECIPES[mashId];
   if (def.kind === "rum") {
     targetHint.textContent = "Rum: Target Wash ABV is ignored (rule).";
   } else {
@@ -84,13 +85,22 @@ function updateHint(){
   }
 }
 
-populateMashSelect();
+/* =========================
+   INIT (no hard fail)
+   ========================= */
 setStamp("loaded");
+populateMashSelect();
 updateHint();
 
 mashSelect.addEventListener("change", updateHint);
 
+/* =========================
+   BUILD
+   ========================= */
 btnBuildMash.onclick = () => {
+  const defs = getDefs();
+  if (!defs) return alert("Mash definitions not loaded yet.");
+
   setStamp("build");
 
   const mashId = mashSelect.value;
@@ -111,12 +121,21 @@ btnBuildMash.onclick = () => {
   setStamp("ok");
 };
 
+/* =========================
+   START MASH
+   ========================= */
 btnStartMash.onclick = () => {
   if (!currentMash) return;
 
-  const def = DEFS.RECIPES[currentMash.mashId];
+  const defs = getDefs();
+  const api = getLogAPI();
+  if (!defs || !api.createMashLog) {
+    return alert("Storage/log system not loaded.");
+  }
 
-  const log = createMashLog({
+  const def = defs.RECIPES[currentMash.mashId];
+
+  const log = api.createMashLog({
     mashId: currentMash.mashId,
     mashName: def.label,
     family: def.kind?.toUpperCase(),
@@ -124,14 +143,17 @@ btnStartMash.onclick = () => {
     fermentOnGrain: currentMash.fermentOnGrain
   });
 
-  saveMashRun(currentMash);
-  saveMashLog(log);
+  api.saveMashRun(currentMash);
+  api.saveMashLog(log);
 
   renderLog(log);
   logPanel.hidden = false;
   btnStartMash.disabled = true;
 };
 
+/* =========================
+   RENDER
+   ========================= */
 function renderMash(mash){
   const f = mash.fermentables;
 
