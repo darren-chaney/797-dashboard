@@ -5,113 +5,96 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>797 Distillery — Mash Builder</title>
 
+  <!-- Shared Header CSS -->
   <link rel="stylesheet" href="header.css?v=1.0.0" />
-  <link rel="stylesheet" href="mash.css?v=2.0.0" />
+
+  <!-- Mash App CSS (unchanged) -->
+  <link rel="stylesheet" href="mash.css?v=1.0.0" />
 </head>
 <body>
 
-<div id="global-header"></div>
+  <!-- GLOBAL HEADER (shared across dashboards) -->
+  <div id="global-header"></div>
 
-<script>
-  const PAGE_TITLE = "Mash Builder";
-  const PAGE_SUBTITLE = "Batch planning and yield projection";
-  fetch("header.html?v=1.0.0")
-    .then(r => r.text())
-    .then(html => document.getElementById("global-header").innerHTML = html);
-</script>
+  <script>
+    const PAGE_TITLE = "Mash Builder";
+    const PAGE_SUBTITLE =
+      "Mash + fermentation planning with charge-based stripping estimates.";
 
-<main class="mash-container">
+    fetch("header.html?v=1.0.0")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("global-header").innerHTML = html;
+      })
+      .catch(() => {
+        console.warn("Global header failed to load");
+      });
+  </script>
 
-  <div class="topbar">
-    <div>
-      <h1>Mash Builder</h1>
-      <div class="sub">Modular batch planning & yield projection</div>
-    </div>
-    <div class="engine-stamp" id="engineStamp">ENGINE VERSION: —</div>
-  </div>
+  <main class="mash-container">
 
-  <!-- MODULE: SETUP -->
-  <section class="module">
-    <h2>1. Batch Setup</h2>
-    <div class="grid">
-      <div>
-        <label>Mash Type</label>
-        <select id="mashSelect"></select>
+    <div class="panel mash-panel">
+      <div class="panel-head">
+        <h2>Mash Setup</h2>
+        <div id="engineStamp" class="engine-stamp">
+          ENGINE VERSION: (loading…)
+        </div>
       </div>
-      <div>
-        <label>Fill Volume (gal)</label>
-        <input id="fillGal" type="number" step="0.5" />
-      </div>
-      <div>
-        <label>Target Wash ABV (%)</label>
-        <input id="targetAbv" type="number" step="0.1" />
-        <div class="hint" id="targetHint"></div>
-      </div>
-    </div>
-  </section>
 
-  <!-- MODULE: FERMENTABLES -->
-  <section class="module">
-    <h2>2. Fermentables</h2>
-    <div id="ingredients" class="block"></div>
-  </section>
+      <div class="mash-grid">
+        <div>
+          <label for="mashSelect">Mash Type</label>
+          <select id="mashSelect"></select>
+        </div>
 
-  <!-- MODULE: FERMENTATION -->
-  <section class="module">
-    <h2>3. Fermentation Targets</h2>
-    <div class="grid">
-      <div>
-        <label>Yeast (g)</label>
-        <div id="yeastBlock" class="readonly"></div>
-      </div>
-      <div>
-        <label>Nutrients (g)</label>
-        <div id="nutrientBlock" class="readonly"></div>
-      </div>
-      <div>
-        <label>Target pH</label>
-        <div id="phBlock" class="readonly"></div>
-      </div>
-    </div>
-  </section>
+        <div>
+          <label for="fillGal">Fill Volume (gal)</label>
+          <input
+            id="fillGal"
+            type="number"
+            step="1"
+            min="1"
+            placeholder="e.g. 55 or 235"
+          />
+        </div>
 
-  <!-- MODULE: STRIPPING -->
-  <section class="module">
-    <h2>4. Stripping Run</h2>
-    <div class="grid">
-      <div>
-        <label>Still</label>
-        <select id="stillSelect"></select>
+        <div>
+          <label for="targetABV">Target Wash ABV (%)</label>
+          <input
+            id="targetABV"
+            type="number"
+            step="0.1"
+            min="6"
+            max="14"
+            placeholder="optional"
+          />
+        </div>
       </div>
-      <div>
-        <label>Charge Fill (%)</label>
-        <input id="chargeFillPct" type="number" step="1" />
-      </div>
-      <div>
-        <label>Low Wines Avg %</label>
-        <input id="stripProof" type="number" step="0.5" />
+
+      <div class="actions">
+        <button id="btnBuildMash" class="primary">
+          Build Mash
+        </button>
+        <button id="btnStartMash" class="warn" disabled>
+          Start Mash (Log)
+        </button>
       </div>
     </div>
-  </section>
 
-  <!-- MODULE: RESULTS -->
-  <section class="module results">
-    <h2>5. Results</h2>
-    <div id="washBlock"></div>
-    <div id="stripBlock"></div>
-  </section>
+    <div id="resultsPanel" class="panel" hidden>
+      <h2>Mash Bill</h2>
+      <div id="mashResults"></div>
+    </div>
 
-  <div class="actions">
-    <button id="btnRecalc" class="btn">Recalculate</button>
-  </div>
+    <div id="logPanel" class="panel" hidden>
+      <h2>Production Log</h2>
+      <div id="logView"></div>
+    </div>
 
-  <div id="fatalError" class="fatal" style="display:none"></div>
+  </main>
 
-</main>
-
-<script src="mash-definitions.js?v=1.0.0"></script>
-<script src="mash-engine.js?v=1.0.0"></script>
-<script src="mash-ui.js?v=1.0.0"></script>
+  <!-- Mash App JS (module) -->
+  <script type="module" src="mash-ui.js?v=1.0.0"></script>
 
 </body>
 </html>
