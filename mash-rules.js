@@ -9,17 +9,16 @@ export const MASH_FAMILIES = {
   RUM: "RUM"
 };
 
-// "Gravity points" per pound per gallon (PPG-ish)
-// IMPORTANT: these are **POINTS**, not decimals.
-// Example: 46 means +0.046 SG from 1 lb in 1 gal (before efficiency).
+// Gravity points (PPG-style planning numbers)
+// IMPORTANT: these are "points per lb per gallon" (e.g. sugar ~46).
 export const GRAVITY_POINTS = {
-  CORN: 33,
+  CORN: 37,
   MALTED_BARLEY: 36,
   WHEAT: 36,
 
   GRANULATED_SUGAR: 46,
 
-  // Rum inputs (treated as fermentable sugar equivalents)
+  // Rum inputs treated as sugar-equivalent
   // Used with: gallons * 8.34 lb/gal * GP
   L350: 46,
   MOLASSES: 36
