@@ -5,7 +5,7 @@
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
 
 /* =========================
-   GLOBAL APIs (late bind)
+   GLOBAL ACCESS (late bind)
    ========================= */
 function getDefs(){
   return window.MASH_DEFS && window.MASH_DEFS.RECIPES
@@ -38,6 +38,7 @@ const engineStamp = document.getElementById("engineStamp");
 const targetHint = document.getElementById("targetHint");
 
 let currentMash = null;
+let mashSelectPopulated = false;
 
 function setStamp(extra = ""){
   if (!engineStamp) return;
@@ -50,9 +51,11 @@ function titleCase(s){
 }
 
 /* =========================
-   POPULATE SELECT (SAFE)
+   POPULATE SELECT (retry-safe)
    ========================= */
 function populateMashSelect(){
+  if (mashSelectPopulated) return;
+
   const defs = getDefs();
   if (!defs) return;
 
@@ -64,7 +67,18 @@ function populateMashSelect(){
     opt.textContent = m.label;
     mashSelect.appendChild(opt);
   });
+
+  mashSelectPopulated = true;
+  updateHint();
 }
+
+/* retry until definitions exist */
+const defsWait = setInterval(() => {
+  if (getDefs()) {
+    clearInterval(defsWait);
+    populateMashSelect();
+  }
+}, 250);
 
 function updateHint(){
   const defs = getDefs();
@@ -86,12 +100,9 @@ function updateHint(){
 }
 
 /* =========================
-   INIT (no hard fail)
+   INIT
    ========================= */
 setStamp("loaded");
-populateMashSelect();
-updateHint();
-
 mashSelect.addEventListener("change", updateHint);
 
 /* =========================
