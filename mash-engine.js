@@ -1,9 +1,9 @@
 /* ============================================================
-   797 DISTILLERY — MASH ENGINE
-   ABV target ADJUSTS SUGAR UP (never down)
+   797 DISTILLERY — MASH ENGINE (DIAGNOSTIC)
+   PURPOSE: Verify Target ABV is actually reaching the engine
    ============================================================ */
 
-export const ENGINE_VERSION = "mash-engine v3.3.1 (ABV-SUGAR-FIXED)";
+export const ENGINE_VERSION = "mash-engine v3.3.2 (ABV-DIAG)";
 
 function round(v, d = 2) {
   return Number(Number(v).toFixed(d));
@@ -94,34 +94,21 @@ function scaleBaseMash(mash, fillGal) {
 }
 
 /* =========================
-   ABV → SUGAR ADJUST
+   PUBLIC API (DIAGNOSTIC)
    ========================= */
-function adjustSugarForABV(base, fillGal, targetABV, baselineSugarLb){
-  const targetOG = 1 + targetABV / 131;
-  const targetGP = (targetOG - 1) * 1000 * fillGal;
+export function scaleMash(
+  mashId,
+  fillGal,
+  targetABV = null,
+  stillId = "OFF_GRAIN"
+) {
 
-  const fixedGP =
-    base.gp_grain * 0.65 +
-    base.gp_rum   * 0.90;
-
-  const neededSugarGP = Math.max(0, targetGP - fixedGP);
-  const neededSugarLb = neededSugarGP / RULES.GRAVITY_POINTS.GRANULATED_SUGAR;
-
-  const finalSugarLb = Math.max(baselineSugarLb, neededSugarLb);
-
-  base.fermentables.sugar.lb = round(finalSugarLb, 1);
-  base.gp_sugar = finalSugarLb * RULES.GRAVITY_POINTS.GRANULATED_SUGAR;
-
-  return {
-    baselineSugarLb: round(baselineSugarLb, 1),
-    finalSugarLb: round(finalSugarLb, 1)
-  };
-}
-
-/* =========================
-   PUBLIC API
-   ========================= */
-export function scaleMash(mashId, fillGal, targetABV = null, stillId = "OFF_GRAIN") {
+  // 🔍 DIAGNOSTIC — THIS IS THE TRUTH SOURCE
+  console.log(
+    "[ABV DEBUG] scaleMash called with:",
+    "targetABV =", targetABV,
+    "| typeof =", typeof targetABV
+  );
 
   const DEFS = window.MASH_DEFS;
   if (!DEFS) throw new Error("MASH_DEFS not loaded");
@@ -132,23 +119,7 @@ export function scaleMash(mashId, fillGal, targetABV = null, stillId = "OFF_GRAI
   const fill = Number(fillGal);
   const base = scaleBaseMash(mash, fill);
 
-  const baselineSugarLb =
-    base.fermentables.sugar?.lb || 0;
-
-  let abvAdjustment = null;
-
-  if (
-    mash.family !== "RUM" &&
-    targetABV &&
-    base.fermentables.sugar
-  ) {
-    abvAdjustment = adjustSugarForABV(
-      base,
-      fill,
-      Number(targetABV),
-      baselineSugarLb
-    );
-  }
+  // NOTE: NO ABV LOGIC YET — THIS IS A PURE TRACE BUILD
 
   const totalGP =
     base.gp_grain * 0.65 +
@@ -166,15 +137,11 @@ export function scaleMash(mashId, fillGal, targetABV = null, stillId = "OFF_GRAI
     mashId,
     name: mash.name,
     fillGal: round(fill, 2),
-
     fermentables: base.fermentables,
-
     totals: {
       og: round(og, 4),
       washABV_percent: round(washABV, 2)
     },
-
-    abvAdjustment,
     stripping: {
       wash_charged_gal: washChargedGal
     }
