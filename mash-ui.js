@@ -1,6 +1,6 @@
 /* ============================================================
    797 DISTILLERY — MASH UI
-   Step 1 (corrected): Mode selector, globals-only, no redesign
+   Step 1b: Mode selector moved to top (ordering only)
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
@@ -40,7 +40,7 @@ const targetHint = document.getElementById("targetHint");
 let currentMash = null;
 
 /* =========================
-   Inject Mode selector (NO layout change)
+   Inject Mode selector FIRST (ordering only)
    ========================= */
 (function injectModeSelector(){
   const mashGrid = document.querySelector(".mash-grid");
@@ -55,7 +55,8 @@ let currentMash = null;
   wrapper.appendChild(label);
   wrapper.appendChild(modeSelect);
 
-  mashGrid.appendChild(wrapper);
+  // insert as first child (before Mash Type)
+  mashGrid.insertBefore(wrapper, mashGrid.firstChild);
 })();
 
 function setStamp(extra = ""){
