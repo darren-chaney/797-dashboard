@@ -1,6 +1,6 @@
 /* ============================================================
    797 DISTILLERY — MASH UI
-   Step 5: Display fermentation guidance (no redesign)
+   Step 6: Save & Reload mash bills
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
@@ -10,7 +10,7 @@ import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
    ========================= */
 const MASH_DEFS = window.MASH_DEFS;
 if (!MASH_DEFS || !MASH_DEFS.RECIPES) {
-  throw new Error("MASH_DEFS not loaded — mash-definitions.js missing");
+  throw new Error("MASH_DEFS not loaded");
 }
 
 const mashSelect = document.getElementById("mashSelect");
@@ -23,9 +23,6 @@ const btnStartMash = document.getElementById("btnStartMash");
 const resultsPanel = document.getElementById("resultsPanel");
 const mashResults = document.getElementById("mashResults");
 
-const logPanel = document.getElementById("logPanel");
-const logView = document.getElementById("logView");
-
 const engineStamp = document.getElementById("engineStamp");
 const targetHint = document.getElementById("targetHint");
 
@@ -35,29 +32,78 @@ let currentMash = null;
    Mode selector
    ========================= */
 const modeSelect = document.createElement("select");
-modeSelect.id = "modeSelect";
 modeSelect.innerHTML = `
-  <option value="production">Production (Locked)</option>
-  <option value="planning">Planning / Experiment</option>
+  <option value="production">Production</option>
+  <option value="planning">Planning</option>
 `;
 
-(function injectModeSelector(){
+(function injectControls(){
   const mashGrid = document.querySelector(".mash-grid");
   if (!mashGrid) return;
 
-  const wrapper = document.createElement("div");
-  const label = document.createElement("label");
-  label.setAttribute("for", "modeSelect");
-  label.textContent = "Mode";
+  // MODE
+  const modeWrap = document.createElement("div");
+  modeWrap.innerHTML = `<label>Mode</label>`;
+  modeWrap.appendChild(modeSelect);
+  mashGrid.insertBefore(modeWrap, mashGrid.firstChild);
 
-  wrapper.appendChild(label);
-  wrapper.appendChild(modeSelect);
+  // SAVE / LOAD
+  const actions = document.querySelector(".actions");
 
-  mashGrid.insertBefore(wrapper, mashGrid.firstChild);
+  const saveBtn = document.createElement("button");
+  saveBtn.textContent = "Save Mash Bill";
+  saveBtn.type = "button";
+
+  const loadSelect = document.createElement("select");
+  const loadBtn = document.createElement("button");
+  loadBtn.textContent = "Load";
+
+  actions.appendChild(saveBtn);
+  actions.appendChild(loadSelect);
+  actions.appendChild(loadBtn);
+
+  function refreshSaved(){
+    loadSelect.innerHTML = `<option value="">Saved mash bills…</option>`;
+    (window.loadMashBills?.() || []).forEach(b => {
+      const opt = document.createElement("option");
+      opt.value = b.id;
+      opt.textContent =
+        `${b.name} — ${b.fillGal} gal (${b.mode})`;
+      loadSelect.appendChild(opt);
+    });
+  }
+
+  saveBtn.onclick = () => {
+    if (!currentMash) return alert("Build a mash first.");
+    window.saveMashBill(currentMash);
+    refreshSaved();
+    alert("Mash bill saved.");
+  };
+
+  loadBtn.onclick = () => {
+    const id = loadSelect.value;
+    if (!id) return;
+
+    const rec = window.getMashBill(id);
+    if (!rec) return;
+
+    // Restore inputs
+    mashSelect.value = rec.mashId;
+    fillGalInput.value = rec.fillGal;
+    modeSelect.value = rec.mode;
+
+    currentMash = rec.data;
+    renderMash(currentMash);
+    resultsPanel.hidden = false;
+  };
+
+  refreshSaved();
 })();
 
+/* =========================
+   Helpers
+   ========================= */
 function setStamp(extra = ""){
-  if (!engineStamp) return;
   engineStamp.textContent =
     "ENGINE VERSION: " + ENGINE_VERSION + (extra ? ` — ${extra}` : "");
 }
@@ -77,136 +123,53 @@ function populateMashSelect(){
   });
 }
 
-function updateHint(){
-  const mashId = mashSelect.value;
-  if (!mashId || !targetHint) {
-    targetHint.textContent = "";
-    return;
-  }
-
-  const def = MASH_DEFS.RECIPES[mashId];
-  targetHint.textContent =
-    def.kind === "rum"
-      ? "Rum: Target Wash ABV behavior depends on selected mode."
-      : "Moonshine: Target Wash ABV behavior depends on selected mode.";
-}
-
 populateMashSelect();
 setStamp("loaded");
-updateHint();
-
-mashSelect.addEventListener("change", updateHint);
 
 btnBuildMash.onclick = () => {
-  setStamp("build");
-
   const mashId = mashSelect.value;
   const fillGal = Number(fillGalInput.value);
   const mode = modeSelect.value;
+  const t = targetABVInput.value === "" ? null : Number(targetABVInput.value);
 
-  const tRaw = String(targetABVInput.value ?? "").trim();
-  const targetABV = tRaw === "" ? null : Number(tRaw);
-
-  if (!mashId) return alert("Select a mash type.");
-  if (!fillGal || fillGal <= 0) return alert("Enter a valid fill volume.");
-
-  currentMash = scaleMash(mashId, fillGal, targetABV, mode);
-
+  currentMash = scaleMash(mashId, fillGal, t, mode);
   renderMash(currentMash);
   resultsPanel.hidden = false;
-  btnStartMash.disabled = false;
-
-  setStamp(mode);
 };
 
-btnStartMash.onclick = () => {
-  if (!currentMash) return;
-
-  if (!window.createMashLog || !window.saveMashRun || !window.saveMashLog) {
-    alert("Mash logging functions not loaded.");
-    return;
-  }
-
-  const def = MASH_DEFS.RECIPES[currentMash.mashId];
-
-  const log = window.createMashLog({
-    mashId: currentMash.mashId,
-    mashName: currentMash.name,
-    family: def.kind,
-    fillGal: currentMash.fillGal,
-    fermentOnGrain: currentMash.fermentOnGrain,
-    mode: modeSelect.value
-  });
-
-  window.saveMashRun(currentMash);
-  window.saveMashLog(log);
-
-  renderLog(log);
-  logPanel.hidden = false;
-  btnStartMash.disabled = true;
-};
-
+/* =========================
+   Render
+   ========================= */
 function renderMash(mash){
   const f = mash.fermentables;
   const ferm = mash.fermentation;
 
   let html = `
     <p><strong>${mash.name}</strong></p>
-    <p>Mode: <strong>${mash.mode}</strong></p>
-    <p>Fill Volume: <strong>${mash.fillGal} gal</strong></p>
+    <p>Mode: ${mash.mode}</p>
+    <p>Fill: ${mash.fillGal} gal</p>
+
+    <h3>Fermentables</h3><ul>
   `;
 
-  html += `<h3>Fermentables</h3><ul>`;
-  Object.keys(f).forEach(key => {
-    if (f[key].lb !== undefined)
-      html += `<li>${titleCase(key)}: ${f[key].lb} lb</li>`;
-    else if (f[key].gal !== undefined)
-      html += `<li>${titleCase(key)}: ${f[key].gal} gal</li>`;
+  Object.keys(f).forEach(k => {
+    html += `<li>${titleCase(k)}: ${f[k].lb ?? f[k].gal}</li>`;
   });
-  html += `</ul>`;
 
   html += `
+    </ul>
     <h3>Yeast & Nutrients</h3>
     <ul>
-      <li>Yeast: ${mash.yeast.name} — ${mash.yeast.grams} g</li>
+      <li>${mash.yeast.name}: ${mash.yeast.grams} g</li>
       <li>Nutrients: ${mash.nutrients_g} g</li>
     </ul>
-  `;
 
-  /* ✅ NEW SECTION */
-  html += `
     <h3>Fermentation Guidance</h3>
     <ul>
-      <li>Temperature: ${ferm.temp_range_f}</li>
-      <li>Estimated Time: ${ferm.estimated_days}</li>
-      <li>Notes: ${ferm.notes}</li>
-    </ul>
-  `;
-
-  html += `
-    <h3>Fermentation Estimates</h3>
-    <ul>
-      <li>OG: ${mash.totals.og}</li>
-      <li>Wash ABV: ${mash.totals.washABV_percent}%</li>
+      <li>Temp: ${ferm.temp_range_f}</li>
+      <li>Time: ${ferm.estimated_days}</li>
     </ul>
   `;
 
   mashResults.innerHTML = html;
-}
-
-function renderLog(log){
-  let html = `
-    <p><strong>${log.meta.mashName}</strong></p>
-    <p>Created: ${log.meta.created_at}</p>
-    <p>Mode: ${log.meta.mode}</p>
-    <h3>Checkpoints</h3>
-    <ul>
-  `;
-
-  log.checkpoints.forEach(c => {
-    html += `<li>${c.checkpoint}</li>`;
-  });
-
-  html += `</ul>`;
-  logView.innerHTML = html;
 }
