@@ -1,6 +1,6 @@
 /* ============================================================
    797 DISTILLERY — MASH UI
-   Step 3: Restore yeast + nutrients display (no redesign)
+   Step 5: Display fermentation guidance (no redesign)
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
@@ -32,7 +32,7 @@ const targetHint = document.getElementById("targetHint");
 let currentMash = null;
 
 /* =========================
-   Mode selector (already approved)
+   Mode selector
    ========================= */
 const modeSelect = document.createElement("select");
 modeSelect.id = "modeSelect";
@@ -41,7 +41,6 @@ modeSelect.innerHTML = `
   <option value="planning">Planning / Experiment</option>
 `;
 
-/* Insert Mode first */
 (function injectModeSelector(){
   const mashGrid = document.querySelector(".mash-grid");
   if (!mashGrid) return;
@@ -149,6 +148,7 @@ btnStartMash.onclick = () => {
 
 function renderMash(mash){
   const f = mash.fermentables;
+  const ferm = mash.fermentation;
 
   let html = `
     <p><strong>${mash.name}</strong></p>
@@ -165,12 +165,21 @@ function renderMash(mash){
   });
   html += `</ul>`;
 
-  /* ✅ RESTORED SECTION */
   html += `
     <h3>Yeast & Nutrients</h3>
     <ul>
       <li>Yeast: ${mash.yeast.name} — ${mash.yeast.grams} g</li>
       <li>Nutrients: ${mash.nutrients_g} g</li>
+    </ul>
+  `;
+
+  /* ✅ NEW SECTION */
+  html += `
+    <h3>Fermentation Guidance</h3>
+    <ul>
+      <li>Temperature: ${ferm.temp_range_f}</li>
+      <li>Estimated Time: ${ferm.estimated_days}</li>
+      <li>Notes: ${ferm.notes}</li>
     </ul>
   `;
 
