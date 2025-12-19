@@ -1,9 +1,9 @@
 /* ============================================================
    797 DISTILLERY — MASH ENGINE
-   Step 2: Planning vs Production behavior
+   Step 3: Restore yeast + nutrients (scaled by fill volume)
    ============================================================ */
 
-export const ENGINE_VERSION = "mash-engine v3.4.0 (PLANNING-MODE)";
+export const ENGINE_VERSION = "mash-engine v3.5.0 (YEAST+NUTRIENTS)";
 
 function round(v, d = 2) {
   return Number(Number(v).toFixed(d));
@@ -21,7 +21,7 @@ if (!DEFS || !DEFS.RECIPES) {
 }
 
 /* =========================
-   Process efficiencies (your real world)
+   Process efficiencies
    ========================= */
 const EFF = {
   GRAIN: 0.65,
@@ -146,7 +146,6 @@ function adjustSugarForTargetABV({
   let finalSugarLb = neededSugarLb;
 
   if (mode === "production") {
-    // 🔒 Production guardrail
     finalSugarLb = Math.max(baselineSugarLb, neededSugarLb);
   }
 
@@ -201,17 +200,41 @@ export function scaleMash(
   const og = 1 + totalGP / fill / 1000;
   const washABV = (og - 1) * 131;
 
+  /* =========================
+     Yeast (scaled by fill)
+     ========================= */
+  const yeastRule =
+    mash.family === "RUM"
+      ? RULES.YEAST.RUM
+      : RULES.YEAST.GRAIN;
+
+  const yeast = {
+    name: yeastRule.name,
+    grams: round(fill * yeastRule.pitch_g_per_gal, 1)
+  };
+
+  /* =========================
+     Nutrients (scaled by fill)
+     ========================= */
+  const nutrients_g = round(fill * 1.0, 1); // 1 g / gal planning value
+
   return {
     engineVersion: ENGINE_VERSION,
     mashId,
     name: mash.name,
     mode,
     fillGal: round(fill, 2),
+
     fermentables: base.fermentables,
+
+    yeast,
+    nutrients_g,
+
     totals: {
       og: round(og, 4),
       washABV_percent: round(washABV, 2)
     },
+
     abvAdjustment
   };
 }
