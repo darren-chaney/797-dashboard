@@ -1,12 +1,12 @@
 /* ============================================================
    797 DISTILLERY — MASH UI
-   Step 1b: Mode selector moved to top (ordering only)
+   Step 3: Restore yeast + nutrients display (no redesign)
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
 
 /* =========================
-   GLOBAL DEFINITIONS (REQUIRED)
+   GLOBAL DEFINITIONS
    ========================= */
 const MASH_DEFS = window.MASH_DEFS;
 if (!MASH_DEFS || !MASH_DEFS.RECIPES) {
@@ -16,14 +16,6 @@ if (!MASH_DEFS || !MASH_DEFS.RECIPES) {
 const mashSelect = document.getElementById("mashSelect");
 const fillGalInput = document.getElementById("fillGal");
 const targetABVInput = document.getElementById("targetABV");
-
-/* 🔹 Mode selector */
-const modeSelect = document.createElement("select");
-modeSelect.id = "modeSelect";
-modeSelect.innerHTML = `
-  <option value="production">Production (Locked)</option>
-  <option value="planning">Planning / Experiment</option>
-`;
 
 const btnBuildMash = document.getElementById("btnBuildMash");
 const btnStartMash = document.getElementById("btnStartMash");
@@ -40,14 +32,21 @@ const targetHint = document.getElementById("targetHint");
 let currentMash = null;
 
 /* =========================
-   Inject Mode selector FIRST (ordering only)
+   Mode selector (already approved)
    ========================= */
+const modeSelect = document.createElement("select");
+modeSelect.id = "modeSelect";
+modeSelect.innerHTML = `
+  <option value="production">Production (Locked)</option>
+  <option value="planning">Planning / Experiment</option>
+`;
+
+/* Insert Mode first */
 (function injectModeSelector(){
   const mashGrid = document.querySelector(".mash-grid");
   if (!mashGrid) return;
 
   const wrapper = document.createElement("div");
-
   const label = document.createElement("label");
   label.setAttribute("for", "modeSelect");
   label.textContent = "Mode";
@@ -55,7 +54,6 @@ let currentMash = null;
   wrapper.appendChild(label);
   wrapper.appendChild(modeSelect);
 
-  // insert as first child (before Mash Type)
   mashGrid.insertBefore(wrapper, mashGrid.firstChild);
 })();
 
@@ -83,7 +81,7 @@ function populateMashSelect(){
 function updateHint(){
   const mashId = mashSelect.value;
   if (!mashId || !targetHint) {
-    if (targetHint) targetHint.textContent = "";
+    targetHint.textContent = "";
     return;
   }
 
@@ -154,7 +152,7 @@ function renderMash(mash){
 
   let html = `
     <p><strong>${mash.name}</strong></p>
-    <p>Mode: <strong>${modeSelect.value}</strong></p>
+    <p>Mode: <strong>${mash.mode}</strong></p>
     <p>Fill Volume: <strong>${mash.fillGal} gal</strong></p>
   `;
 
@@ -166,6 +164,15 @@ function renderMash(mash){
       html += `<li>${titleCase(key)}: ${f[key].gal} gal</li>`;
   });
   html += `</ul>`;
+
+  /* ✅ RESTORED SECTION */
+  html += `
+    <h3>Yeast & Nutrients</h3>
+    <ul>
+      <li>Yeast: ${mash.yeast.name} — ${mash.yeast.grams} g</li>
+      <li>Nutrients: ${mash.nutrients_g} g</li>
+    </ul>
+  `;
 
   html += `
     <h3>Fermentation Estimates</h3>
