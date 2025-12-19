@@ -1,73 +1,60 @@
 /* ============================================================
-   mash-storage.js (ES5) — Scenario storage in localStorage
-   NO exports. NO modules.
+   797 DISTILLERY — MASH STORAGE
+   Save & reload mash bills (snapshots)
    ============================================================ */
 
 (function(){
-  var KEY = "mash_scenarios_v1";
+  const STORAGE_KEY = "mash_saved_bills_v1";
 
   function readAll(){
-    try{
-      var raw = localStorage.getItem(KEY);
-      if (!raw) return [];
-      var arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
-    }catch(e){
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    } catch {
       return [];
     }
   }
 
-  function writeAll(arr){
-    localStorage.setItem(KEY, JSON.stringify(arr));
+  function writeAll(list){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   }
 
   function uid(){
-    return "sc_" + Math.random().toString(36).slice(2) + "_" + Date.now();
+    return "mash_" + Date.now().toString(36);
   }
 
-  function list(){
-    var arr = readAll();
-    // newest first
-    arr.sort(function(a,b){ return (b.savedAt||0) - (a.savedAt||0); });
-    return arr.map(function(x){
-      return { id:x.id, name:x.name, savedAt:x.savedAt };
-    });
-  }
+  /* =========================
+     Save mash bill snapshot
+     ========================= */
+  window.saveMashBill = function(mash){
+    const list = readAll();
 
-  function get(id){
-    var arr = readAll();
-    for (var i=0;i<arr.length;i++){
-      if (arr[i].id === id) return arr[i];
-    }
-    return null;
-  }
+    const record = {
+      id: uid(),
+      saved_at: new Date().toISOString(),
+      mashId: mash.mashId,
+      name: mash.name,
+      mode: mash.mode,
+      fillGal: mash.fillGal,
+      targetABV: mash.abvAdjustment ? mash.totals.washABV_percent : null,
+      data: mash
+    };
 
-  function save(record){
-    var arr = readAll();
-    var rec = record || {};
-    if (!rec.id) rec.id = uid();
-    if (!rec.savedAt) rec.savedAt = Date.now();
+    list.unshift(record);
+    writeAll(list);
+    return record.id;
+  };
 
-    // upsert
-    var replaced = false;
-    for (var i=0;i<arr.length;i++){
-      if (arr[i].id === rec.id){
-        arr[i] = rec;
-        replaced = true;
-        break;
-      }
-    }
-    if (!replaced) arr.push(rec);
+  /* =========================
+     Load list (for dropdown)
+     ========================= */
+  window.loadMashBills = function(){
+    return readAll();
+  };
 
-    writeAll(arr);
-    return { id: rec.id, name: rec.name, savedAt: rec.savedAt };
-  }
-
-  function remove(id){
-    var arr = readAll();
-    arr = arr.filter(function(x){ return x.id !== id; });
-    writeAll(arr);
-  }
-
-  window.MASH_STORAGE = { list:list, get:get, save:save, remove:remove };
+  /* =========================
+     Get single bill
+     ========================= */
+  window.getMashBill = function(id){
+    return readAll().find(b => b.id === id) || null;
+  };
 })();
