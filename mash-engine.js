@@ -1,9 +1,9 @@
 /* ============================================================
    797 DISTILLERY — MASH ENGINE
-   Step 3: Restore yeast + nutrients (scaled by fill volume)
+   Step 4: Fermentation time + temperature guidance (RANGES)
    ============================================================ */
 
-export const ENGINE_VERSION = "mash-engine v3.5.0 (YEAST+NUTRIENTS)";
+export const ENGINE_VERSION = "mash-engine v3.6.0 (FERMENT-GUIDANCE)";
 
 function round(v, d = 2) {
   return Number(Number(v).toFixed(d));
@@ -161,6 +161,28 @@ function adjustSugarForTargetABV({
 }
 
 /* =========================
+   Fermentation guidance (RANGES)
+   ========================= */
+function fermentationGuidance(mashFamily) {
+  if (mashFamily === "RUM") {
+    return {
+      temp_range_f: "82–88°F",
+      estimated_days: "5–8 days",
+      notes:
+        "Rum ferments benefit from warmer temps. Expect slower finish due to molasses/L350 complexity."
+    };
+  }
+
+  // Grain / moonshine default
+  return {
+    temp_range_f: "80–85°F",
+    estimated_days: "4–6 days",
+    notes:
+      "Warm, fast ferment. Nutrients assumed. Cooler temps may extend fermentation."
+  };
+}
+
+/* =========================
    PUBLIC API
    ========================= */
 export function scaleMash(
@@ -201,7 +223,7 @@ export function scaleMash(
   const washABV = (og - 1) * 131;
 
   /* =========================
-     Yeast (scaled by fill)
+     Yeast
      ========================= */
   const yeastRule =
     mash.family === "RUM"
@@ -214,9 +236,14 @@ export function scaleMash(
   };
 
   /* =========================
-     Nutrients (scaled by fill)
+     Nutrients
      ========================= */
-  const nutrients_g = round(fill * 1.0, 1); // 1 g / gal planning value
+  const nutrients_g = round(fill * 1.0, 1);
+
+  /* =========================
+     Fermentation guidance
+     ========================= */
+  const fermentation = fermentationGuidance(mash.family);
 
   return {
     engineVersion: ENGINE_VERSION,
@@ -229,6 +256,8 @@ export function scaleMash(
 
     yeast,
     nutrients_g,
+
+    fermentation,
 
     totals: {
       og: round(og, 4),
