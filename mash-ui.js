@@ -1,196 +1,217 @@
 /* ============================================================
-   797 DISTILLERY — MASH UI
-   Step 1b: Mode selector moved to top (ordering only)
+   797 DISTILLERY — MASH ENGINE
+   Step 2: Planning vs Production behavior
    ============================================================ */
 
-import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
+export const ENGINE_VERSION = "mash-engine v3.4.0 (PLANNING-MODE)";
+
+function round(v, d = 2) {
+  return Number(Number(v).toFixed(d));
+}
 
 /* =========================
-   GLOBAL DEFINITIONS (REQUIRED)
+   REQUIRED GLOBALS
    ========================= */
-const MASH_DEFS = window.MASH_DEFS;
-if (!MASH_DEFS || !MASH_DEFS.RECIPES) {
-  throw new Error("MASH_DEFS not loaded — mash-definitions.js missing");
+const RULES = window.MASH_RULES;
+if (!RULES) throw new Error("MASH_RULES not loaded");
+
+const DEFS = window.MASH_DEFS;
+if (!DEFS || !DEFS.RECIPES) {
+  throw new Error("MASH_DEFS not loaded");
 }
-
-const mashSelect = document.getElementById("mashSelect");
-const fillGalInput = document.getElementById("fillGal");
-const targetABVInput = document.getElementById("targetABV");
-
-/* 🔹 Mode selector */
-const modeSelect = document.createElement("select");
-modeSelect.id = "modeSelect";
-modeSelect.innerHTML = `
-  <option value="production">Production (Locked)</option>
-  <option value="planning">Planning / Experiment</option>
-`;
-
-const btnBuildMash = document.getElementById("btnBuildMash");
-const btnStartMash = document.getElementById("btnStartMash");
-
-const resultsPanel = document.getElementById("resultsPanel");
-const mashResults = document.getElementById("mashResults");
-
-const logPanel = document.getElementById("logPanel");
-const logView = document.getElementById("logView");
-
-const engineStamp = document.getElementById("engineStamp");
-const targetHint = document.getElementById("targetHint");
-
-let currentMash = null;
 
 /* =========================
-   Inject Mode selector FIRST (ordering only)
+   Process efficiencies (your real world)
    ========================= */
-(function injectModeSelector(){
-  const mashGrid = document.querySelector(".mash-grid");
-  if (!mashGrid) return;
-
-  const wrapper = document.createElement("div");
-
-  const label = document.createElement("label");
-  label.setAttribute("for", "modeSelect");
-  label.textContent = "Mode";
-
-  wrapper.appendChild(label);
-  wrapper.appendChild(modeSelect);
-
-  // insert as first child (before Mash Type)
-  mashGrid.insertBefore(wrapper, mashGrid.firstChild);
-})();
-
-function setStamp(extra = ""){
-  if (!engineStamp) return;
-  engineStamp.textContent =
-    "ENGINE VERSION: " + ENGINE_VERSION + (extra ? ` — ${extra}` : "");
-}
-
-function titleCase(s){
-  return String(s).replace(/_/g, " ");
-}
-
-function populateMashSelect(){
-  mashSelect.innerHTML = `<option value="">Select mash...</option>`;
-  Object.keys(MASH_DEFS.RECIPES).forEach(id => {
-    const m = MASH_DEFS.RECIPES[id];
-    const opt = document.createElement("option");
-    opt.value = id;
-    opt.textContent = m.label;
-    mashSelect.appendChild(opt);
-  });
-}
-
-function updateHint(){
-  const mashId = mashSelect.value;
-  if (!mashId || !targetHint) {
-    if (targetHint) targetHint.textContent = "";
-    return;
-  }
-
-  const def = MASH_DEFS.RECIPES[mashId];
-  targetHint.textContent =
-    def.kind === "rum"
-      ? "Rum: Target Wash ABV behavior depends on selected mode."
-      : "Moonshine: Target Wash ABV behavior depends on selected mode.";
-}
-
-populateMashSelect();
-setStamp("loaded");
-updateHint();
-
-mashSelect.addEventListener("change", updateHint);
-
-btnBuildMash.onclick = () => {
-  setStamp("build");
-
-  const mashId = mashSelect.value;
-  const fillGal = Number(fillGalInput.value);
-  const mode = modeSelect.value;
-
-  const tRaw = String(targetABVInput.value ?? "").trim();
-  const targetABV = tRaw === "" ? null : Number(tRaw);
-
-  if (!mashId) return alert("Select a mash type.");
-  if (!fillGal || fillGal <= 0) return alert("Enter a valid fill volume.");
-
-  currentMash = scaleMash(mashId, fillGal, targetABV, mode);
-
-  renderMash(currentMash);
-  resultsPanel.hidden = false;
-  btnStartMash.disabled = false;
-
-  setStamp(mode);
+const EFF = {
+  GRAIN: 0.65,
+  SUGAR: 1.00,
+  RUM: 0.90
 };
 
-btnStartMash.onclick = () => {
-  if (!currentMash) return;
+/* =========================
+   Normalize mash definition
+   ========================= */
+function normalizeMash(def) {
+  const fermentables = {};
+  const isRum = def.kind === "rum";
 
-  if (!window.createMashLog || !window.saveMashRun || !window.saveMashLog) {
-    alert("Mash logging functions not loaded.");
-    return;
+  if (Array.isArray(def.grains)) {
+    def.grains.forEach(g => {
+      fermentables[g.key] = {
+        lb_per_gal: g.lb / def.baseVolumeGal
+      };
+    });
   }
 
-  const def = MASH_DEFS.RECIPES[currentMash.mashId];
+  if (def.sugarLb) {
+    fermentables.sugar = {
+      lb_per_gal: def.sugarLb / def.baseVolumeGal
+    };
+  }
 
-  const log = window.createMashLog({
-    mashId: currentMash.mashId,
-    mashName: currentMash.name,
-    family: def.kind,
-    fillGal: currentMash.fillGal,
-    fermentOnGrain: currentMash.fermentOnGrain,
-    mode: modeSelect.value
-  });
+  if (def.l350Gal) {
+    fermentables.l350 = {
+      gal_per_gal: def.l350Gal / def.baseVolumeGal
+    };
+  }
 
-  window.saveMashRun(currentMash);
-  window.saveMashLog(log);
+  if (def.molassesGal) {
+    fermentables.molasses = {
+      gal_per_gal: def.molassesGal / def.baseVolumeGal
+    };
+  }
 
-  renderLog(log);
-  logPanel.hidden = false;
-  btnStartMash.disabled = true;
-};
-
-function renderMash(mash){
-  const f = mash.fermentables;
-
-  let html = `
-    <p><strong>${mash.name}</strong></p>
-    <p>Mode: <strong>${modeSelect.value}</strong></p>
-    <p>Fill Volume: <strong>${mash.fillGal} gal</strong></p>
-  `;
-
-  html += `<h3>Fermentables</h3><ul>`;
-  Object.keys(f).forEach(key => {
-    if (f[key].lb !== undefined)
-      html += `<li>${titleCase(key)}: ${f[key].lb} lb</li>`;
-    else if (f[key].gal !== undefined)
-      html += `<li>${titleCase(key)}: ${f[key].gal} gal</li>`;
-  });
-  html += `</ul>`;
-
-  html += `
-    <h3>Fermentation Estimates</h3>
-    <ul>
-      <li>OG: ${mash.totals.og}</li>
-      <li>Wash ABV: ${mash.totals.washABV_percent}%</li>
-    </ul>
-  `;
-
-  mashResults.innerHTML = html;
+  return {
+    id: def.id,
+    name: def.label,
+    family: isRum ? "RUM" : "MOONSHINE",
+    fermentables,
+    fermentOnGrain: !isRum
+  };
 }
 
-function renderLog(log){
-  let html = `
-    <p><strong>${log.meta.mashName}</strong></p>
-    <p>Created: ${log.meta.created_at}</p>
-    <p>Mode: ${log.meta.mode}</p>
-    <h3>Checkpoints</h3>
-    <ul>
-  `;
+/* =========================
+   Scale base mash
+   ========================= */
+function scaleBaseMash(mash, fillGal) {
+  const out = {
+    fermentables: {},
+    gp_grain: 0,
+    gp_sugar: 0,
+    gp_rum: 0
+  };
 
-  log.checkpoints.forEach(c => {
-    html += `<li>${c.checkpoint}</li>`;
-  });
+  for (const key in mash.fermentables) {
+    const f = mash.fermentables[key];
 
-  html += `</ul>`;
-  logView.innerHTML = html;
+    if (f.lb_per_gal !== undefined) {
+      const lb = f.lb_per_gal * fillGal;
+      out.fermentables[key] = { lb: round(lb, 1) };
+
+      const gpKey = key === "sugar"
+        ? "GRANULATED_SUGAR"
+        : key.toUpperCase();
+
+      const gp = lb * (RULES.GRAVITY_POINTS[gpKey] || 0);
+
+      if (key === "sugar") out.gp_sugar += gp;
+      else out.gp_grain += gp;
+    }
+
+    if (f.gal_per_gal !== undefined) {
+      const gal = f.gal_per_gal * fillGal;
+      out.fermentables[key] = { gal: round(gal, 2) };
+
+      const lb = gal * 8.34;
+      out.gp_rum += lb * (RULES.GRAVITY_POINTS[key.toUpperCase()] || 0);
+    }
+  }
+
+  return out;
+}
+
+/* =========================
+   Expected gravity
+   ========================= */
+function expectedTotalGP(base) {
+  return (
+    base.gp_grain * EFF.GRAIN +
+    base.gp_sugar * EFF.SUGAR +
+    base.gp_rum * EFF.RUM
+  );
+}
+
+/* =========================
+   ABV → sugar logic
+   ========================= */
+function adjustSugarForTargetABV({
+  base,
+  fillGal,
+  targetABV,
+  baselineSugarLb,
+  mode
+}) {
+  const targetOG = 1 + (targetABV / 131);
+  const targetGP = (targetOG - 1) * 1000 * fillGal;
+
+  const fixedGP =
+    base.gp_grain * EFF.GRAIN +
+    base.gp_rum * EFF.RUM;
+
+  const neededSugarGP = targetGP - fixedGP;
+  const neededSugarLb =
+    neededSugarGP / (RULES.GRAVITY_POINTS.GRANULATED_SUGAR || 46);
+
+  let finalSugarLb = neededSugarLb;
+
+  if (mode === "production") {
+    // 🔒 Production guardrail
+    finalSugarLb = Math.max(baselineSugarLb, neededSugarLb);
+  }
+
+  base.fermentables.sugar.lb = round(finalSugarLb, 1);
+  base.gp_sugar =
+    finalSugarLb * (RULES.GRAVITY_POINTS.GRANULATED_SUGAR || 46);
+
+  return {
+    baselineSugarLb: round(baselineSugarLb, 1),
+    finalSugarLb: round(finalSugarLb, 1),
+    mode
+  };
+}
+
+/* =========================
+   PUBLIC API
+   ========================= */
+export function scaleMash(
+  mashId,
+  fillGal,
+  targetABV = null,
+  mode = "production"
+) {
+  const mashDef = DEFS.RECIPES[mashId];
+  if (!mashDef) throw new Error("Unknown mashId");
+
+  const mash = normalizeMash(mashDef);
+  const fill = Number(fillGal);
+
+  const base = scaleBaseMash(mash, fill);
+
+  const baselineSugarLb =
+    base.fermentables.sugar?.lb || 0;
+
+  let abvAdjustment = null;
+
+  if (
+    targetABV !== null &&
+    mash.family !== "RUM" &&
+    base.fermentables.sugar
+  ) {
+    abvAdjustment = adjustSugarForTargetABV({
+      base,
+      fillGal: fill,
+      targetABV,
+      baselineSugarLb,
+      mode
+    });
+  }
+
+  const totalGP = expectedTotalGP(base);
+  const og = 1 + totalGP / fill / 1000;
+  const washABV = (og - 1) * 131;
+
+  return {
+    engineVersion: ENGINE_VERSION,
+    mashId,
+    name: mash.name,
+    mode,
+    fillGal: round(fill, 2),
+    fermentables: base.fermentables,
+    totals: {
+      og: round(og, 4),
+      washABV_percent: round(washABV, 2)
+    },
+    abvAdjustment
+  };
 }
