@@ -1,6 +1,6 @@
 /* ============================================================
    797 DISTILLERY — MASH UI
-   Step 6: Save & Reload mash bills
+   Step 7: Export / Import mash bills (cross-device)
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
@@ -18,13 +18,10 @@ const fillGalInput = document.getElementById("fillGal");
 const targetABVInput = document.getElementById("targetABV");
 
 const btnBuildMash = document.getElementById("btnBuildMash");
-const btnStartMash = document.getElementById("btnStartMash");
-
 const resultsPanel = document.getElementById("resultsPanel");
 const mashResults = document.getElementById("mashResults");
 
 const engineStamp = document.getElementById("engineStamp");
-const targetHint = document.getElementById("targetHint");
 
 let currentMash = null;
 
@@ -47,39 +44,111 @@ modeSelect.innerHTML = `
   modeWrap.appendChild(modeSelect);
   mashGrid.insertBefore(modeWrap, mashGrid.firstChild);
 
-  // SAVE / LOAD
+  // ACTION BUTTONS
   const actions = document.querySelector(".actions");
 
   const saveBtn = document.createElement("button");
-  saveBtn.textContent = "Save Mash Bill";
-  saveBtn.type = "button";
+  saveBtn.textContent = "Save";
+
+  const exportBtn = document.createElement("button");
+  exportBtn.textContent = "Export";
+
+  const importBtn = document.createElement("button");
+  importBtn.textContent = "Import";
 
   const loadSelect = document.createElement("select");
   const loadBtn = document.createElement("button");
   loadBtn.textContent = "Load";
 
   actions.appendChild(saveBtn);
+  actions.appendChild(exportBtn);
+  actions.appendChild(importBtn);
   actions.appendChild(loadSelect);
   actions.appendChild(loadBtn);
+
+  /* =========================
+     Hidden file input
+     ========================= */
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = ".json";
+  fileInput.style.display = "none";
+  document.body.appendChild(fileInput);
 
   function refreshSaved(){
     loadSelect.innerHTML = `<option value="">Saved mash bills…</option>`;
     (window.loadMashBills?.() || []).forEach(b => {
       const opt = document.createElement("option");
       opt.value = b.id;
-      opt.textContent =
-        `${b.name} — ${b.fillGal} gal (${b.mode})`;
+      opt.textContent = `${b.name} — ${b.fillGal} gal (${b.mode})`;
       loadSelect.appendChild(opt);
     });
   }
 
+  /* =========================
+     SAVE
+     ========================= */
   saveBtn.onclick = () => {
     if (!currentMash) return alert("Build a mash first.");
     window.saveMashBill(currentMash);
     refreshSaved();
-    alert("Mash bill saved.");
+    alert("Mash bill saved locally.");
   };
 
+  /* =========================
+     EXPORT
+     ========================= */
+  exportBtn.onclick = () => {
+    if (!currentMash) return alert("Nothing to export.");
+
+    const blob = new Blob(
+      [JSON.stringify(currentMash, null, 2)],
+      { type: "application/json" }
+    );
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download =
+      `${currentMash.name.replace(/\s+/g, "_")}_${Date.now()}.json`;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  };
+
+  /* =========================
+     IMPORT
+     ========================= */
+  importBtn.onclick = () => fileInput.click();
+
+  fileInput.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const mash = JSON.parse(reader.result);
+
+        // Restore inputs
+        mashSelect.value = mash.mashId;
+        fillGalInput.value = mash.fillGal;
+        modeSelect.value = mash.mode;
+
+        currentMash = mash;
+        renderMash(currentMash);
+        resultsPanel.hidden = false;
+      } catch {
+        alert("Invalid mash file.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  /* =========================
+     LOAD (local)
+     ========================= */
   loadBtn.onclick = () => {
     const id = loadSelect.value;
     if (!id) return;
@@ -87,7 +156,6 @@ modeSelect.innerHTML = `
     const rec = window.getMashBill(id);
     if (!rec) return;
 
-    // Restore inputs
     mashSelect.value = rec.mashId;
     fillGalInput.value = rec.fillGal;
     modeSelect.value = rec.mode;
@@ -126,6 +194,9 @@ function populateMashSelect(){
 populateMashSelect();
 setStamp("loaded");
 
+/* =========================
+   Build
+   ========================= */
 btnBuildMash.onclick = () => {
   const mashId = mashSelect.value;
   const fillGal = Number(fillGalInput.value);
