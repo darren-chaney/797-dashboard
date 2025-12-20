@@ -7,7 +7,6 @@
 
   <!-- Shared header -->
   <link rel="stylesheet" href="header.css?v=1.0.0" />
-
   <!-- Mash app css -->
   <link rel="stylesheet" href="mash.css?v=1.0.1" />
 </head>
@@ -16,12 +15,10 @@
 
   <!-- GLOBAL HEADER -->
   <div id="global-header"></div>
-
   <script>
     const PAGE_TITLE = "Mash Log";
     const PAGE_SUBTITLE =
       "Live mash lifecycle journal (pH, SG, temperature, notes).";
-
     fetch("header.html?v=1.0.0")
       .then(r => r.text())
       .then(html => (document.getElementById("global-header").innerHTML = html))
@@ -46,6 +43,7 @@
     <div class="panel mash-panel">
       <h3>Add Entry</h3>
 
+      <!-- BASE OBSERVATIONS -->
       <div class="mash-grid">
         <div>
           <label>pH</label>
@@ -65,44 +63,59 @@
         </div>
       </div>
 
-      <!-- TOGGLES -->
+      <!-- YEAST / NUTRIENT DROPDOWN -->
       <div style="margin-top:14px;">
-        <label><input type="checkbox" id="chkYeast" /> Yeast added</label><br/>
-        <label><input type="checkbox" id="chkNutrient" /> Nutrient added</label><br/>
-        <label><input type="checkbox" id="chkPH" /> pH adjusted</label>
+        <label>Yeast / Nutrient Added</label>
+        <select id="addYN">
+          <option value="">None</option>
+          <option value="yeast">Yeast</option>
+          <option value="nutrient">Nutrient</option>
+        </select>
       </div>
 
-      <!-- YEAST -->
-      <div id="yeastFields" class="mash-grid" hidden>
-        <div><label>Yeast</label><input id="yeastProduct" type="text" /></div>
-        <div><label>Amount</label><input id="yeastAmount" type="number" step="0.1" /></div>
+      <div id="ynFields" class="mash-grid" hidden>
+        <div>
+          <label>Product</label>
+          <input id="ynProduct" type="text" />
+        </div>
+        <div>
+          <label>Amount</label>
+          <input id="ynAmount" type="number" step="0.1" />
+        </div>
         <div>
           <label>Unit</label>
-          <select id="yeastUnit"><option value="g">g</option><option value="oz">oz</option></select>
+          <select id="ynUnit">
+            <option value="g">g</option>
+            <option value="oz">oz</option>
+          </select>
         </div>
       </div>
 
-      <!-- NUTRIENT -->
-      <div id="nutrientFields" class="mash-grid" hidden>
-        <div><label>Nutrient</label><input id="nutrientProduct" type="text" /></div>
-        <div><label>Amount</label><input id="nutrientAmount" type="number" step="0.1" /></div>
-        <div>
-          <label>Unit</label>
-          <select id="nutrientUnit"><option value="g">g</option><option value="oz">oz</option></select>
-        </div>
+      <!-- PH ADJUST DROPDOWN -->
+      <div style="margin-top:14px;">
+        <label>pH Adjustment</label>
+        <select id="phAction">
+          <option value="">None</option>
+          <option value="lower">Lower pH</option>
+          <option value="raise">Raise pH</option>
+        </select>
       </div>
 
-      <!-- PH ADJUST -->
       <div id="phFields" class="mash-grid" hidden>
         <div>
-          <label>Direction</label>
-          <select id="phDir"><option value="lower">Lower</option><option value="raise">Raise</option></select>
+          <label>Product</label>
+          <input id="phProduct" type="text" />
         </div>
-        <div><label>Product</label><input id="phProduct" type="text" /></div>
-        <div><label>Amount</label><input id="phAmount" type="number" step="0.1" /></div>
+        <div>
+          <label>Amount</label>
+          <input id="phAmount" type="number" step="0.1" />
+        </div>
         <div>
           <label>Unit</label>
-          <select id="phUnit"><option value="g">g</option><option value="ml">mL</option></select>
+          <select id="phUnit">
+            <option value="g">g</option>
+            <option value="ml">mL</option>
+          </select>
         </div>
       </div>
 
@@ -126,28 +139,21 @@
   <script src="mash-log.js"></script>
 
   <script>
-    const PAGE_VERSION = "1.4";
+    const PAGE_VERSION = "1.5";
     const PAGE_DATE = "2025-12-20";
-
     const el = id => document.getElementById(id);
     const qs = n => new URLSearchParams(location.search).get(n);
 
     let logId = qs("log");
     let currentLog = null;
 
-    /* =========================
-       Toggle behavior
-       ========================= */
-    const toggle = (chk, tgt) =>
-      el(chk).onchange = () => el(tgt).hidden = !el(chk).checked;
+    /* Dropdown behavior */
+    el("addYN").onchange = () =>
+      el("ynFields").hidden = !el("addYN").value;
+    el("phAction").onchange = () =>
+      el("phFields").hidden = !el("phAction").value;
 
-    toggle("chkYeast", "yeastFields");
-    toggle("chkNutrient", "nutrientFields");
-    toggle("chkPH", "phFields");
-
-    /* =========================
-       Log selector
-       ========================= */
+    /* Log selector */
     function getAllLogs(){
       try {
         return JSON.parse(localStorage.getItem("mash_logs_v1")) || [];
@@ -157,42 +163,26 @@
     }
 
     function renderLogList(activeId){
-      const logs = getAllLogs();
       const wrap = el("logList");
-
+      const logs = getAllLogs();
       if (!logs.length) {
         wrap.innerHTML = "<p class='muted'>No mash logs found.</p>";
         return;
       }
-
-      const active = [], archived = [];
-
-      logs.forEach(l => {
-        (l.meta?.status === "archived" ? archived : active).push(l);
-      });
-
-      const renderGroup = (title, list) =>
-        list.length ? `
-          <h4>${title}</h4>
-          <ul>
-            ${list.map(l => `
-              <li>
-                <a href="?log=${l.id}"
-                   style="${l.id === activeId ? "font-weight:bold;" : ""}">
-                  ${l.meta?.mashName || "Unnamed Mash"} — ${l.meta?.fillGal ?? "?"} gal
-                </a>
-              </li>
-            `).join("")}
-          </ul>` : "";
-
-      wrap.innerHTML =
-        renderGroup("🟢 Active Mash Logs", active) +
-        renderGroup("📁 Archived Mash Logs", archived);
+      wrap.innerHTML = `
+        <ul>
+          ${logs.map(l => `
+            <li>
+              <a href="?log=${l.id}"
+                 style="${l.id === activeId ? "font-weight:bold;" : ""}">
+                ${l.meta.mashName} — ${l.meta.fillGal} gal
+              </a>
+            </li>
+          `).join("")}
+        </ul>
+      `;
     }
 
-    /* =========================
-       Rendering
-       ========================= */
     function renderMeta(log){
       el("logMeta").innerHTML = `
         <p><strong>${log.meta.mashName}</strong></p>
@@ -209,9 +199,8 @@
           <div>pH: ${e.ph ?? "—"} | SG: ${e.sg ?? "—"} | Temp: ${e.temp ?? "—"}°F</div>
           ${e.additions ? `
             <ul>
-              ${e.additions.yeast ? `<li>Yeast: ${e.additions.yeast.product} (${e.additions.yeast.amount}${e.additions.yeast.unit})</li>` : ""}
-              ${e.additions.nutrient ? `<li>Nutrient: ${e.additions.nutrient.product} (${e.additions.nutrient.amount}${e.additions.nutrient.unit})</li>` : ""}
-              ${e.additions.phAdjust ? `<li>pH ${e.additions.phAdjust.direction}: ${e.additions.phAdjust.product} (${e.additions.phAdjust.amount}${e.additions.phAdjust.unit})</li>` : ""}
+              ${e.additions.yn ? `<li>${e.additions.yn.type}: ${e.additions.yn.product} (${e.additions.yn.amount}${e.additions.yn.unit})</li>` : ""}
+              ${e.additions.ph ? `<li>pH ${e.additions.ph.direction}: ${e.additions.ph.product} (${e.additions.ph.amount}${e.additions.ph.unit})</li>` : ""}
             </ul>` : ""}
           ${e.notes ? `<div>${e.notes}</div>` : ""}
         </div>
@@ -221,18 +210,13 @@
     function loadLog(id){
       currentLog = window.getMashLog(id);
       if (!currentLog) return;
-
-      logId = id;
       renderMeta(currentLog);
       renderEntries(currentLog);
-      renderLogList(logId);
+      renderLogList(id);
     }
 
-    /* =========================
-       Add entry
-       ========================= */
     el("btnAddEntry").onclick = () => {
-      if (!currentLog) return alert("Select a mash log first.");
+      if (!currentLog) return;
 
       const entry = {
         ph: el("inPH").value || null,
@@ -242,27 +226,23 @@
         additions: {}
       };
 
-      if (el("chkYeast").checked)
-        entry.additions.yeast = {
-          product: el("yeastProduct").value,
-          amount: el("yeastAmount").value,
-          unit: el("yeastUnit").value
+      if (el("addYN").value) {
+        entry.additions.yn = {
+          type: el("addYN").value,
+          product: el("ynProduct").value,
+          amount: el("ynAmount").value,
+          unit: el("ynUnit").value
         };
+      }
 
-      if (el("chkNutrient").checked)
-        entry.additions.nutrient = {
-          product: el("nutrientProduct").value,
-          amount: el("nutrientAmount").value,
-          unit: el("nutrientUnit").value
-        };
-
-      if (el("chkPH").checked)
-        entry.additions.phAdjust = {
-          direction: el("phDir").value,
+      if (el("phAction").value) {
+        entry.additions.ph = {
+          direction: el("phAction").value,
           product: el("phProduct").value,
           amount: el("phAmount").value,
           unit: el("phUnit").value
         };
+      }
 
       window.addMashLogEntry(logId, entry);
       loadLog(logId);
