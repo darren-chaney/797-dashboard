@@ -19,6 +19,7 @@
     const PAGE_TITLE = "Mash Log";
     const PAGE_SUBTITLE =
       "Live mash lifecycle journal (pH, SG, temperature, notes).";
+
     fetch("header.html?v=1.0.0")
       .then(r => r.text())
       .then(html => (document.getElementById("global-header").innerHTML = html))
@@ -35,9 +36,10 @@
       </select>
     </div>
 
-    <!-- META -->
+    <!-- LOG CONTENT (HIDDEN UNTIL SELECTED) -->
     <div id="logSection" hidden>
 
+      <!-- META -->
       <div class="panel mash-panel">
         <h2>Mash Log</h2>
         <div id="logMeta" class="muted"></div>
@@ -67,7 +69,7 @@
           </div>
         </div>
 
-        <!-- YEAST / NUTRIENT -->
+        <!-- YEAST / NUTRIENT DROPDOWN -->
         <div style="margin-top:14px;">
           <label>Yeast / Nutrient Added</label>
           <select id="addYN">
@@ -77,6 +79,7 @@
           </select>
         </div>
 
+        <!-- YEAST / NUTRIENT FIELDS -->
         <div id="ynFields" class="mash-grid" hidden>
           <div>
             <label>Product</label>
@@ -95,7 +98,7 @@
           </div>
         </div>
 
-        <!-- PH ADJUST -->
+        <!-- PH ADJUST DROPDOWN -->
         <div style="margin-top:14px;">
           <label>pH Adjustment</label>
           <select id="phAction">
@@ -105,6 +108,7 @@
           </select>
         </div>
 
+        <!-- PH ADJUST FIELDS -->
         <div id="phFields" class="mash-grid" hidden>
           <div>
             <label>Product</label>
@@ -145,20 +149,44 @@
   <script src="mash-log.js"></script>
 
   <script>
-    const PAGE_VERSION = "1.6";
+    const PAGE_VERSION = "1.7";
     const PAGE_DATE = "2025-12-20";
+
     const el = id => document.getElementById(id);
 
     let currentLog = null;
     let logId = null;
 
-    /* Dropdown behavior */
-    el("addYN").onchange = () =>
-      el("ynFields").hidden = !el("addYN").value;
-    el("phAction").onchange = () =>
-      el("phFields").hidden = !el("phAction").value;
+    /* =========================
+       Dropdown behavior (CLEAN)
+       ========================= */
 
-    /* Load logs */
+    el("addYN").onchange = () => {
+      const show = !!el("addYN").value;
+      el("ynFields").hidden = !show;
+
+      if (!show) {
+        el("ynProduct").value = "";
+        el("ynAmount").value = "";
+        el("ynUnit").value = "g";
+      }
+    };
+
+    el("phAction").onchange = () => {
+      const show = !!el("phAction").value;
+      el("phFields").hidden = !show;
+
+      if (!show) {
+        el("phProduct").value = "";
+        el("phAmount").value = "";
+        el("phUnit").value = "g";
+      }
+    };
+
+    /* =========================
+       Load mash logs
+       ========================= */
+
     function getAllLogs(){
       try {
         return JSON.parse(localStorage.getItem("mash_logs_v1")) || [];
@@ -190,7 +218,11 @@
       el("entries").innerHTML = (log.entries || []).map(e => `
         <div class="panel" style="margin-bottom:12px;">
           <div class="muted">${new Date(e.ts).toLocaleString()}</div>
-          <div>pH: ${e.ph ?? "—"} | SG: ${e.sg ?? "—"} | Temp: ${e.temp ?? "—"}°F</div>
+          <div>
+            pH: ${e.ph ?? "—"} |
+            SG: ${e.sg ?? "—"} |
+            Temp: ${e.temp ?? "—"}°F
+          </div>
           ${e.additions ? `
             <ul>
               ${e.additions.yn ? `<li>${e.additions.yn.type}: ${e.additions.yn.product} (${e.additions.yn.amount}${e.additions.yn.unit})</li>` : ""}
@@ -204,8 +236,10 @@
     function loadLog(id){
       currentLog = window.getMashLog(id);
       if (!currentLog) return;
+
       logId = id;
       el("logSection").hidden = false;
+
       renderMeta(currentLog);
       renderEntries(currentLog);
     }
@@ -213,6 +247,10 @@
     el("logSelect").onchange = () => {
       if (el("logSelect").value) loadLog(el("logSelect").value);
     };
+
+    /* =========================
+       Add entry
+       ========================= */
 
     el("btnAddEntry").onclick = () => {
       if (!currentLog) return;
@@ -248,6 +286,7 @@
     };
 
     populateLogSelect();
+
     el("pageStamp").textContent =
       `Mash Log Page v${PAGE_VERSION} — ${PAGE_DATE}`;
   </script>
