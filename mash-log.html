@@ -37,7 +37,7 @@
     </div>
 
     <!-- LOG CONTENT -->
-    <div id="logSection" hidden>
+    <div id="logSection" style="display:none;">
 
       <!-- META -->
       <div class="panel mash-panel">
@@ -51,22 +51,10 @@
 
         <!-- CORE SNAPSHOT -->
         <div class="mash-grid">
-          <div>
-            <label>pH</label>
-            <input id="inPH" type="number" step="0.01" />
-          </div>
-          <div>
-            <label>SG</label>
-            <input id="inSG" type="number" step="0.001" />
-          </div>
-          <div>
-            <label>Temp (°F)</label>
-            <input id="inTemp" type="number" step="0.1" />
-          </div>
-          <div>
-            <label>Notes</label>
-            <input id="inNotes" type="text" />
-          </div>
+          <div><label>pH</label><input id="inPH" type="number" step="0.01" /></div>
+          <div><label>SG</label><input id="inSG" type="number" step="0.001" /></div>
+          <div><label>Temp (°F)</label><input id="inTemp" type="number" step="0.1" /></div>
+          <div><label>Notes</label><input id="inNotes" type="text" /></div>
         </div>
 
         <!-- YEAST / NUTRIENT -->
@@ -79,15 +67,9 @@
           </select>
         </div>
 
-        <div id="ynFields" class="mash-grid" hidden>
-          <div>
-            <label>Product</label>
-            <input id="ynProduct" type="text" />
-          </div>
-          <div>
-            <label>Amount</label>
-            <input id="ynAmount" type="number" step="0.1" />
-          </div>
+        <div id="ynFields" class="mash-grid" style="display:none;">
+          <div><label>Product</label><input id="ynProduct" type="text" /></div>
+          <div><label>Amount</label><input id="ynAmount" type="number" step="0.1" /></div>
           <div>
             <label>Unit</label>
             <select id="ynUnit">
@@ -107,15 +89,9 @@
           </select>
         </div>
 
-        <div id="phFields" class="mash-grid" hidden>
-          <div>
-            <label>Product</label>
-            <input id="phProduct" type="text" />
-          </div>
-          <div>
-            <label>Amount</label>
-            <input id="phAmount" type="number" step="0.1" />
-          </div>
+        <div id="phFields" class="mash-grid" style="display:none;">
+          <div><label>Product</label><input id="phProduct" type="text" /></div>
+          <div><label>Amount</label><input id="phAmount" type="number" step="0.1" /></div>
           <div>
             <label>Unit</label>
             <select id="phUnit">
@@ -147,59 +123,28 @@
   <script src="mash-log.js"></script>
 
   <script>
-    const PAGE_VERSION = "1.8";
+    const PAGE_VERSION = "1.9";
     const PAGE_DATE = "2025-12-20";
-
     const el = id => document.getElementById(id);
 
     let currentLog = null;
     let logId = null;
 
-    /* =========================
-       FORCE INITIAL STATE
-       ========================= */
-    function resetAdditionsUI(){
-      el("addYN").value = "";
-      el("phAction").value = "";
+    function hideYN(){ el("ynFields").style.display = "none"; }
+    function showYN(){ el("ynFields").style.display = "grid"; }
 
-      el("ynFields").hidden = true;
-      el("phFields").hidden = true;
+    function hidePH(){ el("phFields").style.display = "none"; }
+    function showPH(){ el("phFields").style.display = "grid"; }
 
-      el("ynProduct").value = "";
-      el("ynAmount").value = "";
-      el("ynUnit").value = "g";
+    el("addYN").onchange = () =>
+      el("addYN").value ? showYN() : hideYN();
 
-      el("phProduct").value = "";
-      el("phAmount").value = "";
-      el("phUnit").value = "g";
-    }
+    el("phAction").onchange = () =>
+      el("phAction").value ? showPH() : hidePH();
 
-    resetAdditionsUI();
-
-    /* =========================
-       Dropdown behavior
-       ========================= */
-    el("addYN").onchange = () => {
-      const show = el("addYN").value !== "";
-      el("ynFields").hidden = !show;
-      if (!show) resetAdditionsUI();
-    };
-
-    el("phAction").onchange = () => {
-      const show = el("phAction").value !== "";
-      el("phFields").hidden = !show;
-      if (!show) resetAdditionsUI();
-    };
-
-    /* =========================
-       Load mash logs
-       ========================= */
     function getAllLogs(){
-      try {
-        return JSON.parse(localStorage.getItem("mash_logs_v1")) || [];
-      } catch {
-        return [];
-      }
+      try { return JSON.parse(localStorage.getItem("mash_logs_v1")) || []; }
+      catch { return []; }
     }
 
     function populateLogSelect(){
@@ -225,11 +170,7 @@
       el("entries").innerHTML = (log.entries || []).map(e => `
         <div class="panel" style="margin-bottom:12px;">
           <div class="muted">${new Date(e.ts).toLocaleString()}</div>
-          <div>
-            pH: ${e.ph ?? "—"} |
-            SG: ${e.sg ?? "—"} |
-            Temp: ${e.temp ?? "—"}°F
-          </div>
+          <div>pH: ${e.ph ?? "—"} | SG: ${e.sg ?? "—"} | Temp: ${e.temp ?? "—"}°F</div>
           ${e.additions ? `
             <ul>
               ${e.additions.yn ? `<li>${e.additions.yn.type}: ${e.additions.yn.product} (${e.additions.yn.amount}${e.additions.yn.unit})</li>` : ""}
@@ -245,9 +186,12 @@
       if (!currentLog) return;
 
       logId = id;
-      el("logSection").hidden = false;
+      el("logSection").style.display = "block";
 
-      resetAdditionsUI();
+      hideYN(); hidePH();
+      el("addYN").value = "";
+      el("phAction").value = "";
+
       renderMeta(currentLog);
       renderEntries(currentLog);
     }
@@ -256,9 +200,6 @@
       if (el("logSelect").value) loadLog(el("logSelect").value);
     };
 
-    /* =========================
-       Add entry
-       ========================= */
     el("btnAddEntry").onclick = () => {
       if (!currentLog) return;
 
