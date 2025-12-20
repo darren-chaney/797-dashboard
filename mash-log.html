@@ -33,6 +33,12 @@
        ========================= -->
   <main class="mash-container">
 
+    <!-- LOG SELECTOR -->
+    <div class="panel mash-panel">
+      <h3>Select Mash Log</h3>
+      <div id="logList" class="muted"></div>
+    </div>
+
     <!-- META -->
     <div class="panel mash-panel">
       <h2>Mash Log</h2>
@@ -91,16 +97,66 @@
 
   <script>
     /* ============================================================
-       Mash Log Page — Phase 4 (Entry UI)
+       Mash Log Page — Phase 5 (Selector + Entry System)
        ============================================================ */
 
-    const PAGE_VERSION = "1.1";
+    const PAGE_VERSION = "1.2";
     const PAGE_DATE = "2025-12-20";
 
     const qs = n => new URLSearchParams(location.search).get(n);
-    const logId = qs("log");
-
     const el = id => document.getElementById(id);
+
+    let logId = qs("log");
+    let currentLog = null;
+
+    function getAllLogs(){
+      try {
+        return JSON.parse(localStorage.getItem("mash_logs_v1")) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function renderLogList(activeId){
+      const wrap = el("logList");
+      const logs = getAllLogs();
+
+      if (!logs.length) {
+        wrap.innerHTML = "<p class='muted'>No mash logs found.</p>";
+        return;
+      }
+
+      const active = [];
+      const archived = [];
+
+      logs.forEach(l => {
+        const status = l.meta?.status || "active";
+        (status === "archived" ? archived : active).push(l);
+      });
+
+      function renderGroup(title, list){
+        if (!list.length) return "";
+        return `
+          <h4 style="margin-top:12px;">${title}</h4>
+          <ul>
+            ${list.map(l => `
+              <li>
+                <a href="?log=${l.id}"
+                   style="${l.id === activeId ? "font-weight:bold;" : ""}">
+                  ${l.meta?.mashName || "Unnamed Mash"}
+                  — ${l.meta?.fillGal ?? "?"} gal
+                  (${new Date(l.created_at).toLocaleDateString()})
+                </a>
+              </li>
+            `).join("")}
+          </ul>
+        `;
+      }
+
+      wrap.innerHTML =
+        renderGroup("🟢 Active Mash Logs", active) +
+        renderGroup("📁 Archived Mash Logs", archived);
+    }
 
     function renderMeta(log){
       el("logMeta").innerHTML = `
@@ -120,7 +176,7 @@
       const wrap = el("entries");
 
       if (!log.entries || !log.entries.length) {
-        wrap.innerHTML = `<p class="muted">No entries yet.</p>`;
+        wrap.innerHTML = "<p class='muted'>No entries yet.</p>";
         return;
       }
 
@@ -139,25 +195,29 @@
       `).join("");
     }
 
-    function load(){
-      if (!logId) {
-        el("logMeta").innerHTML = "<p class='muted'>No mash log specified.</p>";
-        return null;
+    function loadLog(id){
+      if (!id) {
+        el("logMeta").innerHTML = "<p class='muted'>Select a mash log.</p>";
+        el("entries").innerHTML = "<p class='muted'>No entries.</p>";
+        return;
       }
-      const log = window.getMashLog(logId);
+
+      const log = window.getMashLog(id);
       if (!log) {
         el("logMeta").innerHTML = "<p class='muted'>Mash log not found.</p>";
-        return null;
+        return;
       }
+
+      logId = id;
+      currentLog = log;
+
       renderMeta(log);
       renderEntries(log);
-      return log;
+      renderLogList(log.id);
     }
 
-    let currentLog = load();
-
     el("btnAddEntry").onclick = () => {
-      if (!currentLog) return;
+      if (!currentLog) return alert("Select a mash log first.");
 
       const data = {
         ph: el("inPH").value ? Number(el("inPH").value) : null,
@@ -168,12 +228,13 @@
 
       window.addMashLogEntry(logId, data);
 
-      // Clear inputs
       ["inPH","inSG","inTemp","inNotes"].forEach(id => el(id).value = "");
 
-      currentLog = window.getMashLog(logId);
-      renderEntries(currentLog);
+      loadLog(logId);
     };
+
+    renderLogList(logId);
+    loadLog(logId);
 
     el("pageStamp").textContent =
       `Mash Log Page v${PAGE_VERSION} — ${PAGE_DATE}`;
