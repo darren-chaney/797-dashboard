@@ -1,6 +1,6 @@
 /* ============================================================
    797 DISTILLERY — MASH UI
-   Restored Save Mash Log (stable)
+   Restored: Save + Load mash bills + Save Mash Log
    ============================================================ */
 
 import { scaleMash, ENGINE_VERSION } from "./mash-engine.js";
@@ -42,15 +42,17 @@ modeSelect.innerHTML = `
 
   const actions = document.querySelector(".actions");
 
-  /* Save Mash Bill */
+  /* ---------- Buttons ---------- */
   const saveBillBtn = document.createElement("button");
   saveBillBtn.textContent = "Save Mash Bill";
 
-  /* Save Mash Log (RESTORED) */
+  const loadSelect = document.createElement("select");
+  const loadBtn = document.createElement("button");
+  loadBtn.textContent = "Load Mash Bill";
+
   const saveLogBtn = document.createElement("button");
   saveLogBtn.textContent = "Save Mash Log";
 
-  /* Export / Import */
   const exportBtn = document.createElement("button");
   exportBtn.textContent = "Export";
 
@@ -58,9 +60,26 @@ modeSelect.innerHTML = `
   importBtn.textContent = "Import";
 
   actions.appendChild(saveBillBtn);
+  actions.appendChild(loadSelect);
+  actions.appendChild(loadBtn);
   actions.appendChild(saveLogBtn);
   actions.appendChild(exportBtn);
   actions.appendChild(importBtn);
+
+  /* =========================
+     Helpers
+     ========================= */
+  function refreshSavedBills(){
+    loadSelect.innerHTML = `<option value="">Saved mash bills…</option>`;
+    (window.loadMashBills?.() || []).forEach(b => {
+      const opt = document.createElement("option");
+      opt.value = b.id;
+      opt.textContent = `${b.name} — ${b.fillGal} gal (${b.mode})`;
+      loadSelect.appendChild(opt);
+    });
+  }
+
+  refreshSavedBills();
 
   /* =========================
      Save Mash Bill
@@ -68,11 +87,31 @@ modeSelect.innerHTML = `
   saveBillBtn.onclick = () => {
     if (!currentMash) return alert("Build a mash first.");
     window.saveMashBill?.(currentMash);
+    refreshSavedBills();
     alert("Mash bill saved.");
   };
 
   /* =========================
-     Save Mash Log (SAFE)
+     Load Mash Bill
+     ========================= */
+  loadBtn.onclick = () => {
+    const id = loadSelect.value;
+    if (!id) return alert("Select a saved mash bill.");
+
+    const rec = window.getMashBill?.(id);
+    if (!rec) return alert("Saved mash not found.");
+
+    mashSelect.value = rec.mashId;
+    fillGalInput.value = rec.fillGal;
+    modeSelect.value = rec.mode;
+
+    currentMash = rec.data;
+    renderMash(currentMash);
+    resultsPanel.hidden = false;
+  };
+
+  /* =========================
+     Save Mash Log
      ========================= */
   saveLogBtn.onclick = () => {
     if (!currentMash) return alert("Build a mash first.");
