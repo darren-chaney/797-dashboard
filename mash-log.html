@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>797 Distillery — Mash Log</title>
+
+  <!-- Global CSS (same as rest of app) -->
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+  <!-- =========================
+       Global Header (shared)
+       ========================= -->
+  <header class="app-header">
+    <h1>797 Distillery</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="products.html">Products</a>
+      <a href="mash-builder.html">Mash Builder</a>
+    </nav>
+  </header>
+
+  <!-- =========================
+       Main
+       ========================= -->
+  <main class="app-container">
+
+    <section class="panel">
+      <h2>Mash Log</h2>
+      <div id="logMeta" class="meta"></div>
+    </section>
+
+    <section class="panel">
+      <h3>Log Entries</h3>
+      <div id="entries">
+        <p class="muted">No entries yet.</p>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <span id="pageStamp"></span>
+    </footer>
+
+  </main>
+
+  <!-- =========================
+       Scripts
+       ========================= -->
+  <script src="mash-log.js"></script>
+
+  <script>
+    /* ============================================================
+       Mash Log Page — Phase 3
+       ============================================================ */
+
+    const PAGE_VERSION = "1.0";
+    const PAGE_DATE = "2025-12-20";
+
+    function qs(name){
+      return new URLSearchParams(window.location.search).get(name);
+    }
+
+    function renderMeta(log){
+      const el = document.getElementById("logMeta");
+
+      el.innerHTML = `
+        <p><strong>${log.meta.mashName || "Unnamed Mash"}</strong></p>
+        <p>Fill: ${log.meta.fillGal ?? "—"} gal</p>
+        <p>Mode: ${log.meta.mode ?? "—"}</p>
+        <p>Started: ${new Date(log.created_at).toLocaleString()}</p>
+        <hr />
+        <p class="muted">
+          Log Version: ${log.meta.logVersion || "1.0"}<br />
+          Created By: ${log.meta.appVersion || "unknown"}
+        </p>
+      `;
+    }
+
+    function renderEntries(log){
+      const wrap = document.getElementById("entries");
+
+      if (!log.entries || !log.entries.length) {
+        wrap.innerHTML = `<p class="muted">No entries yet.</p>`;
+        return;
+      }
+
+      wrap.innerHTML = log.entries.map(e => `
+        <div class="entry">
+          <div class="entry-head">
+            ${new Date(e.ts).toLocaleString()}
+          </div>
+          <div class="entry-body">
+            <div>pH: ${e.ph ?? "—"}</div>
+            <div>SG: ${e.sg ?? "—"}</div>
+            <div>Temp: ${e.temp ?? "—"}</div>
+            ${e.notes ? `<div class="notes">${e.notes}</div>` : ""}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function init(){
+      const logId = qs("log");
+      if (!logId) {
+        document.querySelector("main").innerHTML =
+          "<p class='muted'>No mash log specified.</p>";
+        return;
+      }
+
+      const log = window.getMashLog(logId);
+      if (!log) {
+        document.querySelector("main").innerHTML =
+          "<p class='muted'>Mash log not found.</p>";
+        return;
+      }
+
+      renderMeta(log);
+      renderEntries(log);
+
+      document.getElementById("pageStamp").textContent =
+        `Mash Log Page v${PAGE_VERSION} — ${PAGE_DATE}`;
+    }
+
+    init();
+  </script>
+
+</body>
+</html>
