@@ -28,9 +28,6 @@
       .catch(()=>{});
   </script>
 
-  <!-- =========================
-       Page Container
-       ========================= -->
   <main class="mash-container">
 
     <!-- LOG SELECTOR -->
@@ -49,29 +46,101 @@
     <div class="panel mash-panel">
       <h3>Add Entry</h3>
 
+      <!-- BASE OBSERVATIONS -->
       <div class="mash-grid">
         <div>
           <label>pH</label>
-          <input id="inPH" type="number" step="0.01" placeholder="e.g. 5.4" />
+          <input id="inPH" type="number" step="0.01" />
         </div>
 
         <div>
           <label>SG</label>
-          <input id="inSG" type="number" step="0.001" placeholder="e.g. 1.062" />
+          <input id="inSG" type="number" step="0.001" />
         </div>
 
         <div>
           <label>Temp (°F)</label>
-          <input id="inTemp" type="number" step="0.1" placeholder="e.g. 148" />
+          <input id="inTemp" type="number" step="0.1" />
         </div>
 
         <div>
           <label>Notes</label>
-          <input id="inNotes" type="text" placeholder="optional notes…" />
+          <input id="inNotes" type="text" />
         </div>
       </div>
 
-      <div style="margin-top:12px;">
+      <!-- TOGGLES -->
+      <div style="margin-top:14px;">
+        <label><input type="checkbox" id="chkYeast" /> Yeast added</label><br/>
+        <label><input type="checkbox" id="chkNutrient" /> Nutrient added</label><br/>
+        <label><input type="checkbox" id="chkPH" /> pH adjusted</label>
+      </div>
+
+      <!-- YEAST -->
+      <div id="yeastFields" class="mash-grid" hidden>
+        <div>
+          <label>Yeast</label>
+          <input id="yeastProduct" type="text" />
+        </div>
+        <div>
+          <label>Amount</label>
+          <input id="yeastAmount" type="number" step="0.1" />
+        </div>
+        <div>
+          <label>Unit</label>
+          <select id="yeastUnit">
+            <option value="g">g</option>
+            <option value="oz">oz</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- NUTRIENT -->
+      <div id="nutrientFields" class="mash-grid" hidden>
+        <div>
+          <label>Nutrient</label>
+          <input id="nutrientProduct" type="text" />
+        </div>
+        <div>
+          <label>Amount</label>
+          <input id="nutrientAmount" type="number" step="0.1" />
+        </div>
+        <div>
+          <label>Unit</label>
+          <select id="nutrientUnit">
+            <option value="g">g</option>
+            <option value="oz">oz</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PH ADJUST -->
+      <div id="phFields" class="mash-grid" hidden>
+        <div>
+          <label>Direction</label>
+          <select id="phDir">
+            <option value="lower">Lower pH</option>
+            <option value="raise">Raise pH</option>
+          </select>
+        </div>
+        <div>
+          <label>Product</label>
+          <input id="phProduct" type="text" />
+        </div>
+        <div>
+          <label>Amount</label>
+          <input id="phAmount" type="number" step="0.1" />
+        </div>
+        <div>
+          <label>Unit</label>
+          <select id="phUnit">
+            <option value="g">g</option>
+            <option value="ml">mL</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
         <button id="btnAddEntry">Add Entry</button>
       </div>
     </div>
@@ -79,9 +148,7 @@
     <!-- ENTRIES -->
     <div class="panel mash-panel">
       <h3>Log Entries</h3>
-      <div id="entries">
-        <p class="muted">No entries yet.</p>
-      </div>
+      <div id="entries"></div>
     </div>
 
     <div class="muted" style="margin-top:16px;text-align:right;">
@@ -90,154 +157,100 @@
 
   </main>
 
-  <!-- =========================
-       Scripts
-       ========================= -->
   <script src="mash-log.js"></script>
 
   <script>
-    /* ============================================================
-       Mash Log Page — Phase 5 (Selector + Entry System)
-       ============================================================ */
-
-    const PAGE_VERSION = "1.2";
+    const PAGE_VERSION = "1.3";
     const PAGE_DATE = "2025-12-20";
 
-    const qs = n => new URLSearchParams(location.search).get(n);
     const el = id => document.getElementById(id);
+    const qs = n => new URLSearchParams(location.search).get(n);
 
     let logId = qs("log");
     let currentLog = null;
 
-    function getAllLogs(){
-      try {
-        return JSON.parse(localStorage.getItem("mash_logs_v1")) || [];
-      } catch {
-        return [];
-      }
+    function toggle(id, target){
+      el(id).onchange = () => el(target).hidden = !el(id).checked;
     }
 
-    function renderLogList(activeId){
-      const wrap = el("logList");
-      const logs = getAllLogs();
-
-      if (!logs.length) {
-        wrap.innerHTML = "<p class='muted'>No mash logs found.</p>";
-        return;
-      }
-
-      const active = [];
-      const archived = [];
-
-      logs.forEach(l => {
-        const status = l.meta?.status || "active";
-        (status === "archived" ? archived : active).push(l);
-      });
-
-      function renderGroup(title, list){
-        if (!list.length) return "";
-        return `
-          <h4 style="margin-top:12px;">${title}</h4>
-          <ul>
-            ${list.map(l => `
-              <li>
-                <a href="?log=${l.id}"
-                   style="${l.id === activeId ? "font-weight:bold;" : ""}">
-                  ${l.meta?.mashName || "Unnamed Mash"}
-                  — ${l.meta?.fillGal ?? "?"} gal
-                  (${new Date(l.created_at).toLocaleDateString()})
-                </a>
-              </li>
-            `).join("")}
-          </ul>
-        `;
-      }
-
-      wrap.innerHTML =
-        renderGroup("🟢 Active Mash Logs", active) +
-        renderGroup("📁 Archived Mash Logs", archived);
-    }
+    toggle("chkYeast", "yeastFields");
+    toggle("chkNutrient", "nutrientFields");
+    toggle("chkPH", "phFields");
 
     function renderMeta(log){
       el("logMeta").innerHTML = `
-        <p><strong>${log.meta.mashName || "Unnamed Mash"}</strong></p>
-        <p>Fill: ${log.meta.fillGal ?? "—"} gal</p>
-        <p>Mode: ${log.meta.mode ?? "—"}</p>
+        <p><strong>${log.meta.mashName}</strong></p>
+        <p>Fill: ${log.meta.fillGal} gal</p>
+        <p>Mode: ${log.meta.mode}</p>
         <p>Started: ${new Date(log.created_at).toLocaleString()}</p>
-        <hr />
-        <p>
-          Log Version: ${log.meta.logVersion || "1.0"}<br />
-          Created By: ${log.meta.appVersion || "unknown"}
-        </p>
       `;
     }
 
     function renderEntries(log){
-      const wrap = el("entries");
-
-      if (!log.entries || !log.entries.length) {
-        wrap.innerHTML = "<p class='muted'>No entries yet.</p>";
-        return;
-      }
-
-      wrap.innerHTML = log.entries.map(e => `
+      el("entries").innerHTML = (log.entries || []).map(e => `
         <div class="panel" style="margin-bottom:12px;">
-          <div class="muted" style="margin-bottom:6px;">
-            ${new Date(e.ts).toLocaleString()}
-          </div>
-          <div>
-            <div>pH: ${e.ph ?? "—"}</div>
-            <div>SG: ${e.sg ?? "—"}</div>
-            <div>Temp: ${e.temp ?? "—"} °F</div>
-            ${e.notes ? `<div style="margin-top:6px;">${e.notes}</div>` : ""}
-          </div>
+          <div class="muted">${new Date(e.ts).toLocaleString()}</div>
+          <div>pH: ${e.ph ?? "—"} | SG: ${e.sg ?? "—"} | Temp: ${e.temp ?? "—"}°F</div>
+          ${e.additions ? `
+            <ul>
+              ${e.additions.yeast ? `<li>Yeast: ${e.additions.yeast.product} (${e.additions.yeast.amount}${e.additions.yeast.unit})</li>` : ""}
+              ${e.additions.nutrient ? `<li>Nutrient: ${e.additions.nutrient.product} (${e.additions.nutrient.amount}${e.additions.nutrient.unit})</li>` : ""}
+              ${e.additions.phAdjust ? `<li>pH ${e.additions.phAdjust.direction}: ${e.additions.phAdjust.product} (${e.additions.phAdjust.amount}${e.additions.phAdjust.unit})</li>` : ""}
+            </ul>` : ""}
+          ${e.notes ? `<div>${e.notes}</div>` : ""}
         </div>
       `).join("");
     }
 
     function loadLog(id){
-      if (!id) {
-        el("logMeta").innerHTML = "<p class='muted'>Select a mash log.</p>";
-        el("entries").innerHTML = "<p class='muted'>No entries.</p>";
-        return;
-      }
-
-      const log = window.getMashLog(id);
-      if (!log) {
-        el("logMeta").innerHTML = "<p class='muted'>Mash log not found.</p>";
-        return;
-      }
-
-      logId = id;
-      currentLog = log;
-
-      renderMeta(log);
-      renderEntries(log);
-      renderLogList(log.id);
+      currentLog = window.getMashLog(id);
+      if (!currentLog) return;
+      renderMeta(currentLog);
+      renderEntries(currentLog);
     }
 
     el("btnAddEntry").onclick = () => {
-      if (!currentLog) return alert("Select a mash log first.");
+      if (!currentLog) return;
 
-      const data = {
-        ph: el("inPH").value ? Number(el("inPH").value) : null,
-        sg: el("inSG").value ? Number(el("inSG").value) : null,
-        temp: el("inTemp").value ? Number(el("inTemp").value) : null,
-        notes: el("inNotes").value.trim()
+      const entry = {
+        ph: el("inPH").value || null,
+        sg: el("inSG").value || null,
+        temp: el("inTemp").value || null,
+        notes: el("inNotes").value || "",
+        additions: {}
       };
 
-      window.addMashLogEntry(logId, data);
+      if (el("chkYeast").checked) {
+        entry.additions.yeast = {
+          product: el("yeastProduct").value,
+          amount: el("yeastAmount").value,
+          unit: el("yeastUnit").value
+        };
+      }
 
-      ["inPH","inSG","inTemp","inNotes"].forEach(id => el(id).value = "");
+      if (el("chkNutrient").checked) {
+        entry.additions.nutrient = {
+          product: el("nutrientProduct").value,
+          amount: el("nutrientAmount").value,
+          unit: el("nutrientUnit").value
+        };
+      }
 
+      if (el("chkPH").checked) {
+        entry.additions.phAdjust = {
+          direction: el("phDir").value,
+          product: el("phProduct").value,
+          amount: el("phAmount").value,
+          unit: el("phUnit").value
+        };
+      }
+
+      window.addMashLogEntry(logId, entry);
       loadLog(logId);
     };
 
-    renderLogList(logId);
     loadLog(logId);
-
-    el("pageStamp").textContent =
-      `Mash Log Page v${PAGE_VERSION} — ${PAGE_DATE}`;
+    el("pageStamp").textContent = `Mash Log Page v${PAGE_VERSION} — ${PAGE_DATE}`;
   </script>
 
 </body>
