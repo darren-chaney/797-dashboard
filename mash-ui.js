@@ -109,7 +109,7 @@ modeSelect.innerHTML = `
   };
 
   /* =========================
-     Mash Log (Phase 1)
+     Mash Log (Phase 1 → Phase 2 navigation)
      ========================= */
   btnStartLog.onclick = () => {
     if (!currentMash) return alert("Build a mash first.");
@@ -127,18 +127,15 @@ modeSelect.innerHTML = `
     alert("Mash Log started.");
   };
 
+  /* 🔹 ONLY CHANGE IS HERE 🔹 */
   btnViewLog.onclick = () => {
-    const log = window.getMashLog(activeMashLogId);
-    if (!log) return alert("Mash log not found.");
+    if (!activeMashLogId) return alert("No active mash log.");
 
-    alert(
-      `Mash Log\n\n${log.meta.mashName}\n` +
-      `Fill: ${log.meta.fillGal} gal\n` +
-      `Mode: ${log.meta.mode}\n` +
-      `Started: ${log.created_at}\n\n` +
-      `Entries coming in Phase 2`
-    );
+    // Navigate to standalone Mash Log page
+    window.location.href = `mash-log.html?log=${activeMashLogId}`;
   };
+  /* 🔹 END CHANGE 🔹 */
+
 })();
 
 /* =========================
