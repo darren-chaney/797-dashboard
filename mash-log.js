@@ -1,14 +1,10 @@
 /* ============================================================
    mash-log.js
-   SAFE stub — global, non-module
-   Provides compatibility functions for UI
+   Phase 1 Mash Log — standalone, read-only
    ============================================================ */
 
 (function(){
 
-  /* =====================================
-     Internal log store (stub)
-     ===================================== */
   const LOGS_KEY = "mash_logs_v1";
 
   function readLogs(){
@@ -27,38 +23,33 @@
     return "log_" + Date.now().toString(36);
   }
 
-  /* =====================================
-     Existing namespace (kept)
-     ===================================== */
-  window.MASH_LOG = {
-    start: function(){},
-    add: function(){}
-  };
-
-  /* =====================================
-     REQUIRED UI COMPATIBILITY FUNCTIONS
-     ===================================== */
-
-  /**
-   * Create a mash log snapshot (immutable record)
-   */
+  /* =========================
+     Create Mash Log
+     ========================= */
   window.createMashLog = function(meta){
     return {
       id: uid(),
       created_at: new Date().toISOString(),
       meta,
-      notes: []
+      entries: [] // Phase 2 will append here
     };
   };
 
-  /**
-   * Save mash log
-   */
+  /* =========================
+     Save Mash Log
+     ========================= */
   window.saveMashLog = function(log){
     const logs = readLogs();
     logs.unshift(log);
     writeLogs(logs);
     return log.id;
+  };
+
+  /* =========================
+     Get Mash Log
+     ========================= */
+  window.getMashLog = function(id){
+    return readLogs().find(l => l.id === id) || null;
   };
 
 })();
