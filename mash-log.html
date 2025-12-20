@@ -46,23 +46,19 @@
     <div class="panel mash-panel">
       <h3>Add Entry</h3>
 
-      <!-- BASE OBSERVATIONS -->
       <div class="mash-grid">
         <div>
           <label>pH</label>
           <input id="inPH" type="number" step="0.01" />
         </div>
-
         <div>
           <label>SG</label>
           <input id="inSG" type="number" step="0.001" />
         </div>
-
         <div>
           <label>Temp (°F)</label>
           <input id="inTemp" type="number" step="0.1" />
         </div>
-
         <div>
           <label>Notes</label>
           <input id="inNotes" type="text" />
@@ -78,39 +74,21 @@
 
       <!-- YEAST -->
       <div id="yeastFields" class="mash-grid" hidden>
-        <div>
-          <label>Yeast</label>
-          <input id="yeastProduct" type="text" />
-        </div>
-        <div>
-          <label>Amount</label>
-          <input id="yeastAmount" type="number" step="0.1" />
-        </div>
+        <div><label>Yeast</label><input id="yeastProduct" type="text" /></div>
+        <div><label>Amount</label><input id="yeastAmount" type="number" step="0.1" /></div>
         <div>
           <label>Unit</label>
-          <select id="yeastUnit">
-            <option value="g">g</option>
-            <option value="oz">oz</option>
-          </select>
+          <select id="yeastUnit"><option value="g">g</option><option value="oz">oz</option></select>
         </div>
       </div>
 
       <!-- NUTRIENT -->
       <div id="nutrientFields" class="mash-grid" hidden>
-        <div>
-          <label>Nutrient</label>
-          <input id="nutrientProduct" type="text" />
-        </div>
-        <div>
-          <label>Amount</label>
-          <input id="nutrientAmount" type="number" step="0.1" />
-        </div>
+        <div><label>Nutrient</label><input id="nutrientProduct" type="text" /></div>
+        <div><label>Amount</label><input id="nutrientAmount" type="number" step="0.1" /></div>
         <div>
           <label>Unit</label>
-          <select id="nutrientUnit">
-            <option value="g">g</option>
-            <option value="oz">oz</option>
-          </select>
+          <select id="nutrientUnit"><option value="g">g</option><option value="oz">oz</option></select>
         </div>
       </div>
 
@@ -118,25 +96,13 @@
       <div id="phFields" class="mash-grid" hidden>
         <div>
           <label>Direction</label>
-          <select id="phDir">
-            <option value="lower">Lower pH</option>
-            <option value="raise">Raise pH</option>
-          </select>
+          <select id="phDir"><option value="lower">Lower</option><option value="raise">Raise</option></select>
         </div>
-        <div>
-          <label>Product</label>
-          <input id="phProduct" type="text" />
-        </div>
-        <div>
-          <label>Amount</label>
-          <input id="phAmount" type="number" step="0.1" />
-        </div>
+        <div><label>Product</label><input id="phProduct" type="text" /></div>
+        <div><label>Amount</label><input id="phAmount" type="number" step="0.1" /></div>
         <div>
           <label>Unit</label>
-          <select id="phUnit">
-            <option value="g">g</option>
-            <option value="ml">mL</option>
-          </select>
+          <select id="phUnit"><option value="g">g</option><option value="ml">mL</option></select>
         </div>
       </div>
 
@@ -160,7 +126,7 @@
   <script src="mash-log.js"></script>
 
   <script>
-    const PAGE_VERSION = "1.3";
+    const PAGE_VERSION = "1.4";
     const PAGE_DATE = "2025-12-20";
 
     const el = id => document.getElementById(id);
@@ -169,14 +135,64 @@
     let logId = qs("log");
     let currentLog = null;
 
-    function toggle(id, target){
-      el(id).onchange = () => el(target).hidden = !el(id).checked;
-    }
+    /* =========================
+       Toggle behavior
+       ========================= */
+    const toggle = (chk, tgt) =>
+      el(chk).onchange = () => el(tgt).hidden = !el(chk).checked;
 
     toggle("chkYeast", "yeastFields");
     toggle("chkNutrient", "nutrientFields");
     toggle("chkPH", "phFields");
 
+    /* =========================
+       Log selector
+       ========================= */
+    function getAllLogs(){
+      try {
+        return JSON.parse(localStorage.getItem("mash_logs_v1")) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function renderLogList(activeId){
+      const logs = getAllLogs();
+      const wrap = el("logList");
+
+      if (!logs.length) {
+        wrap.innerHTML = "<p class='muted'>No mash logs found.</p>";
+        return;
+      }
+
+      const active = [], archived = [];
+
+      logs.forEach(l => {
+        (l.meta?.status === "archived" ? archived : active).push(l);
+      });
+
+      const renderGroup = (title, list) =>
+        list.length ? `
+          <h4>${title}</h4>
+          <ul>
+            ${list.map(l => `
+              <li>
+                <a href="?log=${l.id}"
+                   style="${l.id === activeId ? "font-weight:bold;" : ""}">
+                  ${l.meta?.mashName || "Unnamed Mash"} — ${l.meta?.fillGal ?? "?"} gal
+                </a>
+              </li>
+            `).join("")}
+          </ul>` : "";
+
+      wrap.innerHTML =
+        renderGroup("🟢 Active Mash Logs", active) +
+        renderGroup("📁 Archived Mash Logs", archived);
+    }
+
+    /* =========================
+       Rendering
+       ========================= */
     function renderMeta(log){
       el("logMeta").innerHTML = `
         <p><strong>${log.meta.mashName}</strong></p>
@@ -205,12 +221,18 @@
     function loadLog(id){
       currentLog = window.getMashLog(id);
       if (!currentLog) return;
+
+      logId = id;
       renderMeta(currentLog);
       renderEntries(currentLog);
+      renderLogList(logId);
     }
 
+    /* =========================
+       Add entry
+       ========================= */
     el("btnAddEntry").onclick = () => {
-      if (!currentLog) return;
+      if (!currentLog) return alert("Select a mash log first.");
 
       const entry = {
         ph: el("inPH").value || null,
@@ -220,37 +242,37 @@
         additions: {}
       };
 
-      if (el("chkYeast").checked) {
+      if (el("chkYeast").checked)
         entry.additions.yeast = {
           product: el("yeastProduct").value,
           amount: el("yeastAmount").value,
           unit: el("yeastUnit").value
         };
-      }
 
-      if (el("chkNutrient").checked) {
+      if (el("chkNutrient").checked)
         entry.additions.nutrient = {
           product: el("nutrientProduct").value,
           amount: el("nutrientAmount").value,
           unit: el("nutrientUnit").value
         };
-      }
 
-      if (el("chkPH").checked) {
+      if (el("chkPH").checked)
         entry.additions.phAdjust = {
           direction: el("phDir").value,
           product: el("phProduct").value,
           amount: el("phAmount").value,
           unit: el("phUnit").value
         };
-      }
 
       window.addMashLogEntry(logId, entry);
       loadLog(logId);
     };
 
-    loadLog(logId);
-    el("pageStamp").textContent = `Mash Log Page v${PAGE_VERSION} — ${PAGE_DATE}`;
+    renderLogList(logId);
+    if (logId) loadLog(logId);
+
+    el("pageStamp").textContent =
+      `Mash Log Page v${PAGE_VERSION} — ${PAGE_DATE}`;
   </script>
 
 </body>
