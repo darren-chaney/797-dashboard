@@ -36,7 +36,7 @@
       </select>
     </div>
 
-    <!-- LOG CONTENT (HIDDEN UNTIL SELECTED) -->
+    <!-- LOG CONTENT -->
     <div id="logSection" hidden>
 
       <!-- META -->
@@ -69,7 +69,7 @@
           </div>
         </div>
 
-        <!-- YEAST / NUTRIENT DROPDOWN -->
+        <!-- YEAST / NUTRIENT -->
         <div style="margin-top:14px;">
           <label>Yeast / Nutrient Added</label>
           <select id="addYN">
@@ -79,7 +79,6 @@
           </select>
         </div>
 
-        <!-- YEAST / NUTRIENT FIELDS -->
         <div id="ynFields" class="mash-grid" hidden>
           <div>
             <label>Product</label>
@@ -98,7 +97,7 @@
           </div>
         </div>
 
-        <!-- PH ADJUST DROPDOWN -->
+        <!-- PH ADJUST -->
         <div style="margin-top:14px;">
           <label>pH Adjustment</label>
           <select id="phAction">
@@ -108,7 +107,6 @@
           </select>
         </div>
 
-        <!-- PH ADJUST FIELDS -->
         <div id="phFields" class="mash-grid" hidden>
           <div>
             <label>Product</label>
@@ -149,7 +147,7 @@
   <script src="mash-log.js"></script>
 
   <script>
-    const PAGE_VERSION = "1.7";
+    const PAGE_VERSION = "1.8";
     const PAGE_DATE = "2025-12-20";
 
     const el = id => document.getElementById(id);
@@ -158,35 +156,44 @@
     let logId = null;
 
     /* =========================
-       Dropdown behavior (CLEAN)
+       FORCE INITIAL STATE
        ========================= */
+    function resetAdditionsUI(){
+      el("addYN").value = "";
+      el("phAction").value = "";
 
+      el("ynFields").hidden = true;
+      el("phFields").hidden = true;
+
+      el("ynProduct").value = "";
+      el("ynAmount").value = "";
+      el("ynUnit").value = "g";
+
+      el("phProduct").value = "";
+      el("phAmount").value = "";
+      el("phUnit").value = "g";
+    }
+
+    resetAdditionsUI();
+
+    /* =========================
+       Dropdown behavior
+       ========================= */
     el("addYN").onchange = () => {
-      const show = !!el("addYN").value;
+      const show = el("addYN").value !== "";
       el("ynFields").hidden = !show;
-
-      if (!show) {
-        el("ynProduct").value = "";
-        el("ynAmount").value = "";
-        el("ynUnit").value = "g";
-      }
+      if (!show) resetAdditionsUI();
     };
 
     el("phAction").onchange = () => {
-      const show = !!el("phAction").value;
+      const show = el("phAction").value !== "";
       el("phFields").hidden = !show;
-
-      if (!show) {
-        el("phProduct").value = "";
-        el("phAmount").value = "";
-        el("phUnit").value = "g";
-      }
+      if (!show) resetAdditionsUI();
     };
 
     /* =========================
        Load mash logs
        ========================= */
-
     function getAllLogs(){
       try {
         return JSON.parse(localStorage.getItem("mash_logs_v1")) || [];
@@ -240,6 +247,7 @@
       logId = id;
       el("logSection").hidden = false;
 
+      resetAdditionsUI();
       renderMeta(currentLog);
       renderEntries(currentLog);
     }
@@ -251,7 +259,6 @@
     /* =========================
        Add entry
        ========================= */
-
     el("btnAddEntry").onclick = () => {
       if (!currentLog) return;
 
