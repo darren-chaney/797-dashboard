@@ -30,104 +30,110 @@
     <!-- LOG SELECTOR -->
     <div class="panel mash-panel">
       <h3>Select Mash Log</h3>
-      <div id="logList" class="muted"></div>
+      <select id="logSelect">
+        <option value="">Select a mash log…</option>
+      </select>
     </div>
 
     <!-- META -->
-    <div class="panel mash-panel">
-      <h2>Mash Log</h2>
-      <div id="logMeta" class="muted"></div>
-    </div>
+    <div id="logSection" hidden>
 
-    <!-- ADD ENTRY -->
-    <div class="panel mash-panel">
-      <h3>Add Entry</h3>
-
-      <!-- BASE OBSERVATIONS -->
-      <div class="mash-grid">
-        <div>
-          <label>pH</label>
-          <input id="inPH" type="number" step="0.01" />
-        </div>
-        <div>
-          <label>SG</label>
-          <input id="inSG" type="number" step="0.001" />
-        </div>
-        <div>
-          <label>Temp (°F)</label>
-          <input id="inTemp" type="number" step="0.1" />
-        </div>
-        <div>
-          <label>Notes</label>
-          <input id="inNotes" type="text" />
-        </div>
+      <div class="panel mash-panel">
+        <h2>Mash Log</h2>
+        <div id="logMeta" class="muted"></div>
       </div>
 
-      <!-- YEAST / NUTRIENT DROPDOWN -->
-      <div style="margin-top:14px;">
-        <label>Yeast / Nutrient Added</label>
-        <select id="addYN">
-          <option value="">None</option>
-          <option value="yeast">Yeast</option>
-          <option value="nutrient">Nutrient</option>
-        </select>
-      </div>
+      <!-- ADD ENTRY -->
+      <div class="panel mash-panel">
+        <h3>Add Entry</h3>
 
-      <div id="ynFields" class="mash-grid" hidden>
-        <div>
-          <label>Product</label>
-          <input id="ynProduct" type="text" />
+        <!-- CORE SNAPSHOT -->
+        <div class="mash-grid">
+          <div>
+            <label>pH</label>
+            <input id="inPH" type="number" step="0.01" />
+          </div>
+          <div>
+            <label>SG</label>
+            <input id="inSG" type="number" step="0.001" />
+          </div>
+          <div>
+            <label>Temp (°F)</label>
+            <input id="inTemp" type="number" step="0.1" />
+          </div>
+          <div>
+            <label>Notes</label>
+            <input id="inNotes" type="text" />
+          </div>
         </div>
-        <div>
-          <label>Amount</label>
-          <input id="ynAmount" type="number" step="0.1" />
-        </div>
-        <div>
-          <label>Unit</label>
-          <select id="ynUnit">
-            <option value="g">g</option>
-            <option value="oz">oz</option>
+
+        <!-- YEAST / NUTRIENT -->
+        <div style="margin-top:14px;">
+          <label>Yeast / Nutrient Added</label>
+          <select id="addYN">
+            <option value="">None</option>
+            <option value="yeast">Yeast</option>
+            <option value="nutrient">Nutrient</option>
           </select>
         </div>
-      </div>
 
-      <!-- PH ADJUST DROPDOWN -->
-      <div style="margin-top:14px;">
-        <label>pH Adjustment</label>
-        <select id="phAction">
-          <option value="">None</option>
-          <option value="lower">Lower pH</option>
-          <option value="raise">Raise pH</option>
-        </select>
-      </div>
+        <div id="ynFields" class="mash-grid" hidden>
+          <div>
+            <label>Product</label>
+            <input id="ynProduct" type="text" />
+          </div>
+          <div>
+            <label>Amount</label>
+            <input id="ynAmount" type="number" step="0.1" />
+          </div>
+          <div>
+            <label>Unit</label>
+            <select id="ynUnit">
+              <option value="g">g</option>
+              <option value="oz">oz</option>
+            </select>
+          </div>
+        </div>
 
-      <div id="phFields" class="mash-grid" hidden>
-        <div>
-          <label>Product</label>
-          <input id="phProduct" type="text" />
-        </div>
-        <div>
-          <label>Amount</label>
-          <input id="phAmount" type="number" step="0.1" />
-        </div>
-        <div>
-          <label>Unit</label>
-          <select id="phUnit">
-            <option value="g">g</option>
-            <option value="ml">mL</option>
+        <!-- PH ADJUST -->
+        <div style="margin-top:14px;">
+          <label>pH Adjustment</label>
+          <select id="phAction">
+            <option value="">None</option>
+            <option value="lower">Lower pH</option>
+            <option value="raise">Raise pH</option>
           </select>
         </div>
+
+        <div id="phFields" class="mash-grid" hidden>
+          <div>
+            <label>Product</label>
+            <input id="phProduct" type="text" />
+          </div>
+          <div>
+            <label>Amount</label>
+            <input id="phAmount" type="number" step="0.1" />
+          </div>
+          <div>
+            <label>Unit</label>
+            <select id="phUnit">
+              <option value="g">g</option>
+              <option value="ml">mL</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <button id="btnAddEntry">Add Entry</button>
+        </div>
       </div>
 
-      <div style="margin-top:14px;">
-        <button id="btnAddEntry">Add Entry</button>
+      <!-- ENTRIES -->
+      <div class="panel mash-panel">
+        <h3>Log Entries</h3>
+        <div id="entries"></div>
       </div>
-    </div>
 
-    <!-- ENTRIES -->
-    <div class="panel mash-panel">
-      <h3>Log Entries</h3>
-      <div id="entries"></div>
     </div>
 
     <div class="muted" style="margin-top:16px;text-align:right;">
@@ -139,13 +145,12 @@
   <script src="mash-log.js"></script>
 
   <script>
-    const PAGE_VERSION = "1.5";
+    const PAGE_VERSION = "1.6";
     const PAGE_DATE = "2025-12-20";
     const el = id => document.getElementById(id);
-    const qs = n => new URLSearchParams(location.search).get(n);
 
-    let logId = qs("log");
     let currentLog = null;
+    let logId = null;
 
     /* Dropdown behavior */
     el("addYN").onchange = () =>
@@ -153,7 +158,7 @@
     el("phAction").onchange = () =>
       el("phFields").hidden = !el("phAction").value;
 
-    /* Log selector */
+    /* Load logs */
     function getAllLogs(){
       try {
         return JSON.parse(localStorage.getItem("mash_logs_v1")) || [];
@@ -162,25 +167,14 @@
       }
     }
 
-    function renderLogList(activeId){
-      const wrap = el("logList");
-      const logs = getAllLogs();
-      if (!logs.length) {
-        wrap.innerHTML = "<p class='muted'>No mash logs found.</p>";
-        return;
-      }
-      wrap.innerHTML = `
-        <ul>
-          ${logs.map(l => `
-            <li>
-              <a href="?log=${l.id}"
-                 style="${l.id === activeId ? "font-weight:bold;" : ""}">
-                ${l.meta.mashName} — ${l.meta.fillGal} gal
-              </a>
-            </li>
-          `).join("")}
-        </ul>
-      `;
+    function populateLogSelect(){
+      const sel = el("logSelect");
+      getAllLogs().forEach(l => {
+        const o = document.createElement("option");
+        o.value = l.id;
+        o.textContent = `${l.meta.mashName} — ${l.meta.fillGal} gal`;
+        sel.appendChild(o);
+      });
     }
 
     function renderMeta(log){
@@ -210,10 +204,15 @@
     function loadLog(id){
       currentLog = window.getMashLog(id);
       if (!currentLog) return;
+      logId = id;
+      el("logSection").hidden = false;
       renderMeta(currentLog);
       renderEntries(currentLog);
-      renderLogList(id);
     }
+
+    el("logSelect").onchange = () => {
+      if (el("logSelect").value) loadLog(el("logSelect").value);
+    };
 
     el("btnAddEntry").onclick = () => {
       if (!currentLog) return;
@@ -248,9 +247,7 @@
       loadLog(logId);
     };
 
-    renderLogList(logId);
-    if (logId) loadLog(logId);
-
+    populateLogSelect();
     el("pageStamp").textContent =
       `Mash Log Page v${PAGE_VERSION} — ${PAGE_DATE}`;
   </script>
