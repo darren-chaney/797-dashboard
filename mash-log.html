@@ -33,11 +33,44 @@
        ========================= -->
   <main class="mash-container">
 
+    <!-- META -->
     <div class="panel mash-panel">
       <h2>Mash Log</h2>
       <div id="logMeta" class="muted"></div>
     </div>
 
+    <!-- ADD ENTRY -->
+    <div class="panel mash-panel">
+      <h3>Add Entry</h3>
+
+      <div class="mash-grid">
+        <div>
+          <label>pH</label>
+          <input id="inPH" type="number" step="0.01" placeholder="e.g. 5.4" />
+        </div>
+
+        <div>
+          <label>SG</label>
+          <input id="inSG" type="number" step="0.001" placeholder="e.g. 1.062" />
+        </div>
+
+        <div>
+          <label>Temp (°F)</label>
+          <input id="inTemp" type="number" step="0.1" placeholder="e.g. 148" />
+        </div>
+
+        <div>
+          <label>Notes</label>
+          <input id="inNotes" type="text" placeholder="optional notes…" />
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button id="btnAddEntry">Add Entry</button>
+      </div>
+    </div>
+
+    <!-- ENTRIES -->
     <div class="panel mash-panel">
       <h3>Log Entries</h3>
       <div id="entries">
@@ -58,20 +91,19 @@
 
   <script>
     /* ============================================================
-       Mash Log Page — Phase 3 (Read-Only)
+       Mash Log Page — Phase 4 (Entry UI)
        ============================================================ */
 
-    const PAGE_VERSION = "1.0";
+    const PAGE_VERSION = "1.1";
     const PAGE_DATE = "2025-12-20";
 
-    function qs(name){
-      return new URLSearchParams(window.location.search).get(name);
-    }
+    const qs = n => new URLSearchParams(location.search).get(n);
+    const logId = qs("log");
+
+    const el = id => document.getElementById(id);
 
     function renderMeta(log){
-      const el = document.getElementById("logMeta");
-
-      el.innerHTML = `
+      el("logMeta").innerHTML = `
         <p><strong>${log.meta.mashName || "Unnamed Mash"}</strong></p>
         <p>Fill: ${log.meta.fillGal ?? "—"} gal</p>
         <p>Mode: ${log.meta.mode ?? "—"}</p>
@@ -85,7 +117,7 @@
     }
 
     function renderEntries(log){
-      const wrap = document.getElementById("entries");
+      const wrap = el("entries");
 
       if (!log.entries || !log.entries.length) {
         wrap.innerHTML = `<p class="muted">No entries yet.</p>`;
@@ -100,36 +132,51 @@
           <div>
             <div>pH: ${e.ph ?? "—"}</div>
             <div>SG: ${e.sg ?? "—"}</div>
-            <div>Temp: ${e.temp ?? "—"}</div>
+            <div>Temp: ${e.temp ?? "—"} °F</div>
             ${e.notes ? `<div style="margin-top:6px;">${e.notes}</div>` : ""}
           </div>
         </div>
       `).join("");
     }
 
-    function init(){
-      const logId = qs("log");
-      const metaWrap = document.getElementById("logMeta");
-
+    function load(){
       if (!logId) {
-        metaWrap.innerHTML = "<p class='muted'>No mash log specified.</p>";
-        return;
+        el("logMeta").innerHTML = "<p class='muted'>No mash log specified.</p>";
+        return null;
       }
-
       const log = window.getMashLog(logId);
       if (!log) {
-        metaWrap.innerHTML = "<p class='muted'>Mash log not found.</p>";
-        return;
+        el("logMeta").innerHTML = "<p class='muted'>Mash log not found.</p>";
+        return null;
       }
-
       renderMeta(log);
       renderEntries(log);
-
-      document.getElementById("pageStamp").textContent =
-        `Mash Log Page v${PAGE_VERSION} — ${PAGE_DATE}`;
+      return log;
     }
 
-    init();
+    let currentLog = load();
+
+    el("btnAddEntry").onclick = () => {
+      if (!currentLog) return;
+
+      const data = {
+        ph: el("inPH").value ? Number(el("inPH").value) : null,
+        sg: el("inSG").value ? Number(el("inSG").value) : null,
+        temp: el("inTemp").value ? Number(el("inTemp").value) : null,
+        notes: el("inNotes").value.trim()
+      };
+
+      window.addMashLogEntry(logId, data);
+
+      // Clear inputs
+      ["inPH","inSG","inTemp","inNotes"].forEach(id => el(id).value = "");
+
+      currentLog = window.getMashLog(logId);
+      renderEntries(currentLog);
+    };
+
+    el("pageStamp").textContent =
+      `Mash Log Page v${PAGE_VERSION} — ${PAGE_DATE}`;
   </script>
 
 </body>
