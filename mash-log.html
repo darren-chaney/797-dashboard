@@ -189,25 +189,49 @@
     }
 
     function renderEntries(entries){
-      if (!entries.length) {
-        el("entries").innerHTML = "<p class='muted'>No entries yet.</p>";
-        return;
-      }
+  if (!entries.length) {
+    el("entries").innerHTML = "<p class='muted'>No entries yet.</p>";
+    return;
+  }
 
-      el("entries").innerHTML = entries.map(e => `
-        <div class="panel" style="margin-bottom:12px;">
-          <div class="muted">${new Date(e.timestamp).toLocaleString()}</div>
-          <div>
-            pH: ${e.ph || "—"} |
-            SG: ${e.sg || "—"} |
-            Temp: ${e.temp_f || "—"}°F
-          </div>
-          ${e.yn_type ? `<div>${e.yn_type}: ${e.yn_product} (${e.yn_amount}${e.yn_unit})</div>` : ""}
-          ${e.ph_action ? `<div>pH ${e.ph_action}: ${e.ph_product} (${e.ph_amount}${e.ph_unit})</div>` : ""}
-          ${e.notes ? `<div>${e.notes}</div>` : ""}
+  el("entries").innerHTML = entries.map(e => `
+    <div class="panel" style="margin-bottom:12px;">
+
+      <div class="muted" style="margin-bottom:6px;">
+        ${new Date(e.timestamp).toLocaleString()}
+      </div>
+
+      <div style="font-weight:500;margin-bottom:6px;">
+        pH ${e.ph || "—"} ·
+        SG ${e.sg || "—"} ·
+        Temp ${e.temp_f || "—"}°F
+      </div>
+
+      ${e.yn_type ? `
+        <div style="margin-top:6px;">
+          <strong>➕ ${e.yn_type === "yeast" ? "Yeast added" : "Nutrient added"}</strong><br>
+          ${e.yn_product} — ${e.yn_amount}${e.yn_unit}
         </div>
-      `).join("");
-    }
+      ` : ""}
+
+      ${e.ph_action ? `
+        <div style="margin-top:6px;">
+          <strong>🧪 pH adjusted (${e.ph_action})</strong><br>
+          ${e.ph_product} — ${e.ph_amount}${e.ph_unit}
+        </div>
+      ` : ""}
+
+      ${e.notes ? `
+        <div style="margin-top:6px;">
+          <strong>📝 Notes</strong><br>
+          ${e.notes}
+        </div>
+      ` : ""}
+
+    </div>
+  `).join("");
+}
+
 
     /* =========================
        Load logs + entries
