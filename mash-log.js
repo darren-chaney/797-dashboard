@@ -1,36 +1,37 @@
 /* ============================================================
-   mash-log.js — FINAL (GET ONLY, CROSS-DEVICE)
+   mash-log.js — FINAL (GET ONLY, API-MATCHED)
    ============================================================ */
 
 (function(){
 
-  /* ============================================================
-     CONFIG
-     ============================================================ */
   const API_URL =
     "https://script.google.com/macros/s/AKfycbzKoSaK8srIvqeBj1y2N-5czcnYVnsxT9zy3GsDzrYxnEaH-AQgCClNyoNBIiCqVWw/exec";
 
-  /* ============================================================
+  /* =========================
      UTIL
-     ============================================================ */
+     ========================= */
   function uid(prefix){
     return `${prefix}_${Date.now().toString(36)}`;
   }
 
-  function call(action, payload = null){
-    let url = `${API_URL}?action=${action}`;
-    if (payload) {
-      url += `&payload=${encodeURIComponent(JSON.stringify(payload))}`;
-    }
-    return fetch(url).then(r => r.json());
+  function call(action, params = {}){
+    const qs = new URLSearchParams({ action });
+
+    Object.keys(params).forEach(k => {
+      if (params[k] !== undefined && params[k] !== null) {
+        qs.append(k, params[k]);
+      }
+    });
+
+    return fetch(`${API_URL}?${qs.toString()}`)
+      .then(r => r.json());
   }
 
   /* ============================================================
      PUBLIC API — REQUIRED BY MASH BUILDER / MASH LOG
-     (Do not rename these)
      ============================================================ */
 
-  // Create an in-memory mash log object
+  // Create in-memory log object
   window.createMashLog = function(meta){
     return {
       log_id: uid("log"),
@@ -46,22 +47,24 @@
     };
   };
 
-  // Persist mash log to Google Sheets
+  // Save log (Sheets)
   window.saveMashLog = function(log){
-    return call("createLog", log).then(() => log.log_id);
+    return call("createLog", {
+      payload: JSON.stringify(log)
+    }).then(() => log.log_id);
   };
 
-  // Fetch all mash logs (for dropdown selector)
+  // Get all logs (dropdown)
   window.getAllMashLogs = function(){
     return call("listLogs");
   };
 
-  // Fetch one mash log + its entries
+  // 🔧 FIXED: fetch single log correctly
   window.getMashLog = function(logId){
     return call("getLog", { log_id: logId });
   };
 
-  // Append a mash log entry
+  // Add entry
   window.addMashLogEntry = function(logId, data){
     const entry = {
       entry_id: uid("entry"),
@@ -80,7 +83,9 @@
       ph_unit: data.ph_unit ?? ""
     };
 
-    return call("addEntry", entry);
+    return call("addEntry", {
+      payload: JSON.stringify(entry)
+    });
   };
 
 })();
