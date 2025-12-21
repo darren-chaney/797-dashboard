@@ -111,21 +111,20 @@ modeSelect.innerHTML = `
   /* =========================
      Mash Log (Phase 1 → Phase 2 navigation)
      ========================= */
-  btnStartLog.onclick = () => {
-    if (!currentMash) return alert("Build a mash first.");
+  btnStartLog.onclick = async () => {
+  if (!currentMash) return alert("Build a mash first.");
 
-    const log = window.createMashLog({
-      mashId: currentMash.mashId,
-      mashName: currentMash.name,
-      mode: currentMash.mode,
-      fillGal: currentMash.fillGal
-    });
+  const log = window.createMashLog({
+    mashName: currentMash.name,
+    mode: currentMash.mode,
+    fillGal: currentMash.fillGal
+  });
 
-    activeMashLogId = window.saveMashLog(log);
-    btnViewLog.disabled = false;
+  activeMashLogId = await window.saveMashLog(log);
+  btnViewLog.disabled = false;
 
-    alert("Mash Log started.");
-  };
+  alert("Mash Log started.");
+};
 
   /* 🔹 ONLY CHANGE IS HERE 🔹 */
   btnViewLog.onclick = () => {
