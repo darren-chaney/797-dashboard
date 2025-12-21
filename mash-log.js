@@ -1,26 +1,34 @@
 /* ============================================================
    mash-log.js
-   Phase 2 Mash Log — append-only entries
+   Google Sheets–backed Mash Logs (FINAL)
    ============================================================ */
 
 (function(){
 
-  const LOGS_KEY = "mash_logs_v1";
+  const API_URL =
+    "https://script.google.com/macros/s/AKfycbwj_zabLQh8nYUQwozds6rDY2yKgofgo2cQ6N6JrAs1H_jSJkkE4KqyiJlK5zjt8kus/exec";
 
-  function readLogs(){
-    try {
-      return JSON.parse(localStorage.getItem(LOGS_KEY)) || [];
-    } catch {
-      return [];
-    }
+  /* =========================
+     Utilities
+     ========================= */
+
+  function uid(prefix){
+    return prefix + "_" + Date.now().toString(36);
   }
 
-  function writeLogs(list){
-    localStorage.setItem(LOGS_KEY, JSON.stringify(list));
+  async function apiGet(params){
+    const q = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_URL}?${q}`);
+    return res.json();
   }
 
-  function uid(){
-    return "log_" + Date.now().toString(36);
+  async function apiPost(payload){
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
   }
 
   /* =========================
@@ -28,61 +36,82 @@
      ========================= */
   window.createMashLog = function(meta){
     return {
-      id: uid(),
-      created_at: new Date().toISOString(),
-      meta: {
-        ...meta,
-        logVersion: "1.0"
-      },
-      entries: []
+      log_id: uid("log"),
+      mash_name: meta.mashName,
+      mode: meta.mode,
+      fill_gal: meta.fillGal,
+      mash_started_at: new Date(),
+      mash_dumped_at: "",
+      status: "active",
+      sour_mash: meta.sourMash || false,
+      sour_source_log_id: meta.sourSourceLogId || "",
+      app_version: meta.appVersion || "",
+      notes: meta.notes || ""
     };
   };
 
   /* =========================
      Save Mash Log
      ========================= */
-  window.saveMashLog = function(log){
-    const logs = readLogs();
-    logs.unshift(log);
-    writeLogs(logs);
-    return log.id;
+  window.saveMashLog = async function(log){
+    const res = await apiPost({
+      action: "createLog",
+      log
+    });
+    return res.log_id;
   };
 
   /* =========================
-     Get Mash Log
+     Get ALL Mash Logs
      ========================= */
-  window.getMashLog = function(id){
-    return readLogs().find(l => l.id === id) || null;
+  window.getAllMashLogs = async function(){
+    return apiGet({ action: "logs" });
+  };
+
+  /* =========================
+     Get Single Mash Log
+     ========================= */
+  window.getMashLog = async function(logId){
+    const logs = await apiGet({ action: "logs" });
+    return logs.find(l => l.log_id === logId) || null;
+  };
+
+  /* =========================
+     Get Entries for Mash Log
+     ========================= */
+  window.getMashLogEntries = async function(logId){
+    return apiGet({
+      action: "entries",
+      log_id: logId
+    });
   };
 
   /* =========================
      Add Mash Log Entry
      ========================= */
-  window.addMashLogEntry = function(logId, entry){
-    const logs = readLogs();
-    const idx = logs.findIndex(l => l.id === logId);
-    if (idx === -1) return null;
+  window.addMashLogEntry = async function(logId, entry){
+    const payload = {
+      action: "addEntry",
+      entry: {
+        log_id: logId,
+        ph: entry.ph,
+        sg: entry.sg,
+        temp_f: entry.temp,
+        notes: entry.notes || "",
 
-    const log = logs[idx];
+        yn_type: entry.additions?.yn?.type || "",
+        yn_product: entry.additions?.yn?.product || "",
+        yn_amount: entry.additions?.yn?.amount || "",
+        yn_unit: entry.additions?.yn?.unit || "",
 
-    // Normalize entry (append-only journal)
-    const cleanEntry = {
-      ts: new Date().toISOString(),
-      ph: entry.ph ?? null,
-      sg: entry.sg ?? null,
-      temp: entry.temp ?? null,
-      notes: entry.notes ?? "",
-      additions: entry.additions && Object.keys(entry.additions).length
-        ? entry.additions
-        : null
+        ph_action: entry.additions?.ph?.direction || "",
+        ph_product: entry.additions?.ph?.product || "",
+        ph_amount: entry.additions?.ph?.amount || "",
+        ph_unit: entry.additions?.ph?.unit || ""
+      }
     };
 
-    log.entries.push(cleanEntry);
-
-    logs[idx] = log;
-    writeLogs(logs);
-
-    return cleanEntry;
+    return apiPost(payload);
   };
 
 })();
