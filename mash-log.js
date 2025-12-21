@@ -59,9 +59,15 @@
     return call("listLogs");
   };
 
-  // 🔧 FIXED: fetch single log correctly
+  // Get full log (meta + entries)
   window.getMashLog = function(logId){
     return call("getLog", { log_id: logId });
+  };
+
+  // ✅ FIX: provide entries-only helper expected by mash-log.html
+  window.getMashLogEntries = function(logId){
+    return call("getLog", { log_id: logId })
+      .then(log => log && log.entries ? log.entries : []);
   };
 
   // Add entry
