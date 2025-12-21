@@ -35,7 +35,7 @@
     <div class="panel mash-panel">
       <h3>Select Mash Log</h3>
       <select id="logSelect">
-        <option value="">Select a mash log…</option>
+        <option value="">Loading mash logs…</option>
       </select>
     </div>
 
@@ -52,7 +52,6 @@
       <div class="panel mash-panel">
         <h3>Add Entry</h3>
 
-        <!-- CORE SNAPSHOT -->
         <div class="mash-grid">
           <div>
             <label>pH</label>
@@ -142,7 +141,7 @@
     </div>
 
     <div class="muted" style="margin-top:16px;text-align:right;">
-      Mash Log v2.2 — 2025-12-20
+      Mash Log (Cloud-Synced)
     </div>
 
   </main>
@@ -151,105 +150,112 @@
 
   <script>
     const el = id => document.getElementById(id);
-    let currentLog = null;
+    let currentLogId = null;
 
-    function showYN(){ el("ynFields").style.display = "grid"; }
-    function hideYN(){ el("ynFields").style.display = "none"; }
-    function showPH(){ el("phFields").style.display = "grid"; }
-    function hidePH(){ el("phFields").style.display = "none"; }
-
+    /* =========================
+       Dropdown behavior
+       ========================= */
     el("addYN").onchange = () =>
-      el("addYN").value ? showYN() : hideYN();
+      el("ynFields").style.display = el("addYN").value ? "grid" : "none";
 
     el("phAction").onchange = () =>
-      el("phAction").value ? showPH() : hidePH();
+      el("phFields").style.display = el("phAction").value ? "grid" : "none";
 
     function resetEntryForm(){
-      el("inPH").value = "";
-      el("inSG").value = "";
-      el("inTemp").value = "";
-      el("inNotes").value = "";
+      ["inPH","inSG","inTemp","inNotes","ynProduct","ynAmount","phProduct","phAmount"]
+        .forEach(id => el(id).value = "");
 
       el("addYN").value = "";
       el("phAction").value = "";
-
-      el("ynProduct").value = "";
-      el("ynAmount").value = "";
       el("ynUnit").value = "g";
-
-      el("phProduct").value = "";
-      el("phAmount").value = "";
       el("phUnit").value = "g";
 
-      hideYN();
-      hidePH();
+      el("ynFields").style.display = "none";
+      el("phFields").style.display = "none";
     }
 
-    function getAllLogs(){
-      try {
-        return JSON.parse(localStorage.getItem("mash_logs_v1")) || [];
-      } catch {
-        return [];
-      }
-    }
-
-    function populateLogSelect(){
-      const sel = el("logSelect");
-      getAllLogs().forEach(l => {
-        const o = document.createElement("option");
-        o.value = l.id;
-        o.textContent = `${l.meta.mashName} — ${l.meta.fillGal} gal`;
-        sel.appendChild(o);
-      });
-    }
+    /* =========================
+       Rendering
+       ========================= */
 
     function renderMeta(log){
       el("logMeta").innerHTML = `
-        <p><strong>${log.meta.mashName}</strong></p>
-        <p>Fill: ${log.meta.fillGal} gal</p>
-        <p>Mode: ${log.meta.mode}</p>
-        <p>Started: ${new Date(log.created_at).toLocaleString()}</p>
+        <p><strong>${log.mash_name}</strong></p>
+        <p>Fill: ${log.fill_gal} gal</p>
+        <p>Mode: ${log.mode}</p>
+        <p>Started: ${new Date(log.mash_started_at).toLocaleString()}</p>
+        ${log.sour_mash ? "<p><strong>Sour Mash</strong></p>" : ""}
       `;
     }
 
-    function renderEntries(log){
-      el("entries").innerHTML = log.entries.map(e => `
+    function renderEntries(entries){
+      if (!entries.length) {
+        el("entries").innerHTML = "<p class='muted'>No entries yet.</p>";
+        return;
+      }
+
+      el("entries").innerHTML = entries.map(e => `
         <div class="panel" style="margin-bottom:12px;">
-          <div class="muted">${new Date(e.ts).toLocaleString()}</div>
+          <div class="muted">${new Date(e.timestamp).toLocaleString()}</div>
           <div>
-            pH: ${e.ph ?? "—"} |
-            SG: ${e.sg ?? "—"} |
-            Temp: ${e.temp ?? "—"}°F
+            pH: ${e.ph || "—"} |
+            SG: ${e.sg || "—"} |
+            Temp: ${e.temp_f || "—"}°F
           </div>
-          ${e.additions?.yn ? `<div>${e.additions.yn.type}: ${e.additions.yn.product} (${e.additions.yn.amount}${e.additions.yn.unit})</div>` : ""}
-          ${e.additions?.ph ? `<div>pH ${e.additions.ph.direction}: ${e.additions.ph.product} (${e.additions.ph.amount}${e.additions.ph.unit})</div>` : ""}
+          ${e.yn_type ? `<div>${e.yn_type}: ${e.yn_product} (${e.yn_amount}${e.yn_unit})</div>` : ""}
+          ${e.ph_action ? `<div>pH ${e.ph_action}: ${e.ph_product} (${e.ph_amount}${e.ph_unit})</div>` : ""}
           ${e.notes ? `<div>${e.notes}</div>` : ""}
         </div>
       `).join("");
     }
 
-    function loadLog(id){
-      currentLog = window.getMashLog(id);
-      if (!currentLog) return;
+    /* =========================
+       Load logs + entries
+       ========================= */
+
+    async function populateLogSelect(){
+      const sel = el("logSelect");
+      sel.innerHTML = `<option value="">Select a mash log…</option>`;
+
+      const logs = await window.getAllMashLogs();
+      logs.forEach(l => {
+        const o = document.createElement("option");
+        o.value = l.log_id;
+        o.textContent = `${l.mash_name} — ${l.fill_gal} gal`;
+        sel.appendChild(o);
+      });
+    }
+
+    async function loadLog(logId){
+      currentLogId = logId;
+
+      const log = await window.getMashLog(logId);
+      const entries = await window.getMashLogEntries(logId);
 
       el("logSection").style.display = "block";
-      renderMeta(currentLog);
-      renderEntries(currentLog);
+      renderMeta(log);
+      renderEntries(entries);
       resetEntryForm();
     }
 
     el("logSelect").onchange = () => {
-      if (el("logSelect").value) loadLog(el("logSelect").value);
+      if (el("logSelect").value) {
+        loadLog(el("logSelect").value);
+      }
     };
 
-    el("btnAddEntry").onclick = () => {
-      if (!currentLog) return;
+    /* =========================
+       Add entry
+       ========================= */
+
+    el("btnAddEntry").onclick = async () => {
+      if (!currentLogId) return;
 
       const entry = {
-        ph: el("inPH").value || null,
-        sg: el("inSG").value || null,
-        temp: el("inTemp").value || null,
-        notes: el("inNotes").value || "",
+        ph: el("inPH").value,
+        sg: el("inSG").value,
+        temp: el("inTemp").value,
+        notes: el("inNotes").value,
         additions: {}
       };
 
@@ -271,10 +277,13 @@
         };
       }
 
-      window.addMashLogEntry(el("logSelect").value, entry);
-      loadLog(el("logSelect").value);
+      await window.addMashLogEntry(currentLogId, entry);
+      await loadLog(currentLogId);
     };
 
+    /* =========================
+       Init
+       ========================= */
     populateLogSelect();
   </script>
 
