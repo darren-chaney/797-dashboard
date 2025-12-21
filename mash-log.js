@@ -1,113 +1,86 @@
 /* ============================================================
-   mash-log.js
-   Google Sheets–backed Mash Logs (GET-only, CORS-safe)
+   mash-log.js — FINAL (GET ONLY, CROSS-DEVICE)
    ============================================================ */
 
-(function () {
+(function(){
 
+  /* ============================================================
+     CONFIG
+     ============================================================ */
   const API_URL =
-    "https://script.google.com/macros/s/AKfycbwj_zabLQh8nYUQwozds6rDY2yKgofgo2cQ6N6JrAs1H_jSJkkE4KqyiJlK5zjt8kus/exec";
+    "https://script.google.com/macros/s/AKfycbzKoSaK8srIvqeBj1y2N-5czcnYVnsxT9zy3GsDzrYxnEaH-AQgCClNyoNBIiCqVWw/exec";
 
-  /* =========================
-     Utilities
-     ========================= */
-
-  function uid(prefix) {
-    return prefix + "_" + Date.now().toString(36);
+  /* ============================================================
+     UTIL
+     ============================================================ */
+  function uid(prefix){
+    return `${prefix}_${Date.now().toString(36)}`;
   }
 
-  async function apiGet(params) {
-    const query = new URLSearchParams(params).toString();
-    const res = await fetch(`${API_URL}?${query}`);
-    return res.json();
+  function call(action, payload = null){
+    let url = `${API_URL}?action=${action}`;
+    if (payload) {
+      url += `&payload=${encodeURIComponent(JSON.stringify(payload))}`;
+    }
+    return fetch(url).then(r => r.json());
   }
 
-  function send(action, payload) {
-    return apiGet({
-      action,
-      payload: JSON.stringify(payload)
-    });
-  }
+  /* ============================================================
+     PUBLIC API — REQUIRED BY MASH BUILDER / MASH LOG
+     (Do not rename these)
+     ============================================================ */
 
-  /* =========================
-     Create Mash Log
-     ========================= */
-
-  window.createMashLog = function (meta) {
+  // Create an in-memory mash log object
+  window.createMashLog = function(meta){
     return {
       log_id: uid("log"),
-      mash_name: meta.mashName,
-      mode: meta.mode,
-      fill_gal: meta.fillGal,
-      mash_started_at: new Date(),
+      mash_name: meta.mashName || "Unnamed Mash",
+      mode: meta.mode || "",
+      fill_gal: meta.fillGal || "",
+      mash_started_at: new Date().toISOString(),
       mash_dumped_at: "",
-      status: "active",
       sour_mash: false,
       sour_source_log_id: "",
-      app_version: "",
+      app_version: "mash-builder",
       notes: ""
     };
   };
 
-  /* =========================
-     Save Mash Log
-     ========================= */
-
-  window.saveMashLog = async function (log) {
-    const res = await send("createLog", log);
-    return res.log_id;
+  // Persist mash log to Google Sheets
+  window.saveMashLog = function(log){
+    return call("createLog", log).then(() => log.log_id);
   };
 
-  /* =========================
-     Get All Mash Logs
-     ========================= */
-
-  window.getAllMashLogs = async function () {
-    return apiGet({ action: "logs" });
+  // Fetch all mash logs (for dropdown selector)
+  window.getAllMashLogs = function(){
+    return call("listLogs");
   };
 
-  /* =========================
-     Get Single Mash Log
-     ========================= */
-
-  window.getMashLog = async function (logId) {
-    const logs = await apiGet({ action: "logs" });
-    return logs.find(l => l.log_id === logId) || null;
+  // Fetch one mash log + its entries
+  window.getMashLog = function(logId){
+    return call("getLog", { log_id: logId });
   };
 
-  /* =========================
-     Get Mash Log Entries
-     ========================= */
-
-  window.getMashLogEntries = async function (logId) {
-    return apiGet({
-      action: "entries",
-      log_id: logId
-    });
-  };
-
-  /* =========================
-     Add Mash Log Entry
-     ========================= */
-
-  window.addMashLogEntry = async function (logId, entry) {
-    return send("addEntry", {
+  // Append a mash log entry
+  window.addMashLogEntry = function(logId, data){
+    const entry = {
+      entry_id: uid("entry"),
       log_id: logId,
-      ph: entry.ph,
-      sg: entry.sg,
-      temp_f: entry.temp,
-      notes: entry.notes || "",
+      ph: data.ph ?? "",
+      sg: data.sg ?? "",
+      temp_f: data.temp ?? "",
+      notes: data.notes ?? "",
+      yn_product: data.yn_product ?? "",
+      yn_amount: data.yn_amount ?? "",
+      yn_unit: data.yn_unit ?? "",
+      yn_type: data.yn_type ?? "",
+      ph_action: data.ph_action ?? "",
+      ph_product: data.ph_product ?? "",
+      ph_amount: data.ph_amount ?? "",
+      ph_unit: data.ph_unit ?? ""
+    };
 
-      yn_type: entry.additions?.yn?.type || "",
-      yn_product: entry.additions?.yn?.product || "",
-      yn_amount: entry.additions?.yn?.amount || "",
-      yn_unit: entry.additions?.yn?.unit || "",
-
-      ph_action: entry.additions?.ph?.direction || "",
-      ph_product: entry.additions?.ph?.product || "",
-      ph_amount: entry.additions?.ph?.amount || "",
-      ph_unit: entry.additions?.ph?.unit || ""
-    });
+    return call("addEntry", entry);
   };
 
 })();
