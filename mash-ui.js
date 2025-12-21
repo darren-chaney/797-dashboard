@@ -112,7 +112,10 @@ modeSelect.innerHTML = `
      Mash Log (Phase 1 → Phase 2 navigation)
      ========================= */
   btnStartLog.onclick = async () => {
-  if (!currentMash) return alert("Build a mash first.");
+  if (!currentMash) {
+    alert("Build a mash first.");
+    return;
+  }
 
   const log = window.createMashLog({
     mashName: currentMash.name,
@@ -120,10 +123,14 @@ modeSelect.innerHTML = `
     fillGal: currentMash.fillGal
   });
 
-  activeMashLogId = await window.saveMashLog(log);
-  btnViewLog.disabled = false;
-
-  alert("Mash Log started.");
+  try {
+    activeMashLogId = await window.saveMashLog(log);
+    btnViewLog.disabled = false;
+    alert("Mash Log started.");
+  } catch (err) {
+    console.error("Mash log creation failed:", err);
+    alert("Mash log could not be created. Please try again.");
+  }
 };
 
   /* 🔹 ONLY CHANGE IS HERE 🔹 */
