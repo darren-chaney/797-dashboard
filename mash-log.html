@@ -142,7 +142,7 @@
     </div>
 
     <div class="muted" style="margin-top:16px;text-align:right;">
-      Mash Log v2.1 — 2025-12-20
+      Mash Log v2.2 — 2025-12-20
     </div>
 
   </main>
@@ -151,7 +151,6 @@
 
   <script>
     const el = id => document.getElementById(id);
-
     let currentLog = null;
 
     function showYN(){ el("ynFields").style.display = "grid"; }
@@ -164,6 +163,27 @@
 
     el("phAction").onchange = () =>
       el("phAction").value ? showPH() : hidePH();
+
+    function resetEntryForm(){
+      el("inPH").value = "";
+      el("inSG").value = "";
+      el("inTemp").value = "";
+      el("inNotes").value = "";
+
+      el("addYN").value = "";
+      el("phAction").value = "";
+
+      el("ynProduct").value = "";
+      el("ynAmount").value = "";
+      el("ynUnit").value = "g";
+
+      el("phProduct").value = "";
+      el("phAmount").value = "";
+      el("phUnit").value = "g";
+
+      hideYN();
+      hidePH();
+    }
 
     function getAllLogs(){
       try {
@@ -215,6 +235,7 @@
       el("logSection").style.display = "block";
       renderMeta(currentLog);
       renderEntries(currentLog);
+      resetEntryForm();
     }
 
     el("logSelect").onchange = () => {
