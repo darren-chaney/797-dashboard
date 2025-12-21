@@ -1,5 +1,5 @@
 /* ============================================================
-   mash-log.js — FINAL (GET ONLY, API-MATCHED)
+   mash-log.js — FINAL (GET ONLY, API-MATCHED, DEFENSIVE)
    ============================================================ */
 
 (function(){
@@ -31,7 +31,6 @@
      PUBLIC API — REQUIRED BY MASH BUILDER / MASH LOG
      ============================================================ */
 
-  // Create in-memory log object
   window.createMashLog = function(meta){
     return {
       log_id: uid("log"),
@@ -47,46 +46,50 @@
     };
   };
 
-  // Save log (Sheets)
   window.saveMashLog = function(log){
     return call("createLog", {
       payload: JSON.stringify(log)
     }).then(() => log.log_id);
   };
 
-  // Get all logs (dropdown)
   window.getAllMashLogs = function(){
     return call("listLogs");
   };
 
-  // Get full log (meta + entries)
   window.getMashLog = function(logId){
     return call("getLog", { log_id: logId });
   };
 
-  // ✅ FIX: provide entries-only helper expected by mash-log.html
   window.getMashLogEntries = function(logId){
     return call("getLog", { log_id: logId })
       .then(log => log && log.entries ? log.entries : []);
   };
 
-  // Add entry
+  /* =========================
+     ENTRY SAVE (FIXED)
+     ========================= */
   window.addMashLogEntry = function(logId, data){
     const entry = {
       entry_id: uid("entry"),
       log_id: logId,
+
+      // core readings
       ph: data.ph ?? "",
       sg: data.sg ?? "",
-      temp_f: data.temp ?? "",
+      temp_f: data.temp ?? data.temp_f ?? "",
       notes: data.notes ?? "",
-      yn_product: data.yn_product ?? "",
-      yn_amount: data.yn_amount ?? "",
-      yn_unit: data.yn_unit ?? "",
-      yn_type: data.yn_type ?? "",
-      ph_action: data.ph_action ?? "",
-      ph_product: data.ph_product ?? "",
-      ph_amount: data.ph_amount ?? "",
-      ph_unit: data.ph_unit ?? ""
+
+      // yeast / nutrient (defensive)
+      yn_type: data.yn_type ?? data.ynType ?? "",
+      yn_product: data.yn_product ?? data.ynProduct ?? "",
+      yn_amount: data.yn_amount ?? data.ynAmount ?? "",
+      yn_unit: data.yn_unit ?? data.ynUnit ?? "",
+
+      // pH adjustment (defensive)
+      ph_action: data.ph_action ?? data.phAction ?? "",
+      ph_product: data.ph_product ?? data.phProduct ?? "",
+      ph_amount: data.ph_amount ?? data.phAmount ?? "",
+      ph_unit: data.ph_unit ?? data.phUnit ?? ""
     };
 
     return call("addEntry", {
