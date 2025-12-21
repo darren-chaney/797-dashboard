@@ -245,7 +245,7 @@
     };
 
     /* =========================
-       Add entry
+       Add entry (FIXED)
        ========================= */
 
     el("btnAddEntry").onclick = async () => {
@@ -256,26 +256,19 @@
         sg: el("inSG").value,
         temp: el("inTemp").value,
         notes: el("inNotes").value,
-        additions: {}
+
+        // yeast / nutrient
+        yn_type: el("addYN").value,
+        yn_product: el("ynProduct").value,
+        yn_amount: el("ynAmount").value,
+        yn_unit: el("ynUnit").value,
+
+        // pH adjustment
+        ph_action: el("phAction").value,
+        ph_product: el("phProduct").value,
+        ph_amount: el("phAmount").value,
+        ph_unit: el("phUnit").value
       };
-
-      if (el("addYN").value) {
-        entry.additions.yn = {
-          type: el("addYN").value,
-          product: el("ynProduct").value,
-          amount: el("ynAmount").value,
-          unit: el("ynUnit").value
-        };
-      }
-
-      if (el("phAction").value) {
-        entry.additions.ph = {
-          direction: el("phAction").value,
-          product: el("phProduct").value,
-          amount: el("phAmount").value,
-          unit: el("phUnit").value
-        };
-      }
 
       await window.addMashLogEntry(currentLogId, entry);
       await loadLog(currentLogId);
