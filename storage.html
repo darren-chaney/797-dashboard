@@ -1,1 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>797 Distillery — Storage Events</title>
 
+  <!-- Shared header + styles -->
+  <link rel="stylesheet" href="header.css?v=1.0.0" />
+  <link rel="stylesheet" href="mash.css?v=1.0.1" />
+</head>
+
+<body>
+
+  <!-- GLOBAL HEADER -->
+  <div id="global-header"></div>
+
+  <main class="mash-container">
+
+    <h1>Storage Events</h1>
+    <p class="subtitle">
+      Assign spirit to bulk tanks or barrels (TTB 5110.11)
+    </p>
+
+    <div class="panel">
+
+      <form id="storageForm">
+
+        <div class="grid">
+
+          <div>
+            <label>Date</label>
+            <input type="date" id="storageDate" required />
+          </div>
+
+          <div>
+            <label>Storage Type</label>
+            <select id="storageType">
+              <option value="bulk">Bulk (Tank)</option>
+              <option value="barrel">Barrel</option>
+            </select>
+          </div>
+
+          <div id="tankWrap">
+            <label>Destination Tank</label>
+            <select id="tankSelect"></select>
+          </div>
+
+          <div id="barrelWrap" style="display:none;">
+            <label>Barrel ID</label>
+            <input type="text" id="barrelId" placeholder="e.g. WH-2026-001" />
+          </div>
+
+          <div>
+            <label>Proof</label>
+            <input type="number" id="proof" step="0.1" min="1" max="200" />
+          </div>
+
+          <div>
+            <label>Proof Gallons</label>
+            <input type="number" id="proofGallons" step="0.01" min="0.01" />
+          </div>
+
+        </div>
+
+        <div id="monthStatus" class="hint"></div>
+
+        <div class="row">
+          <button type="submit" class="primary">Save Storage Event</button>
+          <div id="calculatedTotals" class="muted"></div>
+        </div>
+
+      </form>
+
+    </div>
+
+    <div class="panel">
+      <h2>This Month</h2>
+      <div id="entriesList">Loading…</div>
+    </div>
+
+  </main>
+
+  <script type="module" src="storage.js?v=1.0.0"></script>
+</body>
+</html>
