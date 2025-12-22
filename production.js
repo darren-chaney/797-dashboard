@@ -29,9 +29,9 @@ const app = initializeApp(firebaseConfig);
 
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
-  experimentalAutoDetectLongPolling: true,
   useFetchStreams: false
 });
+
 
 /* ===============================
    DOM helpers
