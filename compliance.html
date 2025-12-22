@@ -1,1 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Compliance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Global header styles -->
+  <link rel="stylesheet" href="header.css" />
+</head>
+
+<body>
+
+  <!-- GLOBAL HEADER -->
+  <div id="global-header"></div>
+
+  <main class="page">
+
+    <header class="page-header">
+      <h1>Compliance</h1>
+      <p class="muted">TTB reporting overview</p>
+    </header>
+
+    <section class="modules-grid">
+
+      <!-- CURRENT STATUS -->
+      <div class="module">
+        <h2>Current Status</h2>
+        <div id="monthStatus">
+          Loading…
+        </div>
+      </div>
+
+      <!-- THIS MONTH BOTTLED -->
+      <div class="module">
+        <h2>This Month Bottled</h2>
+        <div id="monthBottled" class="metric">—</div>
+        <div class="metric-label">Proof gallons</div>
+      </div>
+
+      <!-- YEAR TO DATE -->
+      <div class="module">
+        <h2>Year to Date</h2>
+        <div id="ytdBottled" class="metric">—</div>
+        <div class="metric-label">Proof gallons bottled</div>
+      </div>
+
+      <!-- QUICK ACTIONS -->
+      <div class="module">
+        <h2>Quick Actions</h2>
+        <ul>
+          <li><a href="bottling.html">Add Bottling Entry</a></li>
+        </ul>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- LOAD GLOBAL HEADER -->
+  <script>
+    fetch("header.html")
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById("global-header").innerHTML = html;
+      });
+  </script>
+
+  <script type="module" src="compliance.js"></script>
+</body>
+</html>
 
