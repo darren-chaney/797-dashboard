@@ -1,11 +1,16 @@
+/* ============================================================
+   Bottling Log — Compliance
+   GitHub Pages safe
+   ============================================================ */
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore,
+  initializeFirestore,
   collection,
   addDoc,
+  getDocs,
   query,
-  where,
-  getDocs
+  where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ===============================
@@ -22,23 +27,26 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app, {
+
+const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
   useFetchStreams: false
 });
 
-
-
 /* ===============================
-   State
+   DOM helpers
    =============================== */
 
-const currentMonth = "2026-01"; // later derived automatically
-const bottleRowsEl = document.getElementById("bottleRows");
-const totalsEl = document.getElementById("calculatedTotals");
+const el = id => document.getElementById(id);
+
+const bottleRows = el("bottleRows");
+const addBottleRowBtn = el("addBottleRow");
+const form = el("bottlingForm");
+const totalsEl = el("calculatedTotals");
+const entriesList = el("entriesList");
 
 /* ===============================
-   Bottle rows
+   Bottle row helpers
    =============================== */
 
 function addBottleRow(size = "", count = "") {
@@ -46,129 +54,144 @@ function addBottleRow(size = "", count = "") {
   row.className = "bottle-row";
 
   row.innerHTML = `
-    <input type="number" placeholder="mL" value="${size}" class="size" />
-    <input type="number" placeholder="Count" value="${count}" class="count" />
-    <button type="button" class="remove">✕</button>
+    <select class="bottle-size">
+      <option value="">Size</option>
+      <option value="750">750 mL</option>
+      <option value="375">375 mL</option>
+    </select>
+    <input type="number" class="bottle-count" min="1" placeholder="Qty" />
+    <button type="button">✕</button>
   `;
 
-  row.querySelector(".remove").onclick = () => {
+  const removeBtn = row.querySelector("button");
+  removeBtn.onclick = () => {
     row.remove();
-    calculateTotals();
+    recalcTotals();
   };
 
-  row.querySelectorAll("input").forEach(i =>
-    i.addEventListener("input", calculateTotals)
-  );
+  row.querySelector(".bottle-size").value = size;
+  row.querySelector(".bottle-count").value = count;
 
-  bottleRowsEl.appendChild(row);
+  row.querySelectorAll("select,input").forEach(i => {
+    i.addEventListener("input", recalcTotals);
+  });
+
+  bottleRows.appendChild(row);
 }
-
-document.getElementById("addBottleRow").onclick = () => addBottleRow();
 
 /* ===============================
    Calculations
    =============================== */
 
-function calculateTotals() {
-  const proof = parseFloat(document.getElementById("proof").value);
-  if (!proof) return;
-
-  let totalMl = 0;
-  let totalBottles = 0;
-
-  document.querySelectorAll(".bottle-row").forEach(row => {
-    const size = parseFloat(row.querySelector(".size").value);
-    const count = parseFloat(row.querySelector(".count").value);
-    if (size && count) {
-      totalMl += size * count;
-      totalBottles += count;
-    }
-  });
-
-  if (!totalMl) return;
-
-  const liters = totalMl / 1000;
-  const wineGallons = liters / 3.78541;
-  const proofGallons = wineGallons * (proof / 100);
-
-  totalsEl.innerHTML = `
-    Bottles (internal): ${totalBottles}<br>
-    Wine gallons: ${wineGallons.toFixed(2)}<br>
-    Proof gallons (TTB): ${proofGallons.toFixed(2)}
-  `;
-}
-
-/* ===============================
-   Save event
-   =============================== */
-
-document.getElementById("bottlingForm").onsubmit = async e => {
-  e.preventDefault();
-
-  const bottles = [];
-  document.querySelectorAll(".bottle-row").forEach(row => {
-    const size = parseFloat(row.querySelector(".size").value);
-    const count = parseFloat(row.querySelector(".count").value);
-    if (size && count) bottles.push({ sizeMl: size, count });
-  });
-
-  if (!bottles.length) {
-    alert("Add at least one bottle size");
+function recalcTotals() {
+  const proof = parseFloat(el("proof").value);
+  if (!proof) {
+    totalsEl.textContent = "Enter proof and bottles";
     return;
   }
 
-  const proof = parseFloat(document.getElementById("proof").value);
-  let totalMl = bottles.reduce((s, b) => s + b.sizeMl * b.count, 0);
-  let liters = totalMl / 1000;
-  let wineGallons = liters / 3.78541;
-  let proofGallons = wineGallons * (proof / 100);
+  let totalLiters = 0;
+
+  bottleRows.querySelectorAll(".bottle-row").forEach(row => {
+    const size = parseFloat(row.querySelector(".bottle-size").value);
+    const count = parseFloat(row.querySelector(".bottle-count").value);
+    if (size && count) {
+      totalLiters += (size / 1000) * count;
+    }
+  });
+
+  const proofGallons = (totalLiters * (proof / 100)) / 3.78541;
+
+  totalsEl.textContent =
+    `${totalLiters.toFixed(2)} L · ${proofGallons.toFixed(2)} proof gal`;
+}
+
+/* ===============================
+   Save entry
+   =============================== */
+
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const proof = parseFloat(el("proof").value);
+  if (!proof) return alert("Proof required");
+
+  let bottles = [];
+  let totalLiters = 0;
+
+  bottleRows.querySelectorAll(".bottle-row").forEach(row => {
+    const size = parseFloat(row.querySelector(".bottle-size").value);
+    const count = parseFloat(row.querySelector(".bottle-count").value);
+    if (size && count) {
+      bottles.push({ size_ml: size, count });
+      totalLiters += (size / 1000) * count;
+    }
+  });
+
+  if (!bottles.length) return alert("Enter at least one bottle size");
+
+  const proofGallons =
+    (totalLiters * (proof / 100)) / 3.78541;
+
+  const reportingMonth = el("bottlingDate").value.slice(0, 7);
 
   await addDoc(collection(db, "compliance_events"), {
     eventType: "bottling",
-    reportingMonth: currentMonth,
-    eventDate: document.getElementById("bottlingDate").value,
-    productName: document.getElementById("productName").value,
-    productType: document.getElementById("productType").value,
+    reportingMonth,
+    date: el("bottlingDate").value,
+    productName: el("productName").value.trim(),
+    productType: el("productType").value,
     proof,
     bottles,
     derived: {
-      totalBottles: bottles.reduce((s, b) => s + b.count, 0),
-      wineGallons,
+      liters: totalLiters,
       proofGallons
     },
-    notes: document.getElementById("notes").value,
-    createdAt: new Date(),
+    createdAt: new Date().toISOString(),
     createdBy: "dev"
   });
 
-  location.reload();
-};
+  form.reset();
+  bottleRows.innerHTML = "";
+  addBottleRow();
+  totalsEl.textContent = "Saved";
+
+  loadEntries();
+});
 
 /* ===============================
    Load entries
    =============================== */
 
 async function loadEntries() {
-  const q = query(
-    collection(db, "compliance_events"),
-    where("eventType", "==", "bottling"),
-    where("reportingMonth", "==", currentMonth)
+  entriesList.textContent = "Loading…";
+
+  const snap = await getDocs(
+    query(
+      collection(db, "compliance_events"),
+      where("eventType", "==", "bottling")
+    )
   );
 
-  const snap = await getDocs(q);
-  const list = document.getElementById("entriesList");
+  entriesList.innerHTML = "";
 
   snap.forEach(doc => {
     const d = doc.data();
-    const card = document.createElement("div");
-    card.className = "entry-card";
-    card.innerHTML = `
-      <strong>${d.productName}</strong><br>
-      ${d.proof} proof · ${d.derived.totalBottles} bottles<br>
-      Proof gallons: ${d.derived.proofGallons.toFixed(2)}
-    `;
-    list.appendChild(card);
+    const div = document.createElement("div");
+    div.className = "entry-card";
+    div.textContent =
+      `${d.date} · ${d.productName} · ${d.derived.proofGallons.toFixed(2)} pg`;
+    entriesList.appendChild(div);
   });
+
+  if (!entriesList.children.length) {
+    entriesList.textContent = "No entries yet.";
+  }
 }
 
+/* ===============================
+   Init
+   =============================== */
+
+addBottleRow();
 loadEntries();
