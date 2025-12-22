@@ -282,4 +282,24 @@ select:focus{
   align-items: center;
   justify-content: center;
 }
+/* ===============================
+   Normalize bottle row input look
+   (Safari / iOS fix)
+   =============================== */
+
+.bottle-row input[type="number"]{
+  background-color: var(--panel, #111c33);
+  color: var(--text, #e5e7eb);
+  border: 1px solid var(--border, #334155);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+
+/* Remove Safari spinner arrows */
+.bottle-row input[type="number"]::-webkit-outer-spin-button,
+.bottle-row input[type="number"]::-webkit-inner-spin-button{
+  -webkit-appearance: none;
+  margin: 0;
+}
 
