@@ -285,10 +285,11 @@ async function handleSubmit(e) {
   });
 
   form.reset();
-  bottleRows.innerHTML = "";
-  addBottleRow();
-  totalsEl.textContent = "Saved";
-  updateMonthAwareness();
+   bottleRows.innerHTML = "";
+   addBottleRow();
+   totalsEl.textContent = `Saved to ${reportingMonthId}`;
+   await loadEntries(reportingMonthId);
+   updateMonthAwareness();
 }
 
 /* ===============================
