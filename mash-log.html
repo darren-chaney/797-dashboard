@@ -251,22 +251,23 @@
     }
 
     async function loadLog(logId){
-      currentLogId = logId;
+  currentLogId = logId;
+  el("logSection").style.display = "block";
 
-      const log = await window.getMashLog(logId);
-      cachedEntries = await window.getMashLogEntries(logId);
+  // show instant feedback
+  el("entries").innerHTML = "<p class='muted'>Loading entries…</p>";
 
-      el("logSection").style.display = "block";
-      renderMeta(log);
-      renderEntries(cachedEntries);
-      resetEntryForm();
-    }
+  const [log, entries] = await Promise.all([
+    window.getMashLog(logId),
+    window.getMashLogEntries(logId)
+  ]);
 
-    el("logSelect").onchange = () => {
-      if (el("logSelect").value) {
-        loadLog(el("logSelect").value);
-      }
-    };
+  cachedEntries = entries;
+  renderMeta(log);
+  renderEntries(cachedEntries);
+  resetEntryForm();
+}
+
 
     /* =========================
        Add entry — OPTIMISTIC UI
