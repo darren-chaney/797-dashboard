@@ -1,5 +1,5 @@
 /* ============================================================
-   Compliance Dashboard
+   Compliance Dashboard — Month-Aware
    GitHub Pages safe
    ============================================================ */
 
@@ -39,10 +39,10 @@ const db = initializeFirestore(app, {
 const el = id => document.getElementById(id);
 
 /* ===============================
-   Load compliance months
+   Month logic (single source of truth)
    =============================== */
 
-async function loadMonths() {
+async function getCurrentOperationalMonth() {
   const snap = await getDocs(collection(db, "compliance_months"));
   const months = [];
 
@@ -50,9 +50,15 @@ async function loadMonths() {
     months.push({ id: doc.id, ...doc.data() });
   });
 
-  // sort YYYY-MM
+  // Sort YYYY-MM
   months.sort((a, b) => a.id.localeCompare(b.id));
-  return months;
+
+  if (!months.length) return null;
+
+  const openMonths = months.filter(m => m.status === "open");
+  return openMonths.length
+    ? openMonths[openMonths.length - 1]
+    : months[months.length - 1];
 }
 
 /* ===============================
@@ -106,35 +112,42 @@ async function bottledYearToDate(year) {
   const ytdBottledEl = el("ytdBottled");
 
   try {
-    const months = await loadMonths();
+    const currentMonth = await getCurrentOperationalMonth();
 
-    if (!months.length) {
-      statusEl.textContent = "No compliance months found.";
+    if (!currentMonth) {
+      statusEl.textContent = "No compliance months defined.";
       monthBottledEl.textContent = "0.00";
       ytdBottledEl.textContent = "0.00";
       return;
     }
 
-    // Current month = latest OPEN month, otherwise last month
-    const openMonths = months.filter(m => m.status === "open");
-    const current =
-      openMonths.length
-        ? openMonths[openMonths.length - 1]
-        : months[months.length - 1];
+    const today = new Date();
+    const dueDate = new Date(currentMonth.filingDueDate);
+    const isLate =
+      currentMonth.status === "open" && today > dueDate;
 
-    // Status display
+    /* ===============================
+       Status block (visible & explicit)
+       =============================== */
+
     statusEl.innerHTML = `
-      <strong>Operational month:</strong> ${current.id}<br>
-      <strong>Status:</strong> ${current.status}<br>
-      <strong>Filing due:</strong> ${current.filingDueDate}
+      <strong>Operational month:</strong> ${currentMonth.id}<br>
+      <strong>Status:</strong>
+        <span class="${currentMonth.status === "open" ? "good" : "warn"}">
+          ${currentMonth.status.toUpperCase()}
+        </span><br>
+      <strong>Filing due:</strong> ${currentMonth.filingDueDate}
+      ${isLate ? `<br><span class="warn">⚠ Reports are due</span>` : ""}
     `;
 
-    // Month totals
-    const monthTotal = await bottledForMonth(current.id);
+    /* ===============================
+       Metrics
+       =============================== */
+
+    const monthTotal = await bottledForMonth(currentMonth.id);
     monthBottledEl.textContent = monthTotal.toFixed(2);
 
-    // YTD totals
-    const year = current.id.slice(0, 4);
+    const year = currentMonth.id.slice(0, 4);
     const ytdTotal = await bottledYearToDate(year);
     ytdBottledEl.textContent = ytdTotal.toFixed(2);
 
