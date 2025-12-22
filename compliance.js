@@ -1,5 +1,5 @@
 /* ============================================================
-   Compliance Dashboard — Month-Aware
+   Compliance Dashboard — Month-Aware + Due Countdown
    GitHub Pages safe
    ============================================================ */
 
@@ -39,7 +39,7 @@ const db = initializeFirestore(app, {
 const el = id => document.getElementById(id);
 
 /* ===============================
-   Month logic (single source of truth)
+   Month logic
    =============================== */
 
 async function getCurrentOperationalMonth() {
@@ -50,9 +50,7 @@ async function getCurrentOperationalMonth() {
     months.push({ id: doc.id, ...doc.data() });
   });
 
-  // Sort YYYY-MM
   months.sort((a, b) => a.id.localeCompare(b.id));
-
   if (!months.length) return null;
 
   const openMonths = months.filter(m => m.status === "open");
@@ -123,11 +121,25 @@ async function bottledYearToDate(year) {
 
     const today = new Date();
     const dueDate = new Date(currentMonth.filingDueDate);
-    const isLate =
-      currentMonth.status === "open" && today > dueDate;
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysRemaining = Math.ceil((dueDate - today) / msPerDay);
+
+    let dueMessage = "";
+    let dueClass = "muted";
+
+    if (daysRemaining < 0) {
+      dueMessage = "⚠ Filing overdue";
+      dueClass = "warn";
+    } else if (daysRemaining <= 7) {
+      dueMessage = `⚠ Filing due in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}`;
+      dueClass = "warn";
+    } else {
+      dueMessage = `${daysRemaining} days until filing due`;
+    }
 
     /* ===============================
-       Status block (visible & explicit)
+       Status block
        =============================== */
 
     statusEl.innerHTML = `
@@ -136,8 +148,8 @@ async function bottledYearToDate(year) {
         <span class="${currentMonth.status === "open" ? "good" : "warn"}">
           ${currentMonth.status.toUpperCase()}
         </span><br>
-      <strong>Filing due:</strong> ${currentMonth.filingDueDate}
-      ${isLate ? `<br><span class="warn">⚠ Reports are due</span>` : ""}
+      <strong>Filing due:</strong> ${currentMonth.filingDueDate}<br>
+      <span class="${dueClass}">${dueMessage}</span>
     `;
 
     /* ===============================
