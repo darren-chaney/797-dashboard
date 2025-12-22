@@ -1,5 +1,5 @@
 /* ============================================================
-   Bottling Log — Compliance
+   Bottling Log — Month-Aware Guardrails
    GitHub Pages safe
    ============================================================ */
 
@@ -39,11 +39,32 @@ const db = initializeFirestore(app, {
 
 const el = id => document.getElementById(id);
 
-const bottleRows = el("bottleRows");
-const addBottleRowBtn = el("addBottleRow");
 const form = el("bottlingForm");
+const bottleRows = el("bottleRows");
 const totalsEl = el("calculatedTotals");
 const entriesList = el("entriesList");
+const monthStatusEl = el("monthStatus");
+
+/* ===============================
+   Month logic (single source of truth)
+   =============================== */
+
+async function getCurrentOperationalMonth() {
+  const snap = await getDocs(collection(db, "compliance_months"));
+  const months = [];
+
+  snap.forEach(doc => {
+    months.push({ id: doc.id, ...doc.data() });
+  });
+
+  months.sort((a, b) => a.id.localeCompare(b.id));
+  if (!months.length) return null;
+
+  const openMonths = months.filter(m => m.status === "open");
+  return openMonths.length
+    ? openMonths[openMonths.length - 1]
+    : months[months.length - 1];
+}
 
 /* ===============================
    Bottle row helpers
@@ -63,18 +84,17 @@ function addBottleRow(size = "", count = "") {
     <button type="button">✕</button>
   `;
 
-  const removeBtn = row.querySelector("button");
-  removeBtn.onclick = () => {
+  row.querySelector("button").onclick = () => {
     row.remove();
     recalcTotals();
   };
 
-  row.querySelector(".bottle-size").value = size;
-  row.querySelector(".bottle-count").value = count;
-
   row.querySelectorAll("select,input").forEach(i => {
     i.addEventListener("input", recalcTotals);
   });
+
+  row.querySelector(".bottle-size").value = size;
+  row.querySelector(".bottle-count").value = count;
 
   bottleRows.appendChild(row);
 }
@@ -107,11 +127,16 @@ function recalcTotals() {
 }
 
 /* ===============================
-   Save entry
+   Save entry (guarded)
    =============================== */
 
-form.addEventListener("submit", async e => {
+async function handleSubmit(e, currentMonth) {
   e.preventDefault();
+
+  if (currentMonth.status !== "open") {
+    alert("This compliance month is locked. Entries are read-only.");
+    return;
+  }
 
   const proof = parseFloat(el("proof").value);
   if (!proof) return alert("Proof required");
@@ -133,11 +158,9 @@ form.addEventListener("submit", async e => {
   const proofGallons =
     (totalLiters * (proof / 100)) / 3.78541;
 
-  const reportingMonth = el("bottlingDate").value.slice(0, 7);
-
   await addDoc(collection(db, "compliance_events"), {
     eventType: "bottling",
-    reportingMonth,
+    reportingMonth: currentMonth.id,
     date: el("bottlingDate").value,
     productName: el("productName").value.trim(),
     productType: el("productType").value,
@@ -156,20 +179,21 @@ form.addEventListener("submit", async e => {
   addBottleRow();
   totalsEl.textContent = "Saved";
 
-  loadEntries();
-});
+  loadEntries(currentMonth.id);
+}
 
 /* ===============================
    Load entries
    =============================== */
 
-async function loadEntries() {
+async function loadEntries(monthId) {
   entriesList.textContent = "Loading…";
 
   const snap = await getDocs(
     query(
       collection(db, "compliance_events"),
-      where("eventType", "==", "bottling")
+      where("eventType", "==", "bottling"),
+      where("reportingMonth", "==", monthId)
     )
   );
 
@@ -190,8 +214,36 @@ async function loadEntries() {
 }
 
 /* ===============================
-   Init
+   Init page
    =============================== */
 
-addBottleRow();
-loadEntries();
+(async function init() {
+
+  addBottleRow();
+
+  const currentMonth = await getCurrentOperationalMonth();
+
+  if (!currentMonth) {
+    monthStatusEl.textContent = "No compliance month available.";
+    form.querySelector("button.primary").disabled = true;
+    return;
+  }
+
+  monthStatusEl.innerHTML = `
+    <strong>Compliance month:</strong> ${currentMonth.id}<br>
+    <strong>Status:</strong>
+      <span class="${currentMonth.status === "open" ? "good" : "warn"}">
+        ${currentMonth.status.toUpperCase()}
+      </span>
+  `;
+
+  if (currentMonth.status !== "open") {
+    form.querySelector("button.primary").disabled = true;
+    totalsEl.textContent = "Month is locked — entries disabled.";
+  }
+
+  form.addEventListener("submit", e => handleSubmit(e, currentMonth));
+
+  loadEntries(currentMonth.id);
+
+})();
