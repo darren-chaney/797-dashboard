@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Compliance – Bottling Log</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>797 Distillery — Bottling</title>
 
-  <!-- Global header styles -->
+  <!-- Shared header + site styles -->
   <link rel="stylesheet" href="header.css" />
-  <link rel="stylesheet" href="compliance.css" />
+  <link rel="stylesheet" href="mash.css" />
 </head>
 
 <body>
@@ -15,98 +15,81 @@
   <!-- GLOBAL HEADER -->
   <div id="global-header"></div>
 
-  <main class="page">
+  <main class="mash-container">
 
-    <header class="page-header">
-      <h1>Bottling Log</h1>
-      <div id="monthStatus" class="muted">
-        Loading month…
-      </div>
-    </header>
+    <section class="panel">
+      <h2>Bottling Run</h2>
 
-    <!-- ADD BOTTLING ENTRY -->
-    <section class="module">
-      <h2>Add Bottling Entry</h2>
+      <div id="monthStatus" class="muted" style="margin-bottom:10px;"></div>
 
       <form id="bottlingForm">
+        <div class="mash-grid">
 
-        <div class="form-row">
-          <label for="bottlingDate">Bottling Date</label>
-          <input type="date" id="bottlingDate" required />
-        </div>
-
-        <div class="form-row">
-          <label for="productName">Product Name</label>
-          <input
-            type="text"
-            id="productName"
-            placeholder="Peach Cobbler Moonshine"
-            required
-          />
-        </div>
-
-        <div class="form-row">
-          <label for="productType">Product Type</label>
-          <select id="productType" required>
-            <option value="">Select…</option>
-            <option value="moonshine">Moonshine</option>
-            <option value="rum">Rum</option>
-            <option value="vodka">Vodka</option>
-            <option value="whiskey">Whiskey</option>
-          </select>
-        </div>
-
-        <div class="form-row">
-          <label for="proof">Proof</label>
-          <input type="number" id="proof" step="0.1" required />
-        </div>
-
-        <div class="form-row">
-          <label>Bottles</label>
-
-          <div id="bottleRows"></div>
-
-          <button type="button" id="addBottleRow">
-            + Add Bottle Size
-          </button>
-        </div>
-
-        <div class="form-row">
-          <label for="notes">Notes (optional)</label>
-          <textarea id="notes" rows="2"></textarea>
-        </div>
-
-        <div class="form-row">
-          <strong>Calculated Totals</strong>
-          <div id="calculatedTotals" class="muted">
-            Enter bottle sizes and proof
+          <div>
+            <label for="bottlingDate">Run Date</label>
+            <input id="bottlingDate" type="date" required />
           </div>
+
+          <div>
+            <label for="productName">Product Name</label>
+            <input id="productName" type="text" placeholder="e.g. Peach Cobbler Moonshine" required />
+          </div>
+
+          <div>
+            <label for="productType">Product Type</label>
+            <select id="productType">
+              <option value="">Select…</option>
+              <option value="moonshine">Moonshine</option>
+              <option value="rum">Rum</option>
+              <option value="whiskey">Whiskey</option>
+              <option value="vodka">Vodka</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="proof">Proof</label>
+            <input id="proof" type="number" step="0.1" min="1" max="200" placeholder="e.g. 60" required />
+          </div>
+
         </div>
 
-        <button type="submit" class="primary">
-          Save Bottling Entry
+        <hr style="margin:16px 0;" />
+
+        <h3>Bottles</h3>
+
+        <div id="bottleRows"></div>
+
+        <button type="button" class="secondary" id="addBottleRow">
+          + Add bottle size
         </button>
 
+        <div id="calculatedTotals" class="muted" style="margin-top:12px;">
+          Enter proof and bottles
+        </div>
+
+        <div style="margin-top:18px;">
+          <button type="submit" class="primary">
+            Save Bottling Run
+          </button>
+        </div>
       </form>
     </section>
 
-    <!-- EXISTING ENTRIES -->
-    <section class="module">
-      <h2>Entries</h2>
-      <div id="entriesList">
-        Loading…
-      </div>
+    <section class="panel">
+      <h2>This Month’s Bottling Entries</h2>
+      <div id="entriesList" class="muted">—</div>
     </section>
 
   </main>
 
-  <!-- LOAD GLOBAL HEADER -->
   <script>
+    const PAGE_TITLE = "Bottling";
+    const PAGE_SUBTITLE = "Record bottling runs (append-only, month-aware).";
+
     fetch("header.html")
       .then(r => r.text())
-      .then(html => {
-        document.getElementById("global-header").innerHTML = html;
-      });
+      .then(html => document.getElementById("global-header").innerHTML = html);
   </script>
 
   <script type="module" src="bottling.js"></script>
