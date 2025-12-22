@@ -1,7 +1,9 @@
 /* ============================================================
-   Bottling Log — Auto Month + Guardrails
-   Reporting month = month of run date (canonical rule)
-   GitHub Pages safe
+   Bottling Log — FINAL
+   - Auto month from run date
+   - Month lock guardrails
+   - Multiple bottle sizes (375 / 750 / custom mL)
+   - Append-only ledger
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -46,9 +48,10 @@ const totalsEl = el("calculatedTotals");
 const entriesList = el("entriesList");
 const monthStatusEl = el("monthStatus");
 const runDateEl = el("bottlingDate");
+const addRowBtn = el("addBottleRow");
 
 /* ===============================
-   Month utilities
+   Utilities
    =============================== */
 
 function monthFromDate(dateStr) {
@@ -64,15 +67,12 @@ async function getMonthById(monthId) {
   );
 
   let month = null;
-  snap.forEach(doc => {
-    month = { id: doc.id, ...doc.data() };
-  });
-
+  snap.forEach(doc => month = { id: doc.id, ...doc.data() });
   return month;
 }
 
 /* ===============================
-   Bottle row helpers
+   Bottle rows
    =============================== */
 
 function addBottleRow(size = "", count = "") {
@@ -82,24 +82,32 @@ function addBottleRow(size = "", count = "") {
   row.innerHTML = `
     <select class="bottle-size">
       <option value="">Size</option>
-      <option value="750">750 mL</option>
       <option value="375">375 mL</option>
+      <option value="750">750 mL</option>
+      <option value="custom">Custom</option>
     </select>
+    <input type="number" class="bottle-custom" min="1" placeholder="mL" style="display:none;" />
     <input type="number" class="bottle-count" min="1" placeholder="Qty" />
     <button type="button">✕</button>
   `;
+
+  const sizeSel = row.querySelector(".bottle-size");
+  const customInput = row.querySelector(".bottle-custom");
+  const countInput = row.querySelector(".bottle-count");
+
+  sizeSel.onchange = () => {
+    customInput.style.display = sizeSel.value === "custom" ? "inline-block" : "none";
+    recalcTotals();
+  };
 
   row.querySelector("button").onclick = () => {
     row.remove();
     recalcTotals();
   };
 
-  row.querySelectorAll("select,input").forEach(i => {
-    i.addEventListener("input", recalcTotals);
-  });
-
-  row.querySelector(".bottle-size").value = size;
-  row.querySelector(".bottle-count").value = count;
+  [sizeSel, customInput, countInput].forEach(i =>
+    i.addEventListener("input", recalcTotals)
+  );
 
   bottleRows.appendChild(row);
 }
@@ -110,29 +118,42 @@ function addBottleRow(size = "", count = "") {
 
 function recalcTotals() {
   const proof = parseFloat(el("proof").value);
-  if (!proof) {
-    totalsEl.textContent = "Enter proof and bottles";
+  if (!proof || proof <= 0 || proof > 200) {
+    totalsEl.textContent = "Enter a valid proof (1–200)";
     return;
   }
 
   let totalLiters = 0;
 
   bottleRows.querySelectorAll(".bottle-row").forEach(row => {
-    const size = parseFloat(row.querySelector(".bottle-size").value);
+    const sizeSel = row.querySelector(".bottle-size").value;
+    const customML = parseFloat(row.querySelector(".bottle-custom").value);
     const count = parseFloat(row.querySelector(".bottle-count").value);
-    if (size && count) {
-      totalLiters += (size / 1000) * count;
+
+    let sizeML = 0;
+    if (sizeSel === "375") sizeML = 375;
+    else if (sizeSel === "750") sizeML = 750;
+    else if (sizeSel === "custom" && customML > 0) sizeML = customML;
+
+    if (sizeML > 0 && count > 0) {
+      totalLiters += (sizeML / 1000) * count;
     }
   });
 
-  const proofGallons = (totalLiters * (proof / 100)) / 3.78541;
+  if (!totalLiters) {
+    totalsEl.textContent = "Enter bottles";
+    return;
+  }
+
+  const wineGallons = totalLiters / 3.78541;
+  const proofGallons = wineGallons * (proof / 100);
 
   totalsEl.textContent =
-    `${totalLiters.toFixed(2)} L · ${proofGallons.toFixed(2)} proof gal`;
+    `${totalLiters.toFixed(2)} L · ${wineGallons.toFixed(2)} wine gal · ${proofGallons.toFixed(2)} proof gal`;
 }
 
 /* ===============================
-   Load entries for a month
+   Load entries
    =============================== */
 
 async function loadEntries(monthId) {
@@ -175,13 +196,13 @@ async function updateMonthAwareness() {
 
   if (!month) {
     monthStatusEl.innerHTML =
-      `This run would fall under <strong>${reportingMonthId}</strong>, which does not exist.`;
+      `This run would record under <strong>${reportingMonthId}</strong>, which does not exist.`;
     form.querySelector("button.primary").disabled = true;
     return;
   }
 
   monthStatusEl.innerHTML = `
-    <strong>Reporting month:</strong> ${month.id}<br>
+    <strong>Recorded under:</strong> ${month.id}<br>
     <strong>Status:</strong>
       <span class="${month.status === "open" ? "good" : "warn"}">
         ${month.status.toUpperCase()}
@@ -195,47 +216,56 @@ async function updateMonthAwareness() {
     form.querySelector("button.primary").disabled = false;
     loadEntries(month.id);
   }
-
-  return month;
 }
 
 /* ===============================
-   Save entry
+   Save
    =============================== */
 
 async function handleSubmit(e) {
   e.preventDefault();
 
   const dateStr = runDateEl.value;
-  if (!dateStr) return alert("Run date required");
-
   const reportingMonthId = monthFromDate(dateStr);
   const month = await getMonthById(reportingMonthId);
 
   if (!month || month.status !== "open") {
-    alert("This compliance month is locked. Entry not allowed.");
+    alert("This compliance month is locked.");
     return;
   }
 
   const proof = parseFloat(el("proof").value);
-  if (!proof) return alert("Proof required");
+  if (!proof || proof <= 0 || proof > 200) {
+    alert("Invalid proof");
+    return;
+  }
 
   let bottles = [];
   let totalLiters = 0;
 
   bottleRows.querySelectorAll(".bottle-row").forEach(row => {
-    const size = parseFloat(row.querySelector(".bottle-size").value);
+    const sizeSel = row.querySelector(".bottle-size").value;
+    const customML = parseFloat(row.querySelector(".bottle-custom").value);
     const count = parseFloat(row.querySelector(".bottle-count").value);
-    if (size && count) {
-      bottles.push({ size_ml: size, count });
-      totalLiters += (size / 1000) * count;
+
+    let sizeML = 0;
+    if (sizeSel === "375") sizeML = 375;
+    else if (sizeSel === "750") sizeML = 750;
+    else if (sizeSel === "custom" && customML > 0) sizeML = customML;
+
+    if (sizeML > 0 && count > 0) {
+      bottles.push({ size_ml: sizeML, count });
+      totalLiters += (sizeML / 1000) * count;
     }
   });
 
-  if (!bottles.length) return alert("Enter at least one bottle size");
+  if (!bottles.length) {
+    alert("Enter at least one bottle row");
+    return;
+  }
 
-  const proofGallons =
-    (totalLiters * (proof / 100)) / 3.78541;
+  const wineGallons = totalLiters / 3.78541;
+  const proofGallons = wineGallons * (proof / 100);
 
   await addDoc(collection(db, "compliance_events"), {
     eventType: "bottling",
@@ -247,6 +277,7 @@ async function handleSubmit(e) {
     bottles,
     derived: {
       liters: totalLiters,
+      wineGallons,
       proofGallons
     },
     createdAt: new Date().toISOString(),
@@ -257,7 +288,6 @@ async function handleSubmit(e) {
   bottleRows.innerHTML = "";
   addBottleRow();
   totalsEl.textContent = "Saved";
-
   updateMonthAwareness();
 }
 
@@ -266,13 +296,13 @@ async function handleSubmit(e) {
    =============================== */
 
 (function init() {
+  runDateEl.value = new Date().toISOString().slice(0, 10);
   addBottleRow();
 
-  // Default run date = today
-  runDateEl.value = new Date().toISOString().slice(0, 10);
+  addRowBtn.onclick = () => addBottleRow();
+  runDateEl.onchange = updateMonthAwareness;
+  el("proof").oninput = recalcTotals;
 
-  runDateEl.addEventListener("change", updateMonthAwareness);
   form.addEventListener("submit", handleSubmit);
-
   updateMonthAwareness();
 })();
