@@ -1,5 +1,6 @@
 /* ============================================================
-   Bottling Log — Month-Aware Guardrails
+   Bottling Log — Auto Month + Guardrails
+   Reporting month = month of run date (canonical rule)
    GitHub Pages safe
    ============================================================ */
 
@@ -44,26 +45,30 @@ const bottleRows = el("bottleRows");
 const totalsEl = el("calculatedTotals");
 const entriesList = el("entriesList");
 const monthStatusEl = el("monthStatus");
+const runDateEl = el("bottlingDate");
 
 /* ===============================
-   Month logic (single source of truth)
+   Month utilities
    =============================== */
 
-async function getCurrentOperationalMonth() {
-  const snap = await getDocs(collection(db, "compliance_months"));
-  const months = [];
+function monthFromDate(dateStr) {
+  return dateStr.slice(0, 7); // YYYY-MM
+}
 
+async function getMonthById(monthId) {
+  const snap = await getDocs(
+    query(
+      collection(db, "compliance_months"),
+      where("__name__", "==", monthId)
+    )
+  );
+
+  let month = null;
   snap.forEach(doc => {
-    months.push({ id: doc.id, ...doc.data() });
+    month = { id: doc.id, ...doc.data() };
   });
 
-  months.sort((a, b) => a.id.localeCompare(b.id));
-  if (!months.length) return null;
-
-  const openMonths = months.filter(m => m.status === "open");
-  return openMonths.length
-    ? openMonths[openMonths.length - 1]
-    : months[months.length - 1];
+  return month;
 }
 
 /* ===============================
@@ -127,63 +132,7 @@ function recalcTotals() {
 }
 
 /* ===============================
-   Save entry (guarded)
-   =============================== */
-
-async function handleSubmit(e, currentMonth) {
-  e.preventDefault();
-
-  if (currentMonth.status !== "open") {
-    alert("This compliance month is locked. Entries are read-only.");
-    return;
-  }
-
-  const proof = parseFloat(el("proof").value);
-  if (!proof) return alert("Proof required");
-
-  let bottles = [];
-  let totalLiters = 0;
-
-  bottleRows.querySelectorAll(".bottle-row").forEach(row => {
-    const size = parseFloat(row.querySelector(".bottle-size").value);
-    const count = parseFloat(row.querySelector(".bottle-count").value);
-    if (size && count) {
-      bottles.push({ size_ml: size, count });
-      totalLiters += (size / 1000) * count;
-    }
-  });
-
-  if (!bottles.length) return alert("Enter at least one bottle size");
-
-  const proofGallons =
-    (totalLiters * (proof / 100)) / 3.78541;
-
-  await addDoc(collection(db, "compliance_events"), {
-    eventType: "bottling",
-    reportingMonth: currentMonth.id,
-    date: el("bottlingDate").value,
-    productName: el("productName").value.trim(),
-    productType: el("productType").value,
-    proof,
-    bottles,
-    derived: {
-      liters: totalLiters,
-      proofGallons
-    },
-    createdAt: new Date().toISOString(),
-    createdBy: "dev"
-  });
-
-  form.reset();
-  bottleRows.innerHTML = "";
-  addBottleRow();
-  totalsEl.textContent = "Saved";
-
-  loadEntries(currentMonth.id);
-}
-
-/* ===============================
-   Load entries
+   Load entries for a month
    =============================== */
 
 async function loadEntries(monthId) {
@@ -214,36 +163,116 @@ async function loadEntries(monthId) {
 }
 
 /* ===============================
-   Init page
+   Month awareness
    =============================== */
 
-(async function init() {
+async function updateMonthAwareness() {
+  const dateStr = runDateEl.value;
+  if (!dateStr) return;
 
-  addBottleRow();
+  const reportingMonthId = monthFromDate(dateStr);
+  const month = await getMonthById(reportingMonthId);
 
-  const currentMonth = await getCurrentOperationalMonth();
-
-  if (!currentMonth) {
-    monthStatusEl.textContent = "No compliance month available.";
+  if (!month) {
+    monthStatusEl.innerHTML =
+      `This run would fall under <strong>${reportingMonthId}</strong>, which does not exist.`;
     form.querySelector("button.primary").disabled = true;
     return;
   }
 
   monthStatusEl.innerHTML = `
-    <strong>Compliance month:</strong> ${currentMonth.id}<br>
+    <strong>Reporting month:</strong> ${month.id}<br>
     <strong>Status:</strong>
-      <span class="${currentMonth.status === "open" ? "good" : "warn"}">
-        ${currentMonth.status.toUpperCase()}
+      <span class="${month.status === "open" ? "good" : "warn"}">
+        ${month.status.toUpperCase()}
       </span>
   `;
 
-  if (currentMonth.status !== "open") {
+  if (month.status !== "open") {
     form.querySelector("button.primary").disabled = true;
     totalsEl.textContent = "Month is locked — entries disabled.";
+  } else {
+    form.querySelector("button.primary").disabled = false;
+    loadEntries(month.id);
   }
 
-  form.addEventListener("submit", e => handleSubmit(e, currentMonth));
+  return month;
+}
 
-  loadEntries(currentMonth.id);
+/* ===============================
+   Save entry
+   =============================== */
 
+async function handleSubmit(e) {
+  e.preventDefault();
+
+  const dateStr = runDateEl.value;
+  if (!dateStr) return alert("Run date required");
+
+  const reportingMonthId = monthFromDate(dateStr);
+  const month = await getMonthById(reportingMonthId);
+
+  if (!month || month.status !== "open") {
+    alert("This compliance month is locked. Entry not allowed.");
+    return;
+  }
+
+  const proof = parseFloat(el("proof").value);
+  if (!proof) return alert("Proof required");
+
+  let bottles = [];
+  let totalLiters = 0;
+
+  bottleRows.querySelectorAll(".bottle-row").forEach(row => {
+    const size = parseFloat(row.querySelector(".bottle-size").value);
+    const count = parseFloat(row.querySelector(".bottle-count").value);
+    if (size && count) {
+      bottles.push({ size_ml: size, count });
+      totalLiters += (size / 1000) * count;
+    }
+  });
+
+  if (!bottles.length) return alert("Enter at least one bottle size");
+
+  const proofGallons =
+    (totalLiters * (proof / 100)) / 3.78541;
+
+  await addDoc(collection(db, "compliance_events"), {
+    eventType: "bottling",
+    reportingMonth: reportingMonthId,
+    date: dateStr,
+    productName: el("productName").value.trim(),
+    productType: el("productType").value,
+    proof,
+    bottles,
+    derived: {
+      liters: totalLiters,
+      proofGallons
+    },
+    createdAt: new Date().toISOString(),
+    createdBy: "dev"
+  });
+
+  form.reset();
+  bottleRows.innerHTML = "";
+  addBottleRow();
+  totalsEl.textContent = "Saved";
+
+  updateMonthAwareness();
+}
+
+/* ===============================
+   Init
+   =============================== */
+
+(function init() {
+  addBottleRow();
+
+  // Default run date = today
+  runDateEl.value = new Date().toISOString().slice(0, 10);
+
+  runDateEl.addEventListener("change", updateMonthAwareness);
+  form.addEventListener("submit", handleSubmit);
+
+  updateMonthAwareness();
 })();
