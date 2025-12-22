@@ -1,10 +1,5 @@
 /* ============================================================
-   Production Runs — FINAL
-   - One run = one event
-   - Volume in liters
-   - Proof per event
-   - Auto month from run date
-   - Month lock guardrails
+   Production Runs — FINAL (with inline tank creation)
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -18,7 +13,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ===============================
-   Firebase init
+   Firebase init (GitHub Pages safe)
    =============================== */
 
 const firebaseConfig = {
@@ -38,7 +33,6 @@ const db = initializeFirestore(app, {
   useFetchStreams: false
 });
 
-
 /* ===============================
    DOM helpers
    =============================== */
@@ -57,15 +51,12 @@ const tankSelect = el("tankSelect");
    =============================== */
 
 function monthFromDate(dateStr) {
-  return dateStr.slice(0, 7); // YYYY-MM
+  return dateStr.slice(0, 7);
 }
 
 async function getMonthById(monthId) {
   const snap = await getDocs(
-    query(
-      collection(db, "compliance_months"),
-      where("__name__", "==", monthId)
-    )
+    query(collection(db, "compliance_months"), where("__name__", "==", monthId))
   );
 
   let month = null;
@@ -74,11 +65,12 @@ async function getMonthById(monthId) {
 }
 
 /* ===============================
-   Tanks (simple named list)
+   Tanks
    =============================== */
 
-async function loadTanks() {
+async function loadTanks(selectId = null) {
   const snap = await getDocs(collection(db, "tanks"));
+
   tankSelect.innerHTML = `<option value="">Select tank…</option>`;
 
   snap.forEach(doc => {
@@ -88,6 +80,39 @@ async function loadTanks() {
     opt.textContent = t.name;
     tankSelect.appendChild(opt);
   });
+
+  // Add inline creation option
+  const addOpt = document.createElement("option");
+  addOpt.value = "__add__";
+  addOpt.textContent = "+ Add new tank…";
+  tankSelect.appendChild(addOpt);
+
+  if (selectId) tankSelect.value = selectId;
+}
+
+/* ===============================
+   Inline tank creation
+   =============================== */
+
+async function handleTankChange() {
+  if (tankSelect.value !== "__add__") return;
+
+  const name = prompt("Enter tank name:");
+  if (!name) {
+    tankSelect.value = "";
+    return;
+  }
+
+  const notes = prompt("Notes (optional):") || "";
+
+  const docRef = await addDoc(collection(db, "tanks"), {
+    name: name.trim(),
+    notes: notes.trim(),
+    active: true,
+    createdAt: new Date().toISOString()
+  });
+
+  await loadTanks(docRef.id);
 }
 
 /* ===============================
@@ -198,11 +223,16 @@ async function handleSubmit(e) {
   if (!liters || liters <= 0) return alert("Invalid volume");
   if (!proof || proof <= 0 || proof > 200) return alert("Invalid proof");
 
+  if (!tankSelect.value) {
+    alert("Select a destination tank");
+    return;
+  }
+
   const wineGallons = liters / 3.78541;
   const proofGallons = wineGallons * (proof / 100);
 
   const tankId = tankSelect.value;
-  const tankName = tankSelect.options[tankSelect.selectedIndex]?.text;
+  const tankName = tankSelect.options[tankSelect.selectedIndex].text;
 
   await addDoc(collection(db, "compliance_events"), {
     eventType: "production",
@@ -239,6 +269,7 @@ async function handleSubmit(e) {
   runDateEl.value = new Date().toISOString().slice(0, 10);
 
   await loadTanks();
+  tankSelect.onchange = handleTankChange;
 
   runDateEl.onchange = updateMonthAwareness;
   el("volumeLiters").oninput = recalcTotals;
