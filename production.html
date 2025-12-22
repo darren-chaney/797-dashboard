@@ -1,1 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>797 Distillery — Production</title>
 
+  <!-- Shared header + site styles -->
+  <link rel="stylesheet" href="header.css" />
+  <link rel="stylesheet" href="mash.css" />
+</head>
+
+<body>
+
+  <!-- GLOBAL HEADER -->
+  <div id="global-header"></div>
+
+  <main class="mash-container">
+
+    <section class="panel">
+      <h2>Production Run</h2>
+
+      <div id="monthStatus" class="muted" style="margin-bottom:10px;"></div>
+
+      <form id="productionForm">
+        <div class="mash-grid">
+
+          <div>
+            <label for="runDate">Run Date</label>
+            <input id="runDate" type="date" required />
+          </div>
+
+          <div>
+            <label for="runType">Run Type</label>
+            <select id="runType" required>
+              <option value="">Select…</option>
+              <option value="stripping">Stripping</option>
+              <option value="spirit">Spirit</option>
+              <option value="single-pass">Single-pass</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="volumeLiters">Volume Collected (liters)</label>
+            <input id="volumeLiters" type="number" step="0.01" min="0.01" placeholder="e.g. 97.0" required />
+          </div>
+
+          <div>
+            <label for="proof">Proof</label>
+            <input id="proof" type="number" step="0.1" min="1" max="200" placeholder="e.g. 155" required />
+          </div>
+
+          <div>
+            <label for="tankSelect">Destination Tank</label>
+            <select id="tankSelect" required>
+              <option value="">Select tank…</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="notes">Notes</label>
+            <input id="notes" type="text" placeholder="Optional" />
+          </div>
+
+        </div>
+
+        <div id="calculatedTotals" class="muted" style="margin-top:12px;">
+          Enter volume and proof
+        </div>
+
+        <div style="margin-top:18px;">
+          <button type="submit" class="primary">
+            Save Production Run
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>This Month’s Production Runs</h2>
+      <div id="entriesList" class="muted">—</div>
+    </section>
+
+  </main>
+
+  <script>
+    const PAGE_TITLE = "Production";
+    const PAGE_SUBTITLE = "Record distillation output (append-only, month-aware).";
+
+    fetch("header.html")
+      .then(r => r.text())
+      .then(html => document.getElementById("global-header").innerHTML = html);
+  </script>
+
+  <script type="module" src="production.js"></script>
+</body>
+</html>
