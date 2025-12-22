@@ -151,6 +151,7 @@
   <script>
     const el = id => document.getElementById(id);
     let currentLogId = null;
+    let cachedEntries = [];
 
     /* =========================
        Dropdown behavior
@@ -189,49 +190,48 @@
     }
 
     function renderEntries(entries){
-  if (!entries.length) {
-    el("entries").innerHTML = "<p class='muted'>No entries yet.</p>";
-    return;
-  }
+      if (!entries.length) {
+        el("entries").innerHTML = "<p class='muted'>No entries yet.</p>";
+        return;
+      }
 
-  el("entries").innerHTML = entries.map(e => `
-    <div class="panel" style="margin-bottom:12px;">
+      el("entries").innerHTML = entries.map(e => `
+        <div class="panel" style="margin-bottom:12px;">
 
-      <div class="muted" style="margin-bottom:6px;">
-        ${new Date(e.timestamp).toLocaleString()}
-      </div>
+          <div class="muted" style="margin-bottom:6px;">
+            ${e._saving ? "Saving…" : e._error ? "⚠️ Not saved" : new Date(e.timestamp).toLocaleString()}
+          </div>
 
-      <div style="font-weight:500;margin-bottom:6px;">
-        pH ${e.ph || "—"} ·
-        SG ${e.sg || "—"} ·
-        Temp ${e.temp_f || "—"}°F
-      </div>
+          <div style="font-weight:500;margin-bottom:6px;">
+            pH ${e.ph || "—"} ·
+            SG ${e.sg || "—"} ·
+            Temp ${e.temp_f || "—"}°F
+          </div>
 
-      ${e.yn_type ? `
-        <div style="margin-top:6px;">
-          <strong>➕ ${e.yn_type === "yeast" ? "Yeast added" : "Nutrient added"}</strong><br>
-          ${e.yn_product} — ${e.yn_amount}${e.yn_unit}
+          ${e.yn_type ? `
+            <div style="margin-top:6px;">
+              <strong>➕ ${e.yn_type === "yeast" ? "Yeast added" : "Nutrient added"}</strong><br>
+              ${e.yn_product} — ${e.yn_amount}${e.yn_unit}
+            </div>
+          ` : ""}
+
+          ${e.ph_action ? `
+            <div style="margin-top:6px;">
+              <strong>🧪 pH adjusted (${e.ph_action})</strong><br>
+              ${e.ph_product} — ${e.ph_amount}${e.ph_unit}
+            </div>
+          ` : ""}
+
+          ${e.notes ? `
+            <div style="margin-top:6px;">
+              <strong>📝 Notes</strong><br>
+              ${e.notes}
+            </div>
+          ` : ""}
+
         </div>
-      ` : ""}
-
-      ${e.ph_action ? `
-        <div style="margin-top:6px;">
-          <strong>🧪 pH adjusted (${e.ph_action})</strong><br>
-          ${e.ph_product} — ${e.ph_amount}${e.ph_unit}
-        </div>
-      ` : ""}
-
-      ${e.notes ? `
-        <div style="margin-top:6px;">
-          <strong>📝 Notes</strong><br>
-          ${e.notes}
-        </div>
-      ` : ""}
-
-    </div>
-  `).join("");
-}
-
+      `).join("");
+    }
 
     /* =========================
        Load logs + entries
@@ -254,11 +254,11 @@
       currentLogId = logId;
 
       const log = await window.getMashLog(logId);
-      const entries = await window.getMashLogEntries(logId);
+      cachedEntries = await window.getMashLogEntries(logId);
 
       el("logSection").style.display = "block";
       renderMeta(log);
-      renderEntries(entries);
+      renderEntries(cachedEntries);
       resetEntryForm();
     }
 
@@ -269,33 +269,49 @@
     };
 
     /* =========================
-       Add entry (FIXED)
+       Add entry — OPTIMISTIC UI
        ========================= */
 
     el("btnAddEntry").onclick = async () => {
       if (!currentLogId) return;
 
       const entry = {
+        timestamp: new Date().toISOString(),
+
         ph: el("inPH").value,
         sg: el("inSG").value,
-        temp: el("inTemp").value,
+        temp_f: el("inTemp").value,
         notes: el("inNotes").value,
 
-        // yeast / nutrient
         yn_type: el("addYN").value,
         yn_product: el("ynProduct").value,
         yn_amount: el("ynAmount").value,
         yn_unit: el("ynUnit").value,
 
-        // pH adjustment
         ph_action: el("phAction").value,
         ph_product: el("phProduct").value,
         ph_amount: el("phAmount").value,
-        ph_unit: el("phUnit").value
+        ph_unit: el("phUnit").value,
+
+        _saving: true
       };
 
-      await window.addMashLogEntry(currentLogId, entry);
-      await loadLog(currentLogId);
+      // optimistic render
+      cachedEntries.unshift(entry);
+      renderEntries(cachedEntries);
+      resetEntryForm();
+
+      try {
+        await window.addMashLogEntry(currentLogId, entry);
+        entry._saving = false;
+        renderEntries(cachedEntries);
+      } catch (err) {
+        console.error(err);
+        entry._saving = false;
+        entry._error = true;
+        renderEntries(cachedEntries);
+        alert("Entry failed to save. Check connection.");
+      }
     };
 
     /* =========================
