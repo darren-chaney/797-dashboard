@@ -134,7 +134,7 @@ document.getElementById("bottlingForm").onsubmit = async e => {
     },
     notes: document.getElementById("notes").value,
     createdAt: new Date(),
-    createdBy: auth.currentUser?.uid || "unknown"
+    createdBy: "dev"
   });
 
   location.reload();
