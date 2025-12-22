@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Compliance – Bottling Log</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Global styles -->
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/modules.css" />
+</head>
+
+<body>
+
+  <!-- Global header -->
+  <div id="global-header"></div>
+
+  <main class="page">
+
+    <header class="page-header">
+      <h1>Bottling Log</h1>
+      <div id="monthStatus" class="muted"></div>
+    </header>
+
+    <!-- Add Bottling Entry -->
+    <section class="module">
+      <h2>Add Bottling Entry</h2>
+
+      <form id="bottlingForm">
+
+        <div class="form-row">
+          <label>Date</label>
+          <input type="date" id="bottlingDate" required />
+        </div>
+
+        <div class="form-row">
+          <label>Product Name</label>
+          <input type="text" id="productName" placeholder="Peach Cobbler Moonshine" required />
+        </div>
+
+        <div class="form-row">
+          <label>Product Type</label>
+          <select id="productType" required>
+            <option value="">Select…</option>
+            <option value="moonshine">Moonshine</option>
+            <option value="rum">Rum</option>
+            <option value="vodka">Vodka</option>
+            <option value="whiskey">Whiskey</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>Proof</label>
+          <input type="number" id="proof" step="0.1" required />
+        </div>
+
+        <div class="form-row">
+          <label>Bottles</label>
+          <div id="bottleRows"></div>
+          <button type="button" id="addBottleRow">+ Add Bottle Size</button>
+        </div>
+
+        <div class="form-row">
+          <label>Notes (optional)</label>
+          <textarea id="notes" rows="2"></textarea>
+        </div>
+
+        <div class="form-row">
+          <strong>Calculated Totals</strong>
+          <div id="calculatedTotals" class="muted">
+            Enter bottle sizes and proof
+          </div>
+        </div>
+
+        <button type="submit" class="primary">Save Bottling Entry</button>
+
+      </form>
+    </section>
+
+    <!-- Existing Entries -->
+    <section class="module">
+      <h2>Entries</h2>
+      <div id="entriesList" class="list"></div>
+    </section>
+
+  </main>
+
+  <script type="module" src="bottling.js"></script>
+</body>
+</html>
