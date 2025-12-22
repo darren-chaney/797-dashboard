@@ -12,7 +12,12 @@ import {
    =============================== */
 
 const firebaseConfig = {
-  // 🔴 USE YOUR EXISTING CONFIG
+  apiKey: "AIzaSyDlubP6d8tR1x_ArJJRWvNxqhAGV720Vas",
+  authDomain: "distillery-app-b4aaa.firebaseapp.com",
+  projectId: "distillery-app-b4aaa",
+  storageBucket: "distillery-app-b4aaa.firebasestorage.app",
+  messagingSenderId: "90276955618",
+  appId: "1:90276955618:web:52e272ff59c4c29e3165bb"
 };
 
 const app = initializeApp(firebaseConfig);
