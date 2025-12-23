@@ -82,5 +82,14 @@
   </main>
 
   <script type="module" src="storage.js?v=1.0.0"></script>
+  <!-- LOAD GLOBAL HEADER -->
+<script>
+  fetch("header.html")
+    .then(r => r.text())
+    .then(html => {
+      document.getElementById("global-header").innerHTML = html;
+    });
+</script>
+
 </body>
 </html>
