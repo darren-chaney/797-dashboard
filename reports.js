@@ -1,9 +1,11 @@
 /* ============================================================
    Monthly TTB Reports — Guided Pay.gov Assistant
-   Form: 5110.40 (Production)
-   READ-ONLY — GitHub Pages safe
+   READ-ONLY • COPY-ONLY • GitHub Pages safe
    ============================================================ */
 
+/* ============================================================
+   FIREBASE IMPORTS (MATCH compliance.js EXACTLY)
+   ============================================================ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   initializeFirestore,
@@ -13,10 +15,10 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ===============================
-   Firebase init (MATCHES compliance.js)
-   =============================== */
-
+/* ============================================================
+   FIREBASE INITIALIZATION
+   DO NOT DUPLICATE OR MODIFY WITHOUT CARE
+   ============================================================ */
 const firebaseConfig = {
   apiKey: "AIzaSyDlubP6d8tR1x_ArJJRWvNxqhAGV720Vas",
   authDomain: "distillery-app-b4aaa.firebaseapp.com",
@@ -33,19 +35,19 @@ const db = initializeFirestore(app, {
   useFetchStreams: false
 });
 
-/* ===============================
-   DOM helpers
-   =============================== */
-
+/* ============================================================
+   DOM HELPERS
+   ============================================================ */
 const el = id => document.getElementById(id);
 
 const banner = el("reportMonthBanner");
 const label  = el("filingMonthLabel");
 
-/* ===============================
-   Determine filing month
-   =============================== */
-
+/* ============================================================
+   DETERMINE REPORTING (FILING) MONTH
+   - Prefer non-open months
+   - Fallback to most recent month
+   ============================================================ */
 async function getMostRecentFilingMonth() {
   const snap = await getDocs(collection(db, "compliance_months"));
   const months = [];
@@ -56,10 +58,7 @@ async function getMostRecentFilingMonth() {
 
   if (!months.length) return null;
 
-  // Sort YYYY-MM
   months.sort((a, b) => a.id.localeCompare(b.id));
-
-  // Prefer non-open months (closed / ready to file)
   const nonOpen = months.filter(m => m.status !== "open");
 
   return nonOpen.length
@@ -67,10 +66,9 @@ async function getMostRecentFilingMonth() {
     : months[months.length - 1];
 }
 
-/* ===============================
-   Production totals for month
-   =============================== */
-
+/* ============================================================
+   5110.40 — PRODUCTION TOTALS
+   ============================================================ */
 async function loadProductionTotals(monthId) {
   const snap = await getDocs(
     query(
@@ -102,11 +100,10 @@ async function loadProductionTotals(monthId) {
   return totals;
 }
 
-/* ===============================
-   Render table
-   =============================== */
-
-const FIELDS = [
+/* ============================================================
+   5110.40 — PRODUCTION FIELD MAP
+   ============================================================ */
+const PRODUCTION_FIELDS = [
   ["1", "Produced — Whiskey", "Whiskey Produced", "whiskeyProduced"],
   ["1", "Produced — Rum", "Rum Produced", "rumProduced"],
   ["1", "Produced — Vodka", "Vodka Produced", "vodkaProduced"],
@@ -115,11 +112,14 @@ const FIELDS = [
   ["5", "Transferred to Storage", "Transferred to Storage", "toStorage"]
 ];
 
-function renderTable(totals) {
+/* ============================================================
+   RENDER PRODUCTION TABLE
+   ============================================================ */
+function renderProductionTable(totals) {
   const tbody = el("productionTable");
   tbody.innerHTML = "";
 
-  FIELDS.forEach(([line, desc, paygov, key]) => {
+  PRODUCTION_FIELDS.forEach(([line, desc, paygov, key]) => {
     const val = totals[key] || 0;
 
     const tr = document.createElement("tr");
@@ -140,10 +140,77 @@ function renderTable(totals) {
   });
 }
 
-/* ===============================
-   Init
-   =============================== */
+/* ============================================================
+   5110.28 — PROCESSING TOTALS
+   ============================================================ */
+async function loadProcessingTotals(monthId) {
+  const snap = await getDocs(
+    query(
+      collection(db, "compliance_events"),
+      where("eventType", "==", "processing"),
+      where("reportingMonth", "==", monthId)
+    )
+  );
 
+  const totals = {
+    toProcessing: 0,
+    processed: 0,
+    toStorage: 0,
+    toBottling: 0
+  };
+
+  snap.forEach(doc => {
+    const d = doc.data().derived || {};
+    totals.toProcessing += d.toProcessingPG || 0;
+    totals.processed    += d.processedPG || 0;
+    totals.toStorage    += d.toStoragePG || 0;
+    totals.toBottling   += d.toBottlingPG || 0;
+  });
+
+  return totals;
+}
+
+/* ============================================================
+   5110.28 — PROCESSING FIELD MAP
+   ============================================================ */
+const PROCESSING_FIELDS = [
+  ["1", "Received for Processing", "Spirits Received for Processing", "toProcessing"],
+  ["2", "Processed", "Spirits Processed", "processed"],
+  ["5", "Transferred to Storage", "Transferred to Storage", "toStorage"],
+  ["6", "Transferred to Bottling", "Transferred to Bottling", "toBottling"]
+];
+
+/* ============================================================
+   RENDER PROCESSING TABLE
+   ============================================================ */
+function renderProcessingTable(totals) {
+  const tbody = el("processingTable");
+  tbody.innerHTML = "";
+
+  PROCESSING_FIELDS.forEach(([line, desc, paygov, key]) => {
+    const val = totals[key] || 0;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${line}</td>
+      <td>${desc}</td>
+      <td>${paygov}</td>
+      <td><strong>Enter this value</strong></td>
+      <td>${val.toFixed(2)}</td>
+      <td>
+        <button class="copy-btn"
+          onclick="navigator.clipboard.writeText('${val.toFixed(2)}')">
+          Copy
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ============================================================
+   INIT — LOAD MONTH + RENDER ALL REPORT SECTIONS
+   ============================================================ */
 (async function init() {
   try {
     const month = await getMostRecentFilingMonth();
@@ -158,12 +225,19 @@ function renderTable(totals) {
     banner.classList.add("success");
     label.textContent = month.id;
 
-    const totals = await loadProductionTotals(month.id);
-    renderTable(totals);
+    // --- Production ---
+    const prodTotals = await loadProductionTotals(month.id);
+    renderProductionTable(prodTotals);
+
+    // --- Processing ---
+    const procTotals = await loadProcessingTotals(month.id);
+    renderProcessingTable(procTotals);
+
+    // --- Storage (5110.11) will be wired here next ---
 
   } catch (err) {
     console.error(err);
     banner.classList.add("error");
-    label.textContent = "ERROR LOADING MONTH";
+    label.textContent = "ERROR LOADING REPORTS";
   }
 })();
