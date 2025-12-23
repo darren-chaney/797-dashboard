@@ -2,44 +2,50 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>797 Distillery — Monthly TTB Reports</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>797 Distillery — Monthly TTB Reports</title>
 
+  <!-- Shared header + site styles -->
+  <link rel="stylesheet" href="header.css" />
   <link rel="stylesheet" href="reports.css" />
 </head>
+
 <body>
 
-<main class="reports-container">
+  <!-- GLOBAL HEADER -->
+  <div id="global-header"></div>
 
-  <header class="reports-header">
-    <h1>Monthly TTB Reports</h1>
-    <div id="reportMonthBanner" class="month-banner">
-      Filing Month: <span id="filingMonthLabel">—</span>
-    </div>
-  </header>
+  <main class="reports-container">
 
-  <section class="report-card">
-    <h2>TTB 5110.40 — Production</h2>
+    <header class="reports-header">
+      <h1>Monthly TTB Reports</h1>
+      <div id="reportMonthBanner" class="month-banner">
+        Filing Month: <span id="filingMonthLabel">—</span>
+      </div>
+    </header>
 
-    <table class="report-table">
-      <thead>
-        <tr>
-          <th>Line</th>
-          <th>Description</th>
-          <th>Pay.gov Label</th>
-          <th>Instruction</th>
-          <th>Value (PG)</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="productionTable">
-        <!-- populated by JS -->
-      </tbody>
-    </table>
-  </section>
+    <section class="report-card">
+      <h2>TTB 5110.40 — Production</h2>
 
-</main>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Line</th>
+            <th>Description</th>
+            <th>Pay.gov Label</th>
+            <th>Instruction</th>
+            <th>Value (PG)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="productionTable">
+          <!-- populated by JS -->
+        </tbody>
+      </table>
+    </section>
 
-<script type="module" src="reports.js"></script>
+  </main>
+
+  <script type="module" src="reports.js"></script>
 </body>
 </html>
