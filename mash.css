@@ -335,4 +335,21 @@ select:focus{
   border-radius: 6px;
   box-sizing: border-box;
 }
+/* ===============================
+   Storage month indicator
+   =============================== */
+
+#monthStatus{
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border, #334155);
+  font-size: 0.95rem;
+}
+
+#monthStatus strong{
+  display: inline-block;
+  margin-right: 10px;
+}
 
