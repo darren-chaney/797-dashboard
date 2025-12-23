@@ -302,4 +302,20 @@ select:focus{
   -webkit-appearance: none;
   margin: 0;
 }
+/* ===============================
+   Storage page – form normalization
+   =============================== */
+
+#storageForm .grid{
+  align-items: end;
+}
+
+#storageForm input,
+#storageForm select{
+  height: 38px;
+  padding: 6px 8px;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
 
