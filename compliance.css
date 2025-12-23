@@ -167,3 +167,33 @@ button:hover {
     font-size: 1.6rem;
   }
 }
+/* ===============================
+   Compliance actions
+   =============================== */
+
+.actions{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.action-btn{
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid #334155;
+  color: #e5e7eb;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.action-btn:hover{
+  background: rgba(255,255,255,0.08);
+}
+
+/* Kill default purple links on compliance page */
+.page a{
+  color: #e5e7eb;
+}
