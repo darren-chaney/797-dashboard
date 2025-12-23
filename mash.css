@@ -456,4 +456,18 @@ select:focus{
     max-width: 420px;
   }
 }
+/* =========================================================
+   Move storage month indicator to top of module
+   ========================================================= */
+
+/* Place month status first */
+#monthStatus{
+  grid-row: 1;
+  grid-column: 1 / -1;
+}
+
+/* Push the rest of the form fields down */
+#storageForm .grid > div:not(#monthStatus){
+  grid-row: auto;
+}
 
