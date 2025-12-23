@@ -43,10 +43,10 @@ const banner = el("reportMonthBanner");
 const label  = el("filingMonthLabel");
 
 /* ===============================
-   Load most recent LOCKED month
+   Determine filing month
    =============================== */
 
-async function getMostRecentLockedMonth() {
+async function getMostRecentFilingMonth() {
   const snap = await getDocs(collection(db, "compliance_months"));
   const months = [];
 
@@ -56,12 +56,15 @@ async function getMostRecentLockedMonth() {
 
   if (!months.length) return null;
 
-  // locked = anything NOT open
-  const locked = months.filter(m => m.status !== "open");
-  if (!locked.length) return null;
+  // Sort YYYY-MM
+  months.sort((a, b) => a.id.localeCompare(b.id));
 
-  locked.sort((a, b) => a.id.localeCompare(b.id));
-  return locked[locked.length - 1];
+  // Prefer non-open months (closed / ready to file)
+  const nonOpen = months.filter(m => m.status !== "open");
+
+  return nonOpen.length
+    ? nonOpen[nonOpen.length - 1]
+    : months[months.length - 1];
 }
 
 /* ===============================
@@ -143,11 +146,11 @@ function renderTable(totals) {
 
 (async function init() {
   try {
-    const month = await getMostRecentLockedMonth();
+    const month = await getMostRecentFilingMonth();
 
     if (!month) {
       banner.classList.add("error");
-      label.textContent = "NO LOCKED MONTH FOUND";
+      label.textContent = "NO COMPLIANCE MONTHS FOUND";
       return;
     }
 
