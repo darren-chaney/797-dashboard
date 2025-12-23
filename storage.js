@@ -100,7 +100,8 @@ async function updateMonth(){
   }
 
   monthStatusEl.innerHTML =
-    `<strong>${m.id}</strong> — ${m.status.toUpperCase()}`;
+  `<strong>${m.id}</strong> — <span class="${m.status}">${m.status.toUpperCase()}</span>`;
+
 
   form.querySelector("button").disabled = (m.status !== "open");
 
