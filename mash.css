@@ -353,17 +353,27 @@ select:focus{
   margin-right: 10px;
 }
 /* ===============================
-   Storage form spacing
+   Storage form – compact layout
    =============================== */
 
 #storageForm .grid{
-  row-gap: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 18px;
+  row-gap: 10px;
+  align-items: end;
 }
 
-#storageForm label{
-  margin-bottom: 4px;
-  display: block;
+/* Force full-width rows when needed */
+#storageForm .grid > div{
+  min-width: 0;
 }
+/* Destination field spans both columns */
+#tankWrap,
+#barrelWrap{
+  grid-column: 1 / -1;
+}
+
 /* ===============================
    Storage select dropdown fix
    =============================== */
@@ -376,5 +386,18 @@ select:focus{
 #storageForm select::-webkit-inner-spin-button,
 #storageForm select::-webkit-calendar-picker-indicator{
   display: none;
+}
+/* ===============================
+   Storage footer tightening
+   =============================== */
+
+#monthStatus{
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
+#storageForm .row{
+  margin-top: 10px;
 }
 
