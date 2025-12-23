@@ -356,12 +356,45 @@ select:focus{
    Storage form – compact layout
    =============================== */
 
+/* =========================================================
+   Storage form – FINAL responsive layout (desktop + iOS)
+   ========================================================= */
+
 #storageForm .grid{
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 18px;
-  row-gap: 10px;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: 12px 18px;
   align-items: end;
+}
+
+/* Full-width rows */
+#tankWrap,
+#barrelWrap,
+#monthStatus{
+  grid-column: 1 / -1;
+}
+
+/* Inputs must NEVER overflow grid cells */
+#storageForm input,
+#storageForm select{
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* ===============================
+   Mobile (iPhone) layout
+   =============================== */
+@media (max-width: 720px){
+  #storageForm .grid{
+    grid-template-columns: 1fr;
+  }
+
+  #tankWrap,
+  #barrelWrap,
+  #monthStatus{
+    grid-column: 1;
+  }
 }
 
 /* Force full-width rows when needed */
