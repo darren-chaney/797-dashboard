@@ -302,6 +302,23 @@ select:focus{
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* Storage inputs – dark theme fix */
+#storageForm input{
+  background-color: var(--panel, #111c33);
+  color: var(--text, #e5e7eb);
+  border: 1px solid var(--border, #334155);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* Remove number spinners */
+#storageForm input[type="number"]::-webkit-outer-spin-button,
+#storageForm input[type="number"]::-webkit-inner-spin-button{
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* ===============================
    Storage page – form normalization
    =============================== */
