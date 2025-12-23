@@ -113,4 +113,54 @@ const FIELDS = [
 ];
 
 function renderTable(totals) {
-  const tbody = el("productionTable
+  const tbody = el("productionTable");
+  tbody.innerHTML = "";
+
+  FIELDS.forEach(([line, desc, paygov, key]) => {
+    const val = totals[key] || 0;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${line}</td>
+      <td>${desc}</td>
+      <td>${paygov}</td>
+      <td><strong>Enter this value</strong></td>
+      <td>${val.toFixed(2)}</td>
+      <td>
+        <button class="copy-btn"
+          onclick="navigator.clipboard.writeText('${val.toFixed(2)}')">
+          Copy
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ===============================
+   Init
+   =============================== */
+
+(async function init() {
+  try {
+    const month = await getMostRecentLockedMonth();
+
+    if (!month) {
+      banner.classList.add("error");
+      label.textContent = "NO LOCKED MONTH FOUND";
+      return;
+    }
+
+    banner.classList.remove("warning", "error");
+    banner.classList.add("success");
+    label.textContent = month.id;
+
+    const totals = await loadProductionTotals(month.id);
+    renderTable(totals);
+
+  } catch (err) {
+    console.error(err);
+    banner.classList.add("error");
+    label.textContent = "ERROR LOADING MONTH";
+  }
+})();
