@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="header.css" />
 
   <!-- =========================================================
-       REPORTS PAGE STYLES (tables, banners, buttons)
+       REPORTS PAGE STYLES
        ========================================================= -->
   <link rel="stylesheet" href="reports.css" />
 </head>
@@ -19,8 +19,7 @@
 <body>
 
   <!-- =========================================================
-       GLOBAL HEADER (loaded via header.html fetch)
-       DO NOT REMOVE
+       GLOBAL HEADER (populated via header.html fetch)
        ========================================================= -->
   <div id="global-header"></div>
 
@@ -31,12 +30,10 @@
 
     <!-- =======================================================
          PAGE HEADER + FILING MONTH BANNER
-         This banner MUST always be visible
          ======================================================= -->
     <header class="reports-header">
       <h1>Monthly TTB Reports</h1>
 
-      <!-- Filing month is injected by reports.js -->
       <div id="reportMonthBanner" class="month-banner warning">
         Filing Month: <span id="filingMonthLabel">Loading…</span>
       </div>
@@ -60,7 +57,6 @@
           </tr>
         </thead>
 
-        <!-- Populated by reports.js -->
         <tbody id="productionTable"></tbody>
       </table>
     </section>
@@ -83,20 +79,29 @@
           </tr>
         </thead>
 
-        <!-- Populated by reports.js -->
         <tbody id="processingTable"></tbody>
       </table>
     </section>
 
     <!-- =======================================================
          FUTURE: TTB 5110.11 — STORAGE
-         This section will be added HERE
          ======================================================= -->
 
   </main>
 
   <!-- =========================================================
-       REPORTS PAGE LOGIC (Firebase + calculations)
+       LOAD GLOBAL HEADER (MATCHES compliance.html)
+       ========================================================= -->
+  <script>
+    fetch("header.html")
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById("global-header").innerHTML = html;
+      });
+  </script>
+
+  <!-- =========================================================
+       REPORTS PAGE LOGIC
        ========================================================= -->
   <script type="module" src="reports.js"></script>
 </body>
