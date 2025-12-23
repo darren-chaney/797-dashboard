@@ -5,27 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>797 Distillery — Monthly TTB Reports</title>
 
-  <!-- Global header -->
+  <!-- =========================================================
+       GLOBAL HEADER STYLES (shared across all tools)
+       ========================================================= -->
   <link rel="stylesheet" href="header.css" />
+
+  <!-- =========================================================
+       REPORTS PAGE STYLES (tables, banners, buttons)
+       ========================================================= -->
   <link rel="stylesheet" href="reports.css" />
 </head>
 
 <body>
 
-  <!-- GLOBAL HEADER -->
+  <!-- =========================================================
+       GLOBAL HEADER (loaded via header.html fetch)
+       DO NOT REMOVE
+       ========================================================= -->
   <div id="global-header"></div>
 
+  <!-- =========================================================
+       MAIN REPORTS CONTAINER
+       ========================================================= -->
   <main class="reports-container">
 
+    <!-- =======================================================
+         PAGE HEADER + FILING MONTH BANNER
+         This banner MUST always be visible
+         ======================================================= -->
     <header class="reports-header">
       <h1>Monthly TTB Reports</h1>
 
-      <!-- LOCKED MONTH BANNER -->
+      <!-- Filing month is injected by reports.js -->
       <div id="reportMonthBanner" class="month-banner warning">
-        Filing Month: <span id="filingMonthLabel">Not loaded</span>
+        Filing Month: <span id="filingMonthLabel">Loading…</span>
       </div>
     </header>
 
+    <!-- =======================================================
+         TTB 5110.40 — PRODUCTION
+         ======================================================= -->
     <section class="report-card">
       <h2>TTB 5110.40 — Production</h2>
 
@@ -40,14 +59,45 @@
             <th></th>
           </tr>
         </thead>
-        <tbody id="productionTable">
-          <!-- populated by JS -->
-        </tbody>
+
+        <!-- Populated by reports.js -->
+        <tbody id="productionTable"></tbody>
       </table>
     </section>
 
+    <!-- =======================================================
+         TTB 5110.28 — PROCESSING
+         ======================================================= -->
+    <section class="report-card">
+      <h2>TTB 5110.28 — Processing</h2>
+
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Line</th>
+            <th>Description</th>
+            <th>Pay.gov Label</th>
+            <th>Instruction</th>
+            <th>Value (PG)</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <!-- Populated by reports.js -->
+        <tbody id="processingTable"></tbody>
+      </table>
+    </section>
+
+    <!-- =======================================================
+         FUTURE: TTB 5110.11 — STORAGE
+         This section will be added HERE
+         ======================================================= -->
+
   </main>
 
+  <!-- =========================================================
+       REPORTS PAGE LOGIC (Firebase + calculations)
+       ========================================================= -->
   <script type="module" src="reports.js"></script>
 </body>
 </html>
