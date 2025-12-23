@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>797 Distillery — Monthly TTB Reports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="stylesheet" href="reports.css" />
+</head>
+<body>
+
+<main class="reports-container">
+
+  <header class="reports-header">
+    <h1>Monthly TTB Reports</h1>
+    <div id="reportMonthBanner" class="month-banner">
+      Filing Month: <span id="filingMonthLabel">—</span>
+    </div>
+  </header>
+
+  <section class="report-card">
+    <h2>TTB 5110.40 — Production</h2>
+
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Line</th>
+          <th>Description</th>
+          <th>Pay.gov Label</th>
+          <th>Instruction</th>
+          <th>Value (PG)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="productionTable">
+        <!-- populated by JS -->
+      </tbody>
+    </table>
+  </section>
+
+</main>
+
+<script type="module" src="reports.js"></script>
+</body>
+</html>
