@@ -1,61 +1,116 @@
+/* ============================================================
+   Monthly TTB Reports — Guided Pay.gov Assistant
+   Form: 5110.40 (Production)
+   READ-ONLY — GitHub Pages safe
+   ============================================================ */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore,
+  initializeFirestore,
   collection,
+  getDocs,
   query,
-  where,
-  getDocs
+  where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { app } from "./firebase.js";
+/* ===============================
+   Firebase init (MATCHES compliance.js)
+   =============================== */
 
-const db = getFirestore(app);
+const firebaseConfig = {
+  apiKey: "AIzaSyDlubP6d8tR1x_ArJJRWvNxqhAGV720Vas",
+  authDomain: "distillery-app-b4aaa.firebaseapp.com",
+  projectId: "distillery-app-b4aaa",
+  storageBucket: "distillery-app-b4aaa.firebasestorage.app",
+  messagingSenderId: "90276955618",
+  appId: "1:90276955618:web:52e272ff59c4c29e3165bb"
+};
 
-const banner = document.getElementById("reportMonthBanner");
-const label  = document.getElementById("filingMonthLabel");
+const app = initializeApp(firebaseConfig);
 
-/* ------------------------------------------------------------
-   Load most recent locked month
------------------------------------------------------------- */
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  useFetchStreams: false
+});
 
-async function loadLockedMonth() {
-  const q = query(
-    collection(db, "complianceMonths"),
-    where("locked", "==", true)
-  );
+/* ===============================
+   DOM helpers
+   =============================== */
 
-  const snap = await getDocs(q);
+const el = id => document.getElementById(id);
 
-  if (snap.empty) {
-    banner.classList.add("error");
-    label.textContent = "NO LOCKED MONTH FOUND";
-    return null;
-  }
+const banner = el("reportMonthBanner");
+const label  = el("filingMonthLabel");
 
-  let latest = null;
+/* ===============================
+   Load most recent LOCKED month
+   =============================== */
+
+async function getMostRecentLockedMonth() {
+  const snap = await getDocs(collection(db, "compliance_months"));
+  const months = [];
 
   snap.forEach(doc => {
-    const d = doc.data();
-    if (!latest || d.period > latest.period) {
-      latest = d;
-    }
+    months.push({ id: doc.id, ...doc.data() });
   });
 
-  banner.classList.remove("warning");
-  banner.classList.remove("error");
-  banner.classList.add("success");
+  if (!months.length) return null;
 
-  label.textContent = latest.label || `${latest.period}`;
+  // locked = anything NOT open
+  const locked = months.filter(m => m.status !== "open");
+  if (!locked.length) return null;
 
-  return latest;
+  locked.sort((a, b) => a.id.localeCompare(b.id));
+  return locked[locked.length - 1];
 }
 
-/* ------------------------------------------------------------
-   Init
------------------------------------------------------------- */
+/* ===============================
+   Production totals for month
+   =============================== */
 
-(async function init() {
-  const monthData = await loadLockedMonth();
-  if (!monthData) return;
+async function loadProductionTotals(monthId) {
+  const snap = await getDocs(
+    query(
+      collection(db, "compliance_events"),
+      where("eventType", "==", "production"),
+      where("reportingMonth", "==", monthId)
+    )
+  );
 
-  // production rendering already handled elsewhere
-})();
+  const totals = {
+    whiskeyProduced: 0,
+    rumProduced: 0,
+    vodkaProduced: 0,
+    ginProduced: 0,
+    redistilled: 0,
+    toStorage: 0
+  };
+
+  snap.forEach(doc => {
+    const d = doc.data().derived || {};
+    totals.whiskeyProduced += d.whiskeyPG || 0;
+    totals.rumProduced     += d.rumPG || 0;
+    totals.vodkaProduced   += d.vodkaPG || 0;
+    totals.ginProduced     += d.ginPG || 0;
+    totals.redistilled     += d.redistilledPG || 0;
+    totals.toStorage       += d.toStoragePG || 0;
+  });
+
+  return totals;
+}
+
+/* ===============================
+   Render table
+   =============================== */
+
+const FIELDS = [
+  ["1", "Produced — Whiskey", "Whiskey Produced", "whiskeyProduced"],
+  ["1", "Produced — Rum", "Rum Produced", "rumProduced"],
+  ["1", "Produced — Vodka", "Vodka Produced", "vodkaProduced"],
+  ["1", "Produced — Gin", "Gin Produced", "ginProduced"],
+  ["2", "Produced by Redistillation", "Redistilled", "redistilled"],
+  ["5", "Transferred to Storage", "Transferred to Storage", "toStorage"]
+];
+
+function renderTable(totals) {
+  const tbody = el("productionTable
