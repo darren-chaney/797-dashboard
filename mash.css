@@ -352,4 +352,29 @@ select:focus{
   display: inline-block;
   margin-right: 10px;
 }
+/* ===============================
+   Storage form spacing
+   =============================== */
+
+#storageForm .grid{
+  row-gap: 14px;
+}
+
+#storageForm label{
+  margin-bottom: 4px;
+  display: block;
+}
+/* ===============================
+   Storage select dropdown fix
+   =============================== */
+
+#storageForm select{
+  padding-right: 34px; /* space for arrow */
+}
+
+/* Safari-specific polish */
+#storageForm select::-webkit-inner-spin-button,
+#storageForm select::-webkit-calendar-picker-indicator{
+  display: none;
+}
 
