@@ -1,6 +1,6 @@
 /* ============================================================
    5110-40.js — TTB 5110.40 (Production)
-   SAFE DOM-TIMING VERSION
+   SAFE DOM-TIMING VERSION (LOCKED)
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -47,14 +47,17 @@ const LINE_1_COLUMNS = [
 ];
 
 /* ============================================================
-   WAIT FOR MODULE HTML
+   WAIT FOR MODULE HTML (BLOCKING GATE)
    ============================================================ */
 
-function waitForBody(id, cb) {
-  const el = document.getElementById(id);
-  if (el) return cb(el);
-
-  setTimeout(() => waitForBody(id, cb), 50);
+function waitForBody(id) {
+  return new Promise(resolve => {
+    (function check() {
+      const el = document.getElementById(id);
+      if (el) return resolve(el);
+      setTimeout(check, 50);
+    })();
+  });
 }
 
 /* ============================================================
@@ -127,16 +130,16 @@ function render(body, values) {
 }
 
 /* ============================================================
-   INIT
+   INIT (LOCKED ORDER)
    ============================================================ */
 
 (async function init5110_40() {
+  const body = await waitForBody("ttb5110_40_production_body");
+
   const month = await getLockedMonth();
   if (!month) return;
 
   const totals = await getProductionTotals(month.id);
 
-  waitForBody("ttb5110_40_production_body", body => {
-    render(body, totals);
-  });
+  render(body, totals);
 })();
