@@ -20,13 +20,18 @@
 
   <!-- =========================================================
        GLOBAL HEADER (loaded via header.html fetch)
+       DO NOT REMOVE
        ========================================================= -->
   <div id="global-header"></div>
 
+  <!-- =========================================================
+       MAIN REPORTS CONTAINER
+       ========================================================= -->
   <main class="reports-container">
 
     <!-- =======================================================
-         PAGE HEADER + FILING MONTH BANNER (always visible)
+         PAGE HEADER + FILING MONTH BANNER
+         This banner MUST always be visible
          ======================================================= -->
     <header class="reports-header">
       <h1>Monthly TTB Reports</h1>
@@ -35,26 +40,39 @@
       <div id="reportMonthBanner" class="month-banner warning">
         Filing Month: <span id="filingMonthLabel">Loading…</span>
       </div>
-
-      <!-- Optional status/diagnostics (filled by JS) -->
-      <div id="reportsStatus" class="muted" style="margin-top:8px;"></div>
     </header>
 
     <!-- =======================================================
-         TTB 5110.40 — PRODUCTION
+         TTB 5110.40 — PRODUCTION (FULL PAY.GOV COLUMNS)
          ======================================================= -->
     <section class="report-card">
       <h2>TTB 5110.40 — Production</h2>
 
-      <table class="report-table">
+      <!--
+        This table matches the Pay.gov column structure for production:
+        Whiskey <=160, Whiskey >160, Brandy <=170, Brandy >170,
+        Rum, Gin, Vodka, Spirits >=190, Spirits <190, Other, Total
+      -->
+      <table class="report-table report-table-wide">
         <thead>
           <tr>
             <th>Line</th>
             <th>Description</th>
             <th>Pay.gov Label</th>
             <th>Instruction</th>
-            <th>Value (PG)</th>
-            <th></th>
+
+            <!-- Pay.gov class columns -->
+            <th>Whiskey ≤160</th>
+            <th>Whiskey &gt;160</th>
+            <th>Brandy ≤170</th>
+            <th>Brandy &gt;170</th>
+            <th>Rum</th>
+            <th>Gin</th>
+            <th>Vodka</th>
+            <th>Spirits ≥190</th>
+            <th>Spirits &lt;190</th>
+            <th>Other</th>
+            <th>Total</th>
           </tr>
         </thead>
 
@@ -64,7 +82,7 @@
     </section>
 
     <!-- =======================================================
-         TTB 5110.28 — PROCESSING
+         TTB 5110.28 — PROCESSING (stable placeholder table)
          ======================================================= -->
     <section class="report-card">
       <h2>TTB 5110.28 — Processing</h2>
@@ -87,7 +105,7 @@
     </section>
 
     <!-- =======================================================
-         TTB 5110.11 — STORAGE
+         TTB 5110.11 — STORAGE (stable placeholder table)
          ======================================================= -->
     <section class="report-card">
       <h2>TTB 5110.11 — Storage</h2>
@@ -112,14 +130,15 @@
   </main>
 
   <!-- =========================================================
-       LOAD GLOBAL HEADER (same pattern as compliance.html)
+       LOAD GLOBAL HEADER (same pattern as compliance landing page)
        ========================================================= -->
   <script>
     fetch("header.html")
       .then(r => r.text())
       .then(html => {
         document.getElementById("global-header").innerHTML = html;
-      });
+      })
+      .catch(err => console.warn("Header failed to load:", err));
   </script>
 
   <!-- =========================================================
