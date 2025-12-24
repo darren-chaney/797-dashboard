@@ -1,53 +1,14 @@
 /* ============================================================
    reports.js — Reports Shell Controller
    PURPOSE:
-   - Determine filing month
    - Load Pay.gov form modules
-   - NOTHING ELSE
+   - DOES NOT touch Firestore
    ============================================================ */
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  initializeFirestore,
-  collection,
-  getDocs
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-/* ===============================
-   Firebase init (shared)
-   =============================== */
-const firebaseConfig = {
-  apiKey: "AIzaSyDlubP6d8tR1x_ArJJRWvNxqhAGV720Vas",
-  authDomain: "distillery-app-b4aaa.firebaseapp.com",
-  projectId: "distillery-app-b4aaa"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true
-});
 
 /* ===============================
    DOM helpers
    =============================== */
 const el = id => document.getElementById(id);
-
-/* ===============================
-   Filing month logic
-   =============================== */
-async function getLockedMonth() {
-  const snap = await getDocs(collection(db, "compliance_months"));
-  const months = [];
-
-  snap.forEach(doc => {
-    months.push({ id: doc.id, ...doc.data() });
-  });
-
-  months.sort((a, b) => a.id.localeCompare(b.id));
-  const locked = months.filter(m => m.status === "locked");
-
-  return locked.length ? locked[locked.length - 1] : null;
-}
 
 /* ===============================
    Include loader
@@ -58,7 +19,10 @@ async function loadIncludes() {
   for (const node of nodes) {
     const url = node.dataset.include;
     try {
-      const html = await fetch(url).then(r => r.text());
+      const html = await fetch(url).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.text();
+      });
       node.innerHTML = html;
     } catch (err) {
       node.innerHTML = `<div class="module-error">
@@ -70,15 +34,14 @@ async function loadIncludes() {
 }
 
 /* ===============================
-   INIT (ORDER MATTERS)
+   INIT
    =============================== */
 (async function initReportsShell() {
 
-  // 1. Determine filing month
-  const month = await getLockedMonth();
-  el("filingMonthLabel").textContent = month ? month.id : "NO LOCKED MONTH";
+  // Filing month placeholder for now
+  el("filingMonthLabel").textContent = "NOT SET";
 
-  // 2. Load Pay.gov form modules
+  // Load Pay.gov form modules
   await loadIncludes();
 
 })();
