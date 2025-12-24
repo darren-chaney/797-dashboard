@@ -1,6 +1,6 @@
 /* ============================================================
    5110-40.js — TTB 5110.40 (Production)
-   WIRED VERSION
+   SAFE DOM-TIMING VERSION
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -47,23 +47,28 @@ const LINE_1_COLUMNS = [
 ];
 
 /* ============================================================
-   MONTH RESOLUTION
+   WAIT FOR MODULE HTML
+   ============================================================ */
+
+function waitForBody(id, cb) {
+  const el = document.getElementById(id);
+  if (el) return cb(el);
+
+  setTimeout(() => waitForBody(id, cb), 50);
+}
+
+/* ============================================================
+   DATA
    ============================================================ */
 
 async function getLockedMonth() {
   const snap = await getDocs(collection(db, "compliance_months"));
   const months = [];
-
   snap.forEach(d => months.push({ id: d.id, ...d.data() }));
   months.sort((a, b) => a.id.localeCompare(b.id));
-
   const locked = months.filter(m => m.status === "locked");
   return locked.length ? locked[locked.length - 1] : null;
 }
-
-/* ============================================================
-   PRODUCTION AGGREGATION
-   ============================================================ */
 
 async function getProductionTotals(monthId) {
   const totals = {};
@@ -79,40 +84,17 @@ async function getProductionTotals(monthId) {
 
   snap.forEach(doc => {
     const d = doc.data();
+    const pg = d.proofGallons || 0;
 
-    // Expecting: d.class + d.proofGallons
     switch (d.spiritClass) {
-      case "whiskey_under_160":
-        totals.Produced_WhiskeyUnder += d.proofGallons || 0;
-        break;
-
-      case "whiskey_over_160":
-        totals.Produced_WhiskeyOver += d.proofGallons || 0;
-        break;
-
-      case "brandy_under_170":
-        totals.Produced_BrandyUnder += d.proofGallons || 0;
-        break;
-
-      case "brandy_over_170":
-        totals.Produced_BrandyOver += d.proofGallons || 0;
-        break;
-
-      case "rum":
-        totals.Produced_Rum += d.proofGallons || 0;
-        break;
-
-      case "vodka":
-        totals.Produced_Vodka += d.proofGallons || 0;
-        break;
-
-      case "spirits_over_190":
-        totals.Produced_SpiritsOver += d.proofGallons || 0;
-        break;
-
-      case "spirits_under_190":
-        totals.Produced_SpiritsUnder += d.proofGallons || 0;
-        break;
+      case "whiskey_under_160": totals.Produced_WhiskeyUnder += pg; break;
+      case "whiskey_over_160":  totals.Produced_WhiskeyOver  += pg; break;
+      case "brandy_under_170":  totals.Produced_BrandyUnder  += pg; break;
+      case "brandy_over_170":   totals.Produced_BrandyOver   += pg; break;
+      case "rum":               totals.Produced_Rum          += pg; break;
+      case "vodka":             totals.Produced_Vodka        += pg; break;
+      case "spirits_over_190":  totals.Produced_SpiritsOver  += pg; break;
+      case "spirits_under_190": totals.Produced_SpiritsUnder += pg; break;
     }
   });
 
@@ -120,35 +102,28 @@ async function getProductionTotals(monthId) {
 }
 
 /* ============================================================
-   RENDERING
+   RENDER
    ============================================================ */
 
-function renderProductionLine1(values) {
-  const tbody = document.getElementById("ttb5110_40_production_body");
-  if (!tbody) return;
-
-  tbody.innerHTML = "";
+function render(body, values) {
+  body.innerHTML = "";
 
   const tr = document.createElement("tr");
-
   tr.innerHTML = `
     <td>1</td>
     <td>Produced</td>
-    ${LINE_1_COLUMNS.map(col => `
+    ${LINE_1_COLUMNS.map(c => `
       <td>
-        <div class="value">
-          ${fmt(values[col.key])}
-          <button class="copy-btn"
-            title="Copy"
-            onclick="navigator.clipboard.writeText('${fmt(values[col.key])}')">
-            Copy
-          </button>
-        </div>
+        ${fmt(values[c.key])}
+        <button class="copy-btn"
+          onclick="navigator.clipboard.writeText('${fmt(values[c.key])}')">
+          Copy
+        </button>
       </td>
     `).join("")}
   `;
 
-  tbody.appendChild(tr);
+  body.appendChild(tr);
 }
 
 /* ============================================================
@@ -156,14 +131,12 @@ function renderProductionLine1(values) {
    ============================================================ */
 
 (async function init5110_40() {
-
   const month = await getLockedMonth();
-  if (!month) {
-    console.warn("5110-40: No locked month found");
-    return;
-  }
+  if (!month) return;
 
   const totals = await getProductionTotals(month.id);
-  renderProductionLine1(totals);
 
+  waitForBody("ttb5110_40_production_body", body => {
+    render(body, totals);
+  });
 })();
