@@ -1,17 +1,10 @@
 /* ============================================================
-   reports.js
-   Monthly TTB Reports — Pay.gov Guided Assistant (Read-only)
-
-   Critical rules:
-   - Reads Firestore only (no writes)
-   - Shows line-by-line guidance
+   Monthly TTB Reports — Guided Assistant (Read-only)
+   - GitHub Pages safe (module imports from gstatic)
+   - Uses Firestore compliance_months + compliance_events
+   - Auto-selects MOST RECENT LOCKED MONTH
+   - Renders Production / Processing / Storage tables
    - Copy buttons for values
-   - Includes Pay.gov auto-calculated reference rows
-     (so the user can confirm totals match Pay.gov)
-
-   Notes:
-   - Fixes your 404: we DO NOT load "./firebase.js"
-     We load Firebase modules from gstatic, same as compliance.js.
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -24,7 +17,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ===============================
-   Firebase init (same as compliance.js)
+   Firebase init (MATCH compliance.js)
    =============================== */
 
 const firebaseConfig = {
@@ -49,90 +42,57 @@ const db = initializeFirestore(app, {
 
 const el = (id) => document.getElementById(id);
 
-/* ===============================
-   UI state
-   =============================== */
+function fmt2(n) {
+  const x = Number(n || 0);
+  return x.toFixed(2);
+}
 
-let months = [];          // compliance_months docs
-let selectedMonthId = ""; // YYYY-MM
-let selectedForm = "production";
+/* ============================================================
+   MONTH SELECTION (MOST RECENT LOCKED)
+   ============================================================ */
 
-/* ===============================
-   Month loading + default selection
-   =============================== */
-
-async function loadMonths() {
+async function getMostRecentLockedMonth() {
   const snap = await getDocs(collection(db, "compliance_months"));
-  const list = [];
-  snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+  const months = [];
+  snap.forEach(doc => months.push({ id: doc.id, ...doc.data() }));
 
-  // Sort YYYY-MM ascending
-  list.sort((a, b) => a.id.localeCompare(b.id));
-  months = list;
+  // Ensure chronological order (YYYY-MM sorts correctly lexicographically)
+  months.sort((a, b) => a.id.localeCompare(b.id));
+
+  // Your rule: the month being filed is the most recent "locked" month
+  const locked = months.filter(m => (m.status || "").toLowerCase() === "locked");
+  if (locked.length) return locked[locked.length - 1];
+
+  return null; // handled by UI banner
 }
 
-function getMostRecentLockedMonth() {
-  const locked = months.filter(m => m.status === "locked");
-  if (!locked.length) return null;
-  return locked[locked.length - 1];
-}
+function setMonthBanner(monthObj) {
+  const banner = el("reportMonthBanner");
+  const label = el("filingMonthLabel");
 
-function populateMonthSelect() {
-  const sel = el("reportMonth");
-  sel.innerHTML = "";
+  if (!banner || !label) return;
 
-  // Only show locked months here (filing months)
-  const locked = months.filter(m => m.status === "locked");
-
-  if (!locked.length) {
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "No locked months found";
-    sel.appendChild(opt);
+  if (!monthObj) {
+    banner.classList.remove("good");
+    banner.classList.add("warning");
+    label.textContent = "NO LOCKED MONTH FOUND";
     return;
   }
 
-  locked.forEach(m => {
-    const opt = document.createElement("option");
-    opt.value = m.id;
-    opt.textContent = m.id;
-    sel.appendChild(opt);
-  });
-
-  // Default: most recent locked
-  const mostRecentLocked = locked[locked.length - 1];
-  selectedMonthId = mostRecentLocked.id;
-  sel.value = selectedMonthId;
+  banner.classList.remove("warning");
+  banner.classList.add("good");
+  label.textContent = monthObj.id;
 }
 
-function renderLockedMonthBanner() {
-  const banner = el("lockedMonthBanner");
-  const m = months.find(x => x.id === selectedMonthId);
-
-  if (!m) {
-    banner.classList.add("hidden");
-    return;
-  }
-
-  // Banner is about filing month (locked)
-  banner.classList.remove("hidden");
-  banner.innerHTML = `
-    <strong>Filing month:</strong> ${m.id}
-    <span class="dot"></span>
-    <strong>Status:</strong> ${String(m.status || "").toUpperCase()}
-    ${m.filingDueDate ? `<span class="dot"></span><strong>Due:</strong> ${m.filingDueDate}` : ""}
-  `;
-}
-
-/* ===============================
-   Firestore reading (events -> totals)
-   =============================== */
+/* ============================================================
+   DATA ACCESS (READ-ONLY)
+   ============================================================ */
 
 /**
  * Pull compliance events for a month.
- * You already use compliance_events for bottling/production/storage.
+ * We only read. We do not write.
  */
-async function getEventsForMonth(monthId) {
+async function loadEventsForMonth(monthId) {
   const snap = await getDocs(
     query(
       collection(db, "compliance_events"),
@@ -145,344 +105,319 @@ async function getEventsForMonth(monthId) {
   return events;
 }
 
-/* ===============================
-   Formatting + copy
-   =============================== */
-
-function fmt2(n) {
-  const x = Number(n || 0);
-  if (!Number.isFinite(x)) return "0.00";
-  return x.toFixed(2);
-}
-
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(String(text));
-  } catch (e) {
-    // fallback
-    const ta = document.createElement("textarea");
-    ta.value = String(text);
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-  }
-}
-
-/* ===============================
-   Row rendering
-   =============================== */
+/* ============================================================
+   CALCULATION PLACEHOLDERS (NO RE-DESIGN)
+   ------------------------------------------------------------
+   IMPORTANT:
+   You said you don't have real data in the DB yet.
+   So we wire the pipeline now and return 0s until events exist.
+   When you start entering December (2025-12), these will populate.
+   ============================================================ */
 
 /**
- * Row model:
- * {
- *   line: "1",
- *   desc: "Produced — Whiskey",
- *   paygovLabel: "Whiskey Produced",
- *   instruction: "Enter this value",
- *   value: 0.00,
- *   copyValue: "0.00",
- *   isAuto: false
- * }
+ * Production (5110.40) calculations from ledger events.
+ * Replace the internals here when you finalize eventType schemas.
  */
-function renderRows(rows) {
-  const tbody = el("reportRows");
-  tbody.innerHTML = "";
+function calcProduction511040(events) {
+  // Filter events by type if you use eventType fields.
+  // Example placeholders:
+  // const productionEvents = events.filter(e => e.eventType === "production");
 
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">No rows configured.</td></tr>`;
-    return;
-  }
+  return {
+    // Line 1 breakdown (example categories you showed)
+    producedWhiskey: 0,
+    producedRum: 0,
+    producedVodka: 0,
+    producedGin: 0,
 
-  rows.forEach(r => {
-    const tr = document.createElement("tr");
+    // Line 2
+    producedByRedistillation: 0,
 
-    const v = fmt2(r.value);
-    const copyVal = (r.copyValue != null) ? String(r.copyValue) : v;
+    // Line 5
+    transferredToStorage: 0,
 
-    tr.innerHTML = `
-      <td class="mono">${r.line}</td>
-      <td>${r.desc}</td>
-      <td class="muted">${r.paygovLabel || ""}</td>
-      <td class="${r.isAuto ? "muted" : ""}">
-        ${r.instruction || ""}
-      </td>
-      <td class="mono" style="text-align:right;">${v}</td>
-      <td>
-        <button class="copy-btn" type="button" data-copy="${copyVal}">
-          Copy
-        </button>
-      </td>
+    // Example “Pay.gov calculated” style value (not entered)
+    producedTotal: 0
+  };
+}
+
+/**
+ * Processing (5110.28) calculations.
+ * Your Pay.gov saved export includes values like SPIRITS_RECEIVED, SPIRITS_BOTTLED, etc.
+ * We will mirror those fields as we implement the complete map.
+ */
+function calcProcessing511028(events) {
+  return {
+    spiritsReceived: 0,     // e.g., SPIRITS_RECEIVED
+    spiritsBottled: 0,      // e.g., SPIRITS_BOTTLED
+    packagedOnHandFOM: 0,   // e.g., PACKAGED_ONHANDFOM (carried)
+    packagedOnHandEOM: 0,   // e.g., PACKAGED_ONHANDEOM (calculated)
+    packagedTotal1: 0       // e.g., PACKAGED_TOTAL1 (Pay.gov)
+  };
+}
+
+/**
+ * Storage (5110.11) calculations.
+ * Your saved Pay.gov export shows real totals like TOTAL_ONHAND, UNDER160_ONHAND, VODKA_ONHAND, etc.
+ */
+function calcStorage511011(events) {
+  return {
+    under160OnHand: 0,       // UNDER160_ONHAND
+    rumOnHand: 0,            // RUM_ONHAND
+    vodkaOnHand: 0,          // VODKA_ONHAND
+    under190OnHand: 0,       // UNDER190_ONHAND
+    totalOnHand: 0,          // TOTAL_ONHAND
+
+    // Example “Pay.gov calculated” style value
+    totalEOM: 0              // TOTAL_ONHAND_EOM (Pay.gov)
+  };
+}
+
+/* ============================================================
+   RENDERING (TABLE ROWS + COPY)
+   ============================================================ */
+
+function attachCopyHandlers(tbodyEl) {
+  // Delegate click for copy buttons
+  tbodyEl.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-copy]");
+    if (!btn) return;
+
+    const value = btn.getAttribute("data-copy") || "";
+    try {
+      await navigator.clipboard.writeText(value);
+      btn.textContent = "Copied!";
+      setTimeout(() => (btn.textContent = "Copy"), 900);
+    } catch (err) {
+      console.error(err);
+      btn.textContent = "Copy failed";
+      setTimeout(() => (btn.textContent = "Copy"), 1200);
+    }
+  });
+}
+
+/**
+ * Render a table from a row spec.
+ * Each row: { line, desc, payLabel, instruction, value, copyable }
+ */
+function renderRows(tbodyId, rows) {
+  const tbody = el(tbodyId);
+  if (!tbody) return;
+
+  tbody.innerHTML = rows.map(r => {
+    const val = (r.value === null || r.value === undefined) ? "" : String(r.value);
+    const copyBtn = r.copyable
+      ? `<button class="copy-btn" type="button" data-copy="${val}">Copy</button>`
+      : `<span class="muted">—</span>`;
+
+    return `
+      <tr>
+        <td>${r.line}</td>
+        <td>${r.desc}</td>
+        <td class="muted">${r.payLabel}</td>
+        <td>${r.instruction}</td>
+        <td class="value-cell">${val}</td>
+        <td class="copy-cell">${copyBtn}</td>
+      </tr>
     `;
+  }).join("");
 
-    tbody.appendChild(tr);
-  });
-
-  // Bind copy handlers
-  tbody.querySelectorAll("button.copy-btn").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const val = btn.getAttribute("data-copy") || "0.00";
-      await copyToClipboard(val);
-      btn.textContent = "Copied";
-      setTimeout(() => (btn.textContent = "Copy"), 800);
-    });
-  });
+  // Make copy buttons work
+  attachCopyHandlers(tbody);
 }
 
-/* ===============================
-   FORM: Production (TTB 5110.40)
-   =============================== */
+/* ============================================================
+   FIELD MAP (MINIMAL NOW, EXPANDS NEXT)
+   ------------------------------------------------------------
+   You asked: some Pay.gov forms have different columns.
+   Correct — and we will map each required Pay.gov field explicitly.
+   This is the scaffold; we expand it using your HTML exports.
+   ============================================================ */
 
-/**
- * IMPORTANT:
- * These keys exist in your Pay.gov HTML form definition and show
- * what Pay.gov will auto-calculate.
- *
- * Example: Produced_Total is computed from component parts in Pay.gov.
- * (We show it as a reference row to help the user verify totals.)
- *
- * Source: Pay.gov 5110.40 HTML includes calculateValue for Produced_Total.
- */
-function buildProductionRowsFromEvents(/* events */) {
-  // For now you said there’s no real data yet, so zeros are fine.
-  // When you start entering December events, we’ll map them correctly.
-
-  const producedWhiskey = 0;
-  const producedRum = 0;
-  const producedVodka = 0;
-  const producedGin = 0;
-  const redistilled = 0;
-
-  // Our reference total (mirrors Pay.gov “Produced_Total” behavior)
-  // Pay.gov key: Produced_Total :contentReference[oaicite:5]{index=5}
-  const producedTotal =
-    producedWhiskey +
-    producedRum +
-    producedVodka +
-    producedGin;
-
-  // Transferred to storage (placeholder until we wire to storage events)
-  const transferredToStorage = 0;
-
+function buildProductionRows(calc) {
   return [
     {
       line: "1",
       desc: "Produced — Whiskey",
-      paygovLabel: "Whiskey Produced",
+      payLabel: "Whiskey Produced",
       instruction: "Enter this value",
-      value: producedWhiskey
+      value: fmt2(calc.producedWhiskey),
+      copyable: true
     },
     {
       line: "1",
       desc: "Produced — Rum",
-      paygovLabel: "Rum Produced",
+      payLabel: "Rum Produced",
       instruction: "Enter this value",
-      value: producedRum
+      value: fmt2(calc.producedRum),
+      copyable: true
     },
     {
       line: "1",
       desc: "Produced — Vodka",
-      paygovLabel: "Vodka Produced",
+      payLabel: "Vodka Produced",
       instruction: "Enter this value",
-      value: producedVodka
+      value: fmt2(calc.producedVodka),
+      copyable: true
     },
     {
       line: "1",
       desc: "Produced — Gin",
-      paygovLabel: "Gin Produced",
+      payLabel: "Gin Produced",
       instruction: "Enter this value",
-      value: producedGin
+      value: fmt2(calc.producedGin),
+      copyable: true
     },
-
-    // Pay.gov auto-calculated reference row
-    {
-      line: "13",
-      desc: "Produced — TOTAL (Reference)",
-      paygovLabel: "Produced (Total Lines 1 through 13) — Total (Produced_Total)",
-      instruction: "Pay.gov auto-calculates this (use to verify your entries)",
-      value: producedTotal,
-      isAuto: true
-    },
-
     {
       line: "2",
       desc: "Produced by Redistillation",
-      paygovLabel: "Redistilled",
+      payLabel: "Redistilled",
       instruction: "Enter this value",
-      value: redistilled
+      value: fmt2(calc.producedByRedistillation),
+      copyable: true
     },
     {
       line: "5",
       desc: "Transferred to Storage",
-      paygovLabel: "Transferred to Storage",
+      payLabel: "Transferred to Storage",
       instruction: "Enter this value",
-      value: transferredToStorage
+      value: fmt2(calc.transferredToStorage),
+      copyable: true
+    },
+    {
+      line: "—",
+      desc: "Total Produced (check)",
+      payLabel: "Produced Total",
+      instruction: "Pay.gov auto-calculates this (use as a check)",
+      value: fmt2(calc.producedTotal),
+      copyable: false
     }
   ];
 }
 
-/* ===============================
-   FORM: Storage (TTB 5110.11)
-   =============================== */
-
-/**
- * Storage Pay.gov HTML has lots of totals + validations.
- * We MUST include at least one Pay.gov auto-total row.
- *
- * Example: TOTAL_5 = total of all “Line 5” columns in storage.
- * Pay.gov key: TOTAL_5 :contentReference[oaicite:6]{index=6}
- */
-function buildStorageRowsFromEvents(/* events */) {
-  // Placeholder zeros until you start entering storage events
-  const line5_total_allClasses = 0; // This corresponds to Pay.gov TOTAL_5 concept
-
+function buildProcessingRows(calc) {
   return [
     {
       line: "1",
-      desc: "On hand beginning of month (All classes)",
-      paygovLabel: "On hand beginning of month",
+      desc: "Spirits Received (Processing)",
+      payLabel: "SPIRITS_RECEIVED",
       instruction: "Enter this value",
-      value: 0
+      value: fmt2(calc.spiritsReceived),
+      copyable: true
     },
     {
       line: "2",
-      desc: "Deposited in bond (All classes)",
-      paygovLabel: "Deposited in bond",
+      desc: "Spirits Bottled",
+      payLabel: "SPIRITS_BOTTLED",
       instruction: "Enter this value",
-      value: 0
+      value: fmt2(calc.spiritsBottled),
+      copyable: true
     },
-    {
-      line: "3",
-      desc: "Received in bond (All classes)",
-      paygovLabel: "Received in bond",
-      instruction: "Enter this value",
-      value: 0
-    },
-    {
-      line: "4",
-      desc: "Returned to bond (All classes)",
-      paygovLabel: "Returned to bond",
-      instruction: "Enter this value",
-      value: 0
-    },
-
-    // Pay.gov auto-calculated reference row
-    {
-      line: "5",
-      desc: "TOTAL (Lines 1–4) — Reference (Pay.gov TOTAL_5)",
-      paygovLabel: "TOTAL (Lines 1 through 5) — Total column (TOTAL_5)",
-      instruction: "Pay.gov auto-calculates this (use to verify your entries)",
-      value: line5_total_allClasses,
-      isAuto: true
-    }
-  ];
-}
-
-/* ===============================
-   FORM: Processing (TTB 5110.28) — scaffold only for now
-   =============================== */
-
-function buildProcessingRowsScaffold() {
-  return [
     {
       line: "—",
-      desc: "Processing form scaffold",
-      paygovLabel: "TTB 5110.28 (Pay.gov HTML keys exist; implementing next)",
-      instruction: "Leave blank (not yet implemented)",
-      value: 0,
-      isAuto: true
+      desc: "Packaged Total (check)",
+      payLabel: "PACKAGED_TOTAL1",
+      instruction: "Pay.gov auto-calculates this (use as a check)",
+      value: fmt2(calc.packagedTotal1),
+      copyable: false
     }
   ];
 }
 
-/* ===============================
-   Main render for selected form
-   =============================== */
-
-async function render() {
-  const title = el("sectionTitle");
-  const subtitle = el("sectionSubtitle");
-  const notes = el("notes");
-
-  title.textContent = "Loading…";
-  subtitle.textContent = "";
-  notes.textContent = "";
-
-  // If no locked months exist
-  if (!selectedMonthId) {
-    title.textContent = "No locked month found";
-    subtitle.textContent = "Lock a month before filing.";
-    renderRows([]);
-    return;
-  }
-
-  // Pull events once per render (we’ll wire mapping later)
-  const events = await getEventsForMonth(selectedMonthId);
-
-  if (selectedForm === "production") {
-    title.textContent = "TTB 5110.40 — Monthly Report of Production Operations";
-    subtitle.textContent = "Read-only values + copy buttons for Pay.gov entry.";
-    renderRows(buildProductionRowsFromEvents(events));
-    notes.innerHTML = `
-      <strong>Note:</strong> Values are read-only and meant to be copied into Pay.gov.
-      The “TOTAL (Reference)” row mirrors Pay.gov auto-calculations (e.g., Produced_Total).
-    `;
-    return;
-  }
-
-  if (selectedForm === "storage") {
-    title.textContent = "TTB 5110.11 — Monthly Report of Storage Operations";
-    subtitle.textContent = "Read-only values + copy buttons for Pay.gov entry.";
-    renderRows(buildStorageRowsFromEvents(events));
-    notes.innerHTML = `
-      <strong>Note:</strong> Storage contains Pay.gov auto-calculated totals/validations.
-      We show at least one reference total row (e.g., TOTAL_5) so Rashelle can confirm the math matches Pay.gov.
-    `;
-    return;
-  }
-
-  // processing
-  title.textContent = "TTB 5110.28 — Monthly Report of Processing Operations";
-  subtitle.textContent = "Scaffold — implementing next.";
-  renderRows(buildProcessingRowsScaffold());
-  notes.textContent = "Next step: implement the required Processing sections using the Pay.gov HTML field keys.";
+function buildStorageRows(calc) {
+  return [
+    {
+      line: "1",
+      desc: "On hand at beginning — Under 160 proof",
+      payLabel: "UNDER160_ONHAND",
+      instruction: "Enter this value",
+      value: fmt2(calc.under160OnHand),
+      copyable: true
+    },
+    {
+      line: "1",
+      desc: "On hand at beginning — Rum",
+      payLabel: "RUM_ONHAND",
+      instruction: "Enter this value",
+      value: fmt2(calc.rumOnHand),
+      copyable: true
+    },
+    {
+      line: "2",
+      desc: "On hand at beginning — Vodka",
+      payLabel: "VODKA_ONHAND",
+      instruction: "Enter this value",
+      value: fmt2(calc.vodkaOnHand),
+      copyable: true
+    },
+    {
+      line: "2",
+      desc: "On hand at beginning — Under 190 proof",
+      payLabel: "UNDER190_ONHAND",
+      instruction: "Enter this value",
+      value: fmt2(calc.under190OnHand),
+      copyable: true
+    },
+    {
+      line: "—",
+      desc: "Total on hand (check)",
+      payLabel: "TOTAL_ONHAND",
+      instruction: "Pay.gov auto-calculates this (use as a check)",
+      value: fmt2(calc.totalOnHand),
+      copyable: false
+    },
+    {
+      line: "—",
+      desc: "Total on hand EOM (check)",
+      payLabel: "TOTAL_ONHAND_EOM",
+      instruction: "Pay.gov auto-calculates this (use as a check)",
+      value: fmt2(calc.totalEOM),
+      copyable: false
+    }
+  ];
 }
 
-/* ===============================
-   Init + event handlers
-   =============================== */
+/* ============================================================
+   INIT
+   ============================================================ */
 
-(async function init() {
-  // Bind selector changes
-  el("reportMonth").addEventListener("change", async (e) => {
-    selectedMonthId = e.target.value;
-    renderLockedMonthBanner();
-    await render();
-  });
-
-  el("reportType").addEventListener("change", async (e) => {
-    selectedForm = e.target.value;
-    await render();
-  });
-
+(async function initReports() {
   try {
-    await loadMonths();
-    populateMonthSelect();
+    // 1) Determine filing month (most recent LOCKED)
+    const lockedMonth = await getMostRecentLockedMonth();
+    setMonthBanner(lockedMonth);
 
-    // Also set default form selection
-    selectedForm = el("reportType").value;
+    // If no locked month, still render tables with 0s (readable), but user can’t file yet
+    const monthId = lockedMonth ? lockedMonth.id : null;
 
-    // Show banner right away
-    renderLockedMonthBanner();
+    // 2) Load month events (if month exists)
+    const events = monthId ? await loadEventsForMonth(monthId) : [];
 
-    // Render first view
-    await render();
+    // 3) Calculate each form
+    const prodCalc = calcProduction511040(events);
+    const procCalc = calcProcessing511028(events);
+    const storCalc = calcStorage511011(events);
+
+    // 4) Render
+    renderRows("productionTable", buildProductionRows(prodCalc));
+    renderRows("processingTable", buildProcessingRows(procCalc));
+    renderRows("storageTable", buildStorageRows(storCalc));
 
   } catch (err) {
     console.error(err);
-    el("sectionTitle").textContent = "Error loading reports.";
-    el("sectionSubtitle").textContent = "Check console for details.";
-    el("notes").textContent = "";
-    renderRows([]);
+
+    // Fail-safe banner (do not crash page)
+    const banner = el("reportMonthBanner");
+    const label = el("filingMonthLabel");
+    if (banner && label) {
+      banner.classList.remove("good");
+      banner.classList.add("warning");
+      label.textContent = "ERROR LOADING MONTH";
+    }
+
+    // Render empty tables instead of leaving blank / broken UI
+    renderRows("productionTable", buildProductionRows(calcProduction511040([])));
+    renderRows("processingTable", buildProcessingRows(calcProcessing511028([])));
+    renderRows("storageTable", buildStorageRows(calcStorage511011([])));
   }
 })();
