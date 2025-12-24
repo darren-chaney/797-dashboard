@@ -1,5 +1,5 @@
 /* ============================================================
-   forms/5110-28.js — TTB 5110.28 (Processing)
+   5110-28.js — TTB 5110.28 (Processing)
    Scope:
    - Processing ONLY
    - Read-only
@@ -7,12 +7,12 @@
    ============================================================ */
 
 /* ===============================
-   Helpers (local to this module)
+   Helpers
    =============================== */
 const fmt = n => Number(n || 0).toFixed(2);
 
 /* ============================================================
-   FIELD MAP — EXACTLY WHAT 797 USES
+   FIELD MAP — ONLY WHAT 797 USES
    ============================================================ */
 
 const PROCESSING_ROWS = [
@@ -34,15 +34,12 @@ const PROCESSING_ROWS = [
 
 /* ============================================================
    DATA SOURCE (SAFE DEFAULTS)
-   NOTE:
-   - Ledger wiring happens later
-   - This module must render with NO DATA
    ============================================================ */
 
-function getProcessingValuesForMonth(/* monthId */) {
-  const out = {};
-  PROCESSING_ROWS.forEach(r => out[r.key] = 0);
-  return out;
+function getProcessingValuesForMonth() {
+  const values = {};
+  PROCESSING_ROWS.forEach(r => values[r.key] = 0);
+  return values;
 }
 
 /* ============================================================
@@ -82,8 +79,7 @@ function renderProcessing(values) {
    ============================================================ */
 
 (function init5110_28() {
-  // Month selection is handled by reports.js (shell)
-  // This module renders independently and safely
+  // Month selection handled by reports.js
   const values = getProcessingValuesForMonth();
   renderProcessing(values);
 })();
