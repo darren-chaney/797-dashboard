@@ -6,13 +6,9 @@ body{
 }
 
 .reports-container{
-  max-width:1100px;
+  max-width:1200px;
   margin:0 auto;
   padding:28px 18px 40px;
-}
-
-.reports-header{
-  margin-bottom:22px;
 }
 
 .month-banner{
@@ -29,48 +25,47 @@ body{
   border:1px solid #334155;
   border-radius:12px;
   padding:18px;
-}
-
-.report-card h2{
-  margin:0 0 14px;
+  margin-bottom:18px;
 }
 
 .report-table{
   width:100%;
   border-collapse:collapse;
-  font-size:0.95rem;
+  font-size:0.9rem;
 }
 
 .report-table th,
 .report-table td{
   border-bottom:1px solid #334155;
-  padding:10px 8px;
-  vertical-align:top;
+  padding:8px 6px;
+  text-align:center;
 }
 
 .report-table th{
-  text-align:left;
-  font-size:0.85rem;
   color:#9ca3af;
+  font-size:0.8rem;
 }
 
-.instruction{
-  font-weight:600;
+.report-table td:first-child,
+.report-table td:nth-child(2),
+.report-table th:first-child,
+.report-table th:nth-child(2){
+  text-align:left;
 }
-
-.enter{ color:#22c55e; }
-.blank{ color:#f59e0b; }
-.auto{ color:#38bdf8; }
 
 .copy-btn{
   background:#1e293b;
   border:1px solid #334155;
   color:#e5e7eb;
   border-radius:6px;
-  padding:4px 8px;
+  padding:2px 6px;
   cursor:pointer;
+  font-size:0.7rem;
 }
 
-.copy-btn:hover{
-  background:#334155;
+.value{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:6px;
 }
