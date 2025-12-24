@@ -1,6 +1,6 @@
 /* ============================================================
    5110-40.js — TTB 5110.40 (Production)
-   SCRIPT-LOADED, FIRESTORE VERSION
+   FIXED: initial + reactive render
    ============================================================ */
 
 (function () {
@@ -11,37 +11,18 @@
     return Number(n || 0).toFixed(2);
   }
 
-  function copy(val) {
-    navigator.clipboard.writeText(fmt(val));
-  }
-
   function waitForBody(cb) {
     const el = document.getElementById(BODY_ID);
     if (el) return cb(el);
     setTimeout(() => waitForBody(cb), 50);
   }
 
-  /* ===============================
-     FIRESTORE HELPERS (GLOBAL SDK)
-     =============================== */
-
   function getDB() {
-    if (!window.firebase || !firebase.firestore) {
-      console.warn("Firestore not available — rendering zeros");
-      return null;
-    }
+    if (!window.firebase || !firebase.firestore) return null;
     return firebase.firestore();
   }
 
-  async function getLockedMonth(db) {
-    const snap = await db.collection("compliance_months").get();
-    const months = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    months.sort((a, b) => a.id.localeCompare(b.id));
-    const locked = months.filter(m => m.status === "locked");
-    return locked.length ? locked[locked.length - 1] : null;
-  }
-
-  async function getProductionTotals(db, monthId) {
+  async function getTotals(db, monthId) {
     const totals = {
       whiskey_under_160: 0,
       whiskey_over_160: 0,
@@ -59,64 +40,49 @@
 
     snap.forEach(doc => {
       const d = doc.data();
-      const pg = d.proofGallons || 0;
-
-      if (totals.hasOwnProperty(d.spiritClass)) {
-        totals[d.spiritClass] += pg;
+      if (totals[d.spiritClass] != null) {
+        totals[d.spiritClass] += d.proofGallons || 0;
       }
     });
 
     return totals;
   }
 
-  function cell(val) {
-    return `
-      <td>
-        ${fmt(val)}
-        <button class="copy-btn" onclick="navigator.clipboard.writeText('${fmt(val)}')">
-          Copy
-        </button>
-      </td>
-    `;
+  function cell(v) {
+    return `<td>${fmt(v)} <button class="copy-btn"
+      onclick="navigator.clipboard.writeText('${fmt(v)}')">Copy</button></td>`;
   }
 
   function render(body, t) {
-    body.innerHTML = "";
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>1</td>
-      <td>Produced</td>
-      ${cell(t.whiskey_under_160)}
-      ${cell(t.whiskey_over_160)}
-      ${cell(t.rum)}
-      ${cell(t.vodka)}
-      ${cell(t.spirits_over_190)}
-      ${cell(t.spirits_under_190)}
+    body.innerHTML = `
+      <tr>
+        <td>1</td>
+        <td>Produced</td>
+        ${cell(t.whiskey_under_160)}
+        ${cell(t.whiskey_over_160)}
+        ${cell(t.rum)}
+        ${cell(t.vodka)}
+        ${cell(t.spirits_over_190)}
+        ${cell(t.spirits_under_190)}
+      </tr>
     `;
-
-    body.appendChild(tr);
   }
 
-  /* ===============================
-     INIT
-     =============================== */
+  async function renderForMonth(monthId) {
+    waitForBody(async body => {
+      const db = getDB();
+      if (!db || !monthId) return render(body, {});
+      const totals = await getTotals(db, monthId);
+      render(body, totals);
+    });
+  }
 
-  waitForBody(async body => {
-    const db = getDB();
-    if (!db) {
-      render(body, {});
-      return;
-    }
+  /* INITIAL RENDER */
+  renderForMonth(window.REPORTING_MONTH);
 
-    const month = await getLockedMonth(db);
-    if (!month) {
-      render(body, {});
-      return;
-    }
-
-    const totals = await getProductionTotals(db, month.id);
-    render(body, totals);
+  /* RE-RENDER ON CHANGE */
+  document.addEventListener("reporting-month-changed", e => {
+    renderForMonth(e.detail.monthId);
   });
 
 })();
