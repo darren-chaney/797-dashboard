@@ -37,45 +37,22 @@ async function getLockedMonth(){
 }
 
 /* ============================================================
-   PRODUCTION — ONE ROW PER PAY.GOV LINE
+   PRODUCTION — CORRECTED COMPACT COLUMN MODEL
    ============================================================ */
 
-const PRODUCTION_LINES = [
-  {
-    line: "1",
-    desc: "Produced (All Spirits)",
-    instruction: "Enter each value into its matching Pay.gov column",
-    fields: [
-      { label:"Whiskey ≤160", key:"Produced_WhiskeyUnder" },
-      { label:"Whiskey >160", key:"Produced_WhiskeyOver" },
-      { label:"Brandy ≤170",  key:"Produced_BrandyUnder" },
-      { label:"Brandy >170",  key:"Produced_BrandyOver" },
-      { label:"Rum",          key:"Produced_Rum" },
-      { label:"Vodka",        key:"Produced_Vodka" },
-      { label:"Spirits ≥190", key:"Produced_SpiritsOver" },
-      { label:"Spirits <190", key:"Produced_SpiritsUnder" }
-    ]
-  },
-  {
-    line: "2",
-    desc: "Produced by Redistillation",
-    instruction: "Enter this total on Pay.gov",
-    fields: [
-      { label:"Total", key:"Redistallation_Total" }
-    ]
-  },
-  {
-    line: "5",
-    desc: "Transferred to Storage",
-    instruction: "Enter this total on Pay.gov",
-    fields: [
-      { label:"Total", key:"StorageAccount_Total" }
-    ]
-  }
+const PRODUCTION_COLUMNS = [
+  { label:"Whiskey ≤160", key:"Produced_WhiskeyUnder" },
+  { label:"Whiskey >160", key:"Produced_WhiskeyOver" },
+  { label:"Brandy ≤170",  key:"Produced_BrandyUnder" },
+  { label:"Brandy >170",  key:"Produced_BrandyOver" },
+  { label:"Rum",          key:"Produced_Rum" },
+  { label:"Vodka",        key:"Produced_Vodka" },
+  { label:"Spirits ≥190", key:"Produced_SpiritsOver" },
+  { label:"Spirits <190", key:"Produced_SpiritsUnder" }
 ];
 
 /* ============================================================
-   PROCESSING & STORAGE (already correct model)
+   PROCESSING & STORAGE (UNCHANGED)
    ============================================================ */
 
 const PROCESSING_FIELDS = [
@@ -102,25 +79,54 @@ function renderProduction(){
   const tbody = el("productionTable");
   tbody.innerHTML = "";
 
-  PRODUCTION_LINES.forEach(row=>{
-    const tr = document.createElement("tr");
+  // Header row already exists in HTML
+  const tr = document.createElement("tr");
 
-    const dest = row.fields.map(f=>`
-      <div class="value-cell">
-        <strong>${f.label}:</strong> ${fmt(0)}
+  tr.innerHTML = `
+    <td>1</td>
+    <td>Produced</td>
+    ${PRODUCTION_COLUMNS.map(col => `
+      <td>
+        <div class="value">
+          ${fmt(0)}
+          <button class="copy-btn"
+            onclick="navigator.clipboard.writeText('${fmt(0)}')">📋</button>
+        </div>
+      </td>
+    `).join("")}
+  `;
+
+  tbody.appendChild(tr);
+
+  // Line 2 — Produced by Redistillation (total only)
+  const tr2 = document.createElement("tr");
+  tr2.innerHTML = `
+    <td>2</td>
+    <td>Produced by Redistillation</td>
+    <td colspan="${PRODUCTION_COLUMNS.length}">
+      <div class="value" style="justify-content:flex-start">
+        ${fmt(0)}
         <button class="copy-btn"
-          onclick="navigator.clipboard.writeText('${fmt(0)}')">Copy</button>
+          onclick="navigator.clipboard.writeText('${fmt(0)}')">📋</button>
       </div>
-    `).join("");
+    </td>
+  `;
+  tbody.appendChild(tr2);
 
-    tr.innerHTML = `
-      <td>${row.line}</td>
-      <td>${row.desc}</td>
-      <td>${dest}</td>
-      <td>${row.instruction}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+  // Line 5 — Transferred to Storage (total only)
+  const tr5 = document.createElement("tr");
+  tr5.innerHTML = `
+    <td>5</td>
+    <td>Transferred to Storage</td>
+    <td colspan="${PRODUCTION_COLUMNS.length}">
+      <div class="value" style="justify-content:flex-start">
+        ${fmt(0)}
+        <button class="copy-btn"
+          onclick="navigator.clipboard.writeText('${fmt(0)}')">📋</button>
+      </div>
+    </td>
+  `;
+  tbody.appendChild(tr5);
 }
 
 function renderSimple(tbodyId, fields){
