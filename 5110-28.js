@@ -1,12 +1,15 @@
 /* ============================================================
    5110-28.js — TTB 5110.28 (Processing)
-   FIXED: initial + reactive render
+   COMPLETE: multi-line, deterministic
    ============================================================ */
 
 (function () {
 
   const BODY_ID = "ttb5110_28_processing_body";
 
+  /* ===============================
+     Helpers
+     =============================== */
   function fmt(n) {
     return Number(n || 0).toFixed(2);
   }
@@ -22,12 +25,33 @@
     return firebase.firestore();
   }
 
-  async function getTotals(db, monthId) {
-    const totals = { whiskey: 0, rum: 0, vodka: 0, spirits_over_190: 0, spirits_under_190: 0 };
+  /* ===============================
+     Line Definitions (Pay.gov)
+     =============================== */
+  const LINES = [
+    { line: 1, label: "Spirits Dumped for Processing", eventType: "processing_dump" },
+    { line: 2, label: "Spirits Bottled", eventType: "bottling" },
+    { line: 3, label: "Spirits Transferred to Storage", eventType: "processing_to_storage" },
+    { line: 4, label: "Processing Losses", eventType: "processing_loss" }
+  ];
+
+  const EMPTY_TOTALS = () => ({
+    whiskey: 0,
+    rum: 0,
+    vodka: 0,
+    spirits_over_190: 0,
+    spirits_under_190: 0
+  });
+
+  /* ===============================
+     Data
+     =============================== */
+  async function getTotals(db, monthId, eventType) {
+    const totals = EMPTY_TOTALS();
 
     const snap = await db
       .collection("compliance_events")
-      .where("eventType", "==", "processing")
+      .where("eventType", "==", eventType)
       .where("reportingMonth", "==", monthId)
       .get();
 
@@ -41,34 +65,64 @@
     return totals;
   }
 
+  /* ===============================
+     Render
+     =============================== */
   function cell(v) {
-    return `<td>${fmt(v)} <button class="copy-btn"
-      onclick="navigator.clipboard.writeText('${fmt(v)}')">Copy</button></td>`;
+    return `<td>
+      ${fmt(v)}
+      <button class="copy-btn"
+        onclick="navigator.clipboard.writeText('${fmt(v)}')">
+        Copy
+      </button>
+    </td>`;
   }
 
-  function render(body, t) {
-    body.innerHTML = `
-      <tr>
-        <td>1</td>
-        <td>Spirits Dumped for Processing</td>
-        ${cell(t.whiskey)}
-        ${cell(t.rum)}
-        ${cell(t.vodka)}
-        ${cell(t.spirits_over_190)}
-        ${cell(t.spirits_under_190)}
-      </tr>
-    `;
-  }
+  function render(body, rows) {
+    body.innerHTML = "";
 
-  async function renderForMonth(monthId) {
-    waitForBody(async body => {
-      const db = getDB();
-      if (!db || !monthId) return render(body, {});
-      const totals = await getTotals(db, monthId);
-      render(body, totals);
+    rows.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.line}</td>
+        <td>${r.label}</td>
+        ${cell(r.totals.whiskey)}
+        ${cell(r.totals.rum)}
+        ${cell(r.totals.vodka)}
+        ${cell(r.totals.spirits_over_190)}
+        ${cell(r.totals.spirits_under_190)}
+      `;
+      body.appendChild(tr);
     });
   }
 
+  /* ===============================
+     Render Controller
+     =============================== */
+  async function renderForMonth(monthId) {
+    waitForBody(async body => {
+      const db = getDB();
+      if (!db || !monthId) {
+        render(body, LINES.map(l => ({
+          ...l,
+          totals: EMPTY_TOTALS()
+        })));
+        return;
+      }
+
+      const rows = [];
+      for (const l of LINES) {
+        const totals = await getTotals(db, monthId, l.eventType);
+        rows.push({ ...l, totals });
+      }
+
+      render(body, rows);
+    });
+  }
+
+  /* ===============================
+     Init
+     =============================== */
   renderForMonth(window.REPORTING_MONTH);
 
   document.addEventListener("reporting-month-changed", e => {
