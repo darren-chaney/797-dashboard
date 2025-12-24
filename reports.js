@@ -34,6 +34,14 @@ async function loadIncludes() {
 }
 
 /* ===============================
+   MODULE LOADER (DETERMINISTIC)
+   =============================== */
+async function loadModule(src) {
+  // cache-bust to avoid Safari module caching issues
+  await import(`./${src}?v=${Date.now()}`);
+}
+
+/* ===============================
    INIT
    =============================== */
 (async function initReportsShell() {
@@ -41,7 +49,10 @@ async function loadIncludes() {
   // Filing month placeholder for now
   el("filingMonthLabel").textContent = "NOT SET";
 
-  // Load Pay.gov form modules
+  // Load Pay.gov form modules (HTML)
   await loadIncludes();
+
+  // Load module logic AFTER HTML exists
+  await loadModule("5110-40.js");
 
 })();
