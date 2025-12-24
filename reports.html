@@ -46,6 +46,17 @@
         document.getElementById("global-header").innerHTML = html;
       });
   </script>
+<!-- Firebase (Global SDK — REQUIRED) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyDlubP6d8tR1x_ArJJRWvNxqhAGV720Vas",
+    authDomain: "distillery-app-b4aaa.firebaseapp.com",
+    projectId: "distillery-app-b4aaa"
+  });
+</script>
 
   <!-- LOAD PAY.GOV FORM MODULES -->
   <script type="module" src="reports.js"></script>
