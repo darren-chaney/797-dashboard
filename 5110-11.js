@@ -1,6 +1,6 @@
 /* ============================================================
    5110-11.js — TTB 5110.11 (Storage)
-   FINAL — Matches Pay.gov canonical usage
+   FINAL — Beginning + End of Month (matches Pay.gov entry)
    ============================================================ */
 
 (function () {
@@ -25,8 +25,15 @@
     return firebase.firestore();
   }
 
+  function getPrevMonthId(monthId) {
+    const [y, m] = monthId.split("-").map(Number);
+    const d = new Date(y, m - 1, 1);
+    d.setMonth(d.getMonth() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+
   /* ===============================
-     Data
+     Data fetch
      =============================== */
   async function getTotals(db, monthId) {
     const totals = {
@@ -44,7 +51,7 @@
 
     snap.forEach(doc => {
       const d = doc.data();
-      if (totals[d.spiritClass] != null) {
+      if (totals[d.spiritClass] !== undefined) {
         totals[d.spiritClass] += d.proofGallons || 0;
       }
     });
@@ -53,7 +60,7 @@
   }
 
   /* ===============================
-     Render
+     Render helpers
      =============================== */
   function cell(v) {
     const val = fmt(v);
@@ -66,15 +73,24 @@
     </td>`;
   }
 
-  function render(body, t) {
+  function render(body, bom, eom) {
     body.innerHTML = `
       <tr>
         <td>1</td>
-        <td>End-of-Month Spirits on Hand</td>
-        ${cell(t.whiskey_under_160)}
-        ${cell(t.rum)}
-        ${cell(t.vodka)}
-        ${cell(t.spirits_under_190)}
+        <td>Beginning of Month — On Hand</td>
+        ${cell(bom.whiskey_under_160)}
+        ${cell(bom.rum)}
+        ${cell(bom.vodka)}
+        ${cell(bom.spirits_under_190)}
+      </tr>
+
+      <tr>
+        <td>2</td>
+        <td>End of Month — On Hand</td>
+        ${cell(eom.whiskey_under_160)}
+        ${cell(eom.rum)}
+        ${cell(eom.vodka)}
+        ${cell(eom.spirits_under_190)}
       </tr>
     `;
   }
@@ -85,18 +101,19 @@
   async function renderForMonth(monthId) {
     waitForBody(async body => {
       const db = getDB();
+
       if (!db || !monthId) {
-        render(body, {
-          whiskey_under_160: 0,
-          rum: 0,
-          vodka: 0,
-          spirits_under_190: 0
-        });
+        render(body,
+          { whiskey_under_160: 0, rum: 0, vodka: 0, spirits_under_190: 0 },
+          { whiskey_under_160: 0, rum: 0, vodka: 0, spirits_under_190: 0 }
+        );
         return;
       }
 
-      const totals = await getTotals(db, monthId);
-      render(body, totals);
+      const eom = await getTotals(db, monthId);
+      const bom = await getTotals(db, getPrevMonthId(monthId));
+
+      render(body, bom, eom);
     });
   }
 
