@@ -72,7 +72,7 @@ async function setFilingMonthLabel() {
 
   const locked = months.filter(m => m.status === "locked");
   if (!locked.length) {
-    el("filingMonthLabel").textContent = "Filing Month: None Locked";
+    el("filingMonthLabel").textContent = "None Locked";
     return;
   }
 
@@ -86,7 +86,7 @@ async function setFilingMonthLabel() {
   });
 
   el("filingMonthLabel").textContent =
-    `Filing Month: ${label} (Locked)`;
+  `${label} (Locked)`;
 }
 
 /* ===============================
