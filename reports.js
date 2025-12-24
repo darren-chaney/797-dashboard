@@ -34,13 +34,19 @@ async function loadIncludes() {
 }
 
 /* ===============================
-   MODULE LOADER (PATH-SAFE)
+   SCRIPT LOADER (BULLETPROOF)
    =============================== */
-async function loadModule(src) {
-  const base = new URL(import.meta.url);
-  const url  = new URL(src, base).href;
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src + "?v=" + Date.now(); // cache bust
+    s.defer = true;
 
-  await import(`${url}?v=${Date.now()}`);
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Failed to load ${src}`));
+
+    document.body.appendChild(s);
+  });
 }
 
 /* ===============================
@@ -50,10 +56,10 @@ async function loadModule(src) {
 
   el("filingMonthLabel").textContent = "NOT SET";
 
-  // Load Pay.gov form HTML
+  // 1. Load all module HTML
   await loadIncludes();
 
-  // Load module logic AFTER HTML exists
-  await loadModule("5110-40.js");
+  // 2. Load module logic AFTER HTML exists
+  await loadScript("5110-40.js");
 
 })();
