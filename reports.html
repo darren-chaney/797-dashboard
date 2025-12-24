@@ -23,14 +23,10 @@
        ========================================================= -->
   <div id="global-header"></div>
 
-  <!-- =========================================================
-       MAIN REPORTS CONTAINER
-       ========================================================= -->
   <main class="reports-container">
 
     <!-- =======================================================
-         PAGE HEADER + FILING MONTH BANNER
-         MUST always be visible
+         PAGE HEADER + FILING MONTH BANNER (always visible)
          ======================================================= -->
     <header class="reports-header">
       <h1>Monthly TTB Reports</h1>
@@ -39,6 +35,9 @@
       <div id="reportMonthBanner" class="month-banner warning">
         Filing Month: <span id="filingMonthLabel">Loading…</span>
       </div>
+
+      <!-- Optional status/diagnostics (filled by JS) -->
+      <div id="reportsStatus" class="muted" style="margin-top:8px;"></div>
     </header>
 
     <!-- =======================================================
@@ -113,17 +112,13 @@
   </main>
 
   <!-- =========================================================
-       LOAD GLOBAL HEADER (same pattern as compliance landing page)
+       LOAD GLOBAL HEADER (same pattern as compliance.html)
        ========================================================= -->
   <script>
     fetch("header.html")
       .then(r => r.text())
       .then(html => {
         document.getElementById("global-header").innerHTML = html;
-      })
-      .catch(() => {
-        // If header.html is missing, fail gracefully instead of breaking reports
-        document.getElementById("global-header").innerHTML = "";
       });
   </script>
 
