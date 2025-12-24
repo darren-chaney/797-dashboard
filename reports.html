@@ -5,34 +5,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>797 Distillery — Monthly TTB Reports</title>
 
+  <!-- Global shared styles -->
   <link rel="stylesheet" href="header.css" />
   <link rel="stylesheet" href="reports.css" />
 </head>
 
 <body>
 
+  <!-- GLOBAL HEADER -->
   <div id="global-header"></div>
 
   <main class="reports-container">
 
-  <header class="reports-header">
-    <h1>Monthly TTB Reports</h1>
-    <div class="month-banner">
-      Filing Month: <span id="filingMonthLabel">—</span>
-    </div>
-  </header>
+    <!-- PAGE HEADER -->
+    <header class="reports-header">
+      <h1>Monthly TTB Reports</h1>
 
-  <div data-include="forms/5110-40.html"></div>
-  <div data-include="forms/5110-28.html"></div>
-  <div data-include="forms/5110-11.html"></div>
+      <!-- Filing month banner -->
+      <div class="month-banner">
+        Filing Month:
+        <span id="filingMonthLabel">Loading…</span>
+      </div>
+    </header>
 
-</main>
+    <!-- =======================================================
+         PAY.GOV FORMS (LOADED AS MODULES)
+         ======================================================= -->
+
+    <div data-include="forms/5110-40.html"></div>
+    <div data-include="forms/5110-28.html"></div>
+    <div data-include="forms/5110-11.html"></div>
+
+  </main>
+
+  <!-- LOAD GLOBAL HEADER -->
   <script>
     fetch("header.html")
       .then(r => r.text())
-      .then(html => document.getElementById("global-header").innerHTML = html);
+      .then(html => {
+        document.getElementById("global-header").innerHTML = html;
+      });
   </script>
 
+  <!-- LOAD PAY.GOV FORM MODULES -->
   <script type="module" src="reports.js"></script>
+
 </body>
 </html>
