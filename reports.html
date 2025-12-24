@@ -15,80 +15,18 @@
 
   <main class="reports-container">
 
-    <header class="reports-header">
-      <h1>Monthly TTB Reports</h1>
-      <div class="month-banner">
-        Filing Month: <span id="filingMonthLabel">—</span>
-      </div>
-    </header>
+  <header class="reports-header">
+    <h1>Monthly TTB Reports</h1>
+    <div class="month-banner">
+      Filing Month: <span id="filingMonthLabel">—</span>
+    </div>
+  </header>
 
-    <!-- ===============================
-         PRODUCTION — FIXED LAYOUT
-         =============================== -->
-    <section class="report-card">
-      <h2>TTB 5110.40 — Production</h2>
+  <div data-include="forms/5110-40.html"></div>
+  <div data-include="forms/5110-28.html"></div>
+  <div data-include="forms/5110-11.html"></div>
 
-      <table class="report-table production-table">
-        <thead>
-          <tr>
-            <th>Line</th>
-            <th>Description</th>
-            <th>Whiskey ≤160</th>
-            <th>Whiskey &gt;160</th>
-            <th>Brandy ≤170</th>
-            <th>Brandy &gt;170</th>
-            <th>Rum</th>
-            <th>Vodka</th>
-            <th>≥190</th>
-            <th>&lt;190</th>
-          </tr>
-        </thead>
-        <tbody id="productionTable"></tbody>
-      </table>
-    </section>
-
-    <!-- ===============================
-         PROCESSING (unchanged)
-         =============================== -->
-    <section class="report-card">
-      <h2>TTB 5110.28 — Processing</h2>
-      <table class="report-table">
-        <thead>
-          <tr>
-            <th>Line</th>
-            <th>Description</th>
-            <th>Pay.gov Label</th>
-            <th>Instruction</th>
-            <th>Value (PG)</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="processingTable"></tbody>
-      </table>
-    </section>
-
-    <!-- ===============================
-         STORAGE (unchanged)
-         =============================== -->
-    <section class="report-card">
-      <h2>TTB 5110.11 — Storage</h2>
-      <table class="report-table">
-        <thead>
-          <tr>
-            <th>Line</th>
-            <th>Description</th>
-            <th>Pay.gov Label</th>
-            <th>Instruction</th>
-            <th>Value (PG)</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="storageTable"></tbody>
-      </table>
-    </section>
-
-  </main>
-
+</main>
   <script>
     fetch("header.html")
       .then(r => r.text())
