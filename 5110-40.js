@@ -11,6 +11,10 @@
     return Number(n || 0).toFixed(2);
   }
 
+  function copy(val) {
+    navigator.clipboard.writeText(fmt(val));
+  }
+
   function waitForBody(cb) {
     const el = document.getElementById(BODY_ID);
     if (el) return cb(el);
@@ -41,8 +45,6 @@
     const totals = {
       whiskey_under_160: 0,
       whiskey_over_160: 0,
-      brandy_under_170: 0,
-      brandy_over_170: 0,
       rum: 0,
       vodka: 0,
       spirits_over_190: 0,
@@ -67,6 +69,17 @@
     return totals;
   }
 
+  function cell(val) {
+    return `
+      <td>
+        ${fmt(val)}
+        <button class="copy-btn" onclick="navigator.clipboard.writeText('${fmt(val)}')">
+          Copy
+        </button>
+      </td>
+    `;
+  }
+
   function render(body, t) {
     body.innerHTML = "";
 
@@ -74,14 +87,12 @@
     tr.innerHTML = `
       <td>1</td>
       <td>Produced</td>
-      <td>${fmt(t.whiskey_under_160)}</td>
-      <td>${fmt(t.whiskey_over_160)}</td>
-      <td>${fmt(t.brandy_under_170)}</td>
-      <td>${fmt(t.brandy_over_170)}</td>
-      <td>${fmt(t.rum)}</td>
-      <td>${fmt(t.vodka)}</td>
-      <td>${fmt(t.spirits_over_190)}</td>
-      <td>${fmt(t.spirits_under_190)}</td>
+      ${cell(t.whiskey_under_160)}
+      ${cell(t.whiskey_over_160)}
+      ${cell(t.rum)}
+      ${cell(t.vodka)}
+      ${cell(t.spirits_over_190)}
+      ${cell(t.spirits_under_190)}
     `;
 
     body.appendChild(tr);
