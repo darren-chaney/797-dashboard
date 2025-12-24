@@ -2,7 +2,7 @@
    reports.js — Reports Shell Controller
    PURPOSE:
    - Load Pay.gov form modules
-   - Display filing month
+   - Control filing month selection
    - DOES NOT touch module Firestore queries
    ============================================================ */
 
@@ -12,7 +12,12 @@
 const el = id => document.getElementById(id);
 
 /* ===============================
-   Include loader
+   Global reporting month
+   =============================== */
+window.REPORTING_MONTH = null;
+
+/* ===============================
+   Include loader (HTML modules)
    =============================== */
 async function loadIncludes() {
   const nodes = document.querySelectorAll("[data-include]");
@@ -35,7 +40,7 @@ async function loadIncludes() {
 }
 
 /* ===============================
-   SCRIPT LOADER
+   Script loader (non-module JS)
    =============================== */
 function loadScript(src) {
   return new Promise((resolve, reject) => {
@@ -49,7 +54,7 @@ function loadScript(src) {
 }
 
 /* ===============================
-   FIRESTORE (GLOBAL SDK)
+   Firestore (global SDK)
    =============================== */
 function getDB() {
   if (!window.firebase || !firebase.firestore) return null;
@@ -57,12 +62,34 @@ function getDB() {
 }
 
 /* ===============================
-   Filing Month Display
+   Helpers
    =============================== */
-async function setFilingMonthLabel() {
+function getPreviousMonthId() {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+function monthLabel(id) {
+  const [year, month] = id.split("-");
+  return new Date(year, month - 1).toLocaleString("en-US", {
+    month: "long",
+    year: "numeric"
+  });
+}
+
+/* ===============================
+   Filing Month Selector
+   =============================== */
+async function initFilingMonthSelector() {
   const db = getDB();
-  if (!db) {
-    el("filingMonthLabel").textContent = "Unknown";
+  const select = el("filingMonthSelect");
+  const statusEl = el("filingMonthStatus");
+
+  if (!db || !select || !statusEl) {
+    console.warn("Filing month selector unavailable");
     return;
   }
 
@@ -70,38 +97,86 @@ async function setFilingMonthLabel() {
   const months = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   months.sort((a, b) => a.id.localeCompare(b.id));
 
-  const locked = months.filter(m => m.status === "locked");
-  if (!locked.length) {
-    el("filingMonthLabel").textContent = "None Locked";
+  if (!months.length) {
+    statusEl.textContent = "No months found";
     return;
   }
 
-  const m = locked[locked.length - 1];
-
-  // Expecting IDs like "2025-12"
-  const [year, month] = m.id.split("-");
-  const label = new Date(year, month - 1).toLocaleString("en-US", {
-    month: "long",
-    year: "numeric"
+  /* Build dropdown */
+  select.innerHTML = "";
+  months.forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m.id;
+    opt.textContent =
+      `${monthLabel(m.id)}${m.status === "locked" ? " 🔒" : ""}`;
+    select.appendChild(opt);
   });
 
-  el("filingMonthLabel").textContent =
-    `${label} (Locked)`;
-}
+  /* Choose default month
+     1. Latest locked month
+     2. Otherwise previous calendar month
+     3. Otherwise last available
+  */
+  const locked = months.filter(m => m.status === "locked");
+  let defaultMonth;
 
+  if (locked.length) {
+    defaultMonth = locked[locked.length - 1];
+  } else {
+    const prevId = getPreviousMonthId();
+    defaultMonth =
+      months.find(m => m.id === prevId) ||
+      months[months.length - 1];
+  }
+
+  select.value = defaultMonth.id;
+  window.REPORTING_MONTH = defaultMonth.id;
+
+  statusEl.textContent =
+    defaultMonth.status === "locked"
+      ? "(Locked)"
+      : "(Open)";
+
+  /* React to user changes */
+  select.onchange = () => {
+    const selected = months.find(m => m.id === select.value);
+    if (!selected) return;
+
+    window.REPORTING_MONTH = selected.id;
+
+    const prevId = getPreviousMonthId();
+
+    if (selected.id > prevId) {
+      statusEl.textContent =
+        "⚠️ Pay.gov reports are usually filed for the previous month";
+      statusEl.classList.add("warn");
+    } else {
+      statusEl.textContent =
+        selected.status === "locked" ? "(Locked)" : "(Open)";
+      statusEl.classList.remove("warn");
+    }
+
+    /* Notify modules */
+    document.dispatchEvent(
+      new CustomEvent("reporting-month-changed", {
+        detail: { monthId: selected.id }
+      })
+    );
+  };
+}
 
 /* ===============================
    INIT
    =============================== */
 (async function initReportsShell() {
 
-  // Load module HTML
+  /* Load HTML modules */
   await loadIncludes();
 
-  // Set filing month label
-  await setFilingMonthLabel();
+  /* Init filing month selector */
+  await initFilingMonthSelector();
 
-  // Load module logic
+  /* Load report logic */
   await loadScript("5110-40.js");
   await loadScript("5110-28.js");
   await loadScript("5110-11.js");
