@@ -12,6 +12,8 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+import { deriveSpiritClass } from "./deriveSpiritClass.js";
+
 /* ===============================
    Firebase init (GitHub Pages safe)
    =============================== */
@@ -100,8 +102,7 @@ async function updateMonth(){
   }
 
   monthStatusEl.innerHTML =
-  `<strong>${m.id}</strong> — <span class="${m.status}">${m.status.toUpperCase()}</span>`;
-
+    `<strong>${m.id}</strong> — <span class="${m.status}">${m.status.toUpperCase()}</span>`;
 
   form.querySelector("button").disabled = (m.status !== "open");
 
@@ -206,6 +207,9 @@ form.addEventListener("submit", async e => {
       barrelId: barrelIdEl.value.trim()
     };
   }
+
+  // 🔒 REQUIRED — derived classification for reporting
+  data.spiritClass = deriveSpiritClass(data);
 
   await addDoc(collection(db, "compliance_events"), data);
 
