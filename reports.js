@@ -1,6 +1,6 @@
 /* ============================================================
    reports.js — Monthly TTB Reports (Guided Pay.gov Assistant)
-   FINAL FIELD SCOPE — NO REDESIGN
+   STABLE — rows always render
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -38,6 +38,7 @@ const fmt = n => Number(n || 0).toFixed(2);
 
 /* ===============================
    Month logic — MOST RECENT LOCKED
+   (never blocks rendering)
    =============================== */
 async function getLockedMonth() {
   const snap = await getDocs(collection(db, "compliance_months"));
@@ -48,25 +49,12 @@ async function getLockedMonth() {
   return locked.length ? locked[locked.length - 1] : null;
 }
 
-async function loadEvents(monthId) {
-  const snap = await getDocs(
-    query(
-      collection(db, "compliance_events"),
-      where("reportingMonth", "==", monthId)
-    )
-  );
-  const out = [];
-  snap.forEach(d => out.push(d.data()));
-  return out;
-}
-
 /* ============================================================
-   FIELD DEFINITIONS — LOCKED
+   FIELD DEFINITIONS — FINAL & LOCKED
    ============================================================ */
 
 /* -------------------------------
-   5110.40 — PRODUCTION
-   Uses ALL except Gin
+   5110.40 — PRODUCTION (NO GIN)
    ------------------------------- */
 const PRODUCTION_FIELDS = [
   { line:"1", desc:"Produced — Whiskey ≤160", paygov:"Produced_WhiskeyUnder" },
@@ -81,7 +69,7 @@ const PRODUCTION_FIELDS = [
   { line:"2", desc:"Produced by Redistillation", paygov:"Redistallation_Total" },
   { line:"5", desc:"Transferred to Storage",     paygov:"StorageAccount_Total" },
 
-  { line:"—", desc:"Total Produced (check)", paygov:"Produced_Total", calc:true }
+  { line:"—", desc:"Total Produced (Pay.gov)", paygov:"Produced_Total", calc:true }
 ];
 
 /* -------------------------------
@@ -90,12 +78,11 @@ const PRODUCTION_FIELDS = [
 const PROCESSING_FIELDS = [
   { line:"1", desc:"Spirits Received", paygov:"SPIRITS_RECEIVED" },
   { line:"7", desc:"Spirits Bottled",  paygov:"SPIRITS_BOTTLED" },
-  { line:"—", desc:"Processing Total (check)", paygov:"SPIRITS_TOTAL1", calc:true }
+  { line:"—", desc:"Processing Total (Pay.gov)", paygov:"SPIRITS_TOTAL", calc:true }
 ];
 
 /* -------------------------------
-   5110.11 — STORAGE
-   Uses ALL classes
+   5110.11 — STORAGE (ALL CLASSES)
    ------------------------------- */
 const STORAGE_FIELDS = [
   { line:"1",  desc:"On Hand (BOM) — Under 160", paygov:"UNDER160_ONHAND" },
@@ -114,9 +101,9 @@ const STORAGE_FIELDS = [
 ];
 
 /* ============================================================
-   CALCULATIONS (placeholders — ledger wiring later)
+   VALUES — SAFE DEFAULTS (no data yet)
    ============================================================ */
-function calcFromEvents(events, fields){
+function zeroValues(fields){
   const out = {};
   fields.forEach(f => out[f.paygov] = 0);
   return out;
@@ -154,35 +141,21 @@ function renderTable(tbodyId, fields, values){
 }
 
 /* ============================================================
-   INIT
+   INIT — ALWAYS RENDERS TABLES
    ============================================================ */
 (async function init(){
   const banner = el("filingMonthLabel");
 
   const month = await getLockedMonth();
+
   if (!month) {
     banner.textContent = "NO LOCKED MONTH";
-    return;
+  } else {
+    banner.textContent = month.id;
   }
 
-  banner.textContent = month.id;
-  const events = await loadEvents(month.id);
-
-  renderTable(
-    "productionTable",
-    PRODUCTION_FIELDS,
-    calcFromEvents(events, PRODUCTION_FIELDS)
-  );
-
-  renderTable(
-    "processingTable",
-    PROCESSING_FIELDS,
-    calcFromEvents(events, PROCESSING_FIELDS)
-  );
-
-  renderTable(
-    "storageTable",
-    STORAGE_FIELDS,
-    calcFromEvents(events, STORAGE_FIELDS)
-  );
+  // ALWAYS render tables (even with no month)
+  renderTable("productionTable", PRODUCTION_FIELDS, zeroValues(PRODUCTION_FIELDS));
+  renderTable("processingTable", PROCESSING_FIELDS, zeroValues(PROCESSING_FIELDS));
+  renderTable("storageTable", STORAGE_FIELDS, zeroValues(STORAGE_FIELDS));
 })();
