@@ -46,7 +46,7 @@
         document.getElementById("global-header").innerHTML = html;
       });
   </script>
-<!-- Firebase (Global SDK — REQUIRED) -->
+<!-- Firebase (Global SDK — v8, read-only mode) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
@@ -56,6 +56,17 @@
     authDomain: "distillery-app-b4aaa.firebaseapp.com",
     projectId: "distillery-app-b4aaa"
   });
+
+  // Force simple one-time read behavior
+  const db = firebase.firestore();
+
+  // Disable persistence / background listeners (Safari-safe)
+  db.settings({
+    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+  });
+
+  // Explicitly enable network once (prevents listen retry spam)
+  db.enableNetwork().catch(() => {});
 </script>
 
   <!-- LOAD PAY.GOV FORM MODULES -->
