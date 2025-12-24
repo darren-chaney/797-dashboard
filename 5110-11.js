@@ -1,134 +1,117 @@
 /* ============================================================
-   forms/5110-11.js — TTB 5110.11 (Storage)
-   Scope:
-   - Storage ONLY
-   - Read-only
-   - One row = one Pay.gov entry
+   5110-11.js — TTB 5110.11 (Storage)
+   SCRIPT-LOADED, FIRESTORE VERSION
    ============================================================ */
 
-/* ===============================
-   Helpers (local to this module)
-   =============================== */
-const fmt = n => Number(n || 0).toFixed(2);
+(function () {
 
-/* ============================================================
-   FIELD MAP — EXACTLY WHAT 797 USES
-   ============================================================ */
+  const BODY_ID = "ttb5110_11_storage_body";
 
-const STORAGE_ROWS = [
-  // ---- Beginning of Month (Line 1) ----
-  {
-    line: "1",
-    desc: "On Hand (Beginning of Month) — Under 160",
-    paygov: "Under 160 Proof",
-    instruction: "Enter this value",
-    key: "UNDER160_ONHAND"
-  },
-  {
-    line: "1",
-    desc: "On Hand (Beginning of Month) — Under 190",
-    paygov: "Under 190 Proof",
-    instruction: "Enter this value",
-    key: "UNDER190_ONHAND"
-  },
-  {
-    line: "1",
-    desc: "On Hand (Beginning of Month) — Rum",
-    paygov: "Rum",
-    instruction: "Enter this value",
-    key: "RUM_ONHAND"
-  },
-  {
-    line: "1",
-    desc: "On Hand (Beginning of Month) — Vodka",
-    paygov: "Vodka",
-    instruction: "Enter this value",
-    key: "VODKA_ONHAND"
-  },
-
-  // ---- End of Month (Line 25) ----
-  {
-    line: "25",
-    desc: "On Hand (End of Month) — Under 160",
-    paygov: "Under 160 Proof",
-    instruction: "Enter this value",
-    key: "UNDER160_ONHAND_EOM"
-  },
-  {
-    line: "25",
-    desc: "On Hand (End of Month) — Under 190",
-    paygov: "Under 190 Proof",
-    instruction: "Enter this value",
-    key: "UNDER190_ONHAND_EOM"
-  },
-  {
-    line: "25",
-    desc: "On Hand (End of Month) — Rum",
-    paygov: "Rum",
-    instruction: "Enter this value",
-    key: "RUM_ONHAND_EOM"
-  },
-  {
-    line: "25",
-    desc: "On Hand (End of Month) — Vodka",
-    paygov: "Vodka",
-    instruction: "Enter this value",
-    key: "VODKA_ONHAND_EOM"
+  function fmt(n) {
+    return Number(n || 0).toFixed(2);
   }
-];
 
-/* ============================================================
-   DATA SOURCE (SAFE DEFAULTS)
-   NOTE:
-   - Ledger wiring happens later
-   - This module must render with NO DATA
-   ============================================================ */
+  function waitForBody(cb) {
+    const el = document.getElementById(BODY_ID);
+    if (el) return cb(el);
+    setTimeout(() => waitForBody(cb), 50);
+  }
 
-function getStorageValuesForMonth(/* monthId */) {
-  const out = {};
-  STORAGE_ROWS.forEach(r => out[r.key] = 0);
-  return out;
-}
+  /* ===============================
+     FIRESTORE HELPERS (GLOBAL SDK)
+     =============================== */
 
-/* ============================================================
-   RENDERING
-   ============================================================ */
+  function getDB() {
+    if (!window.firebase || !firebase.firestore) {
+      console.warn("Firestore not available — rendering zeros");
+      return null;
+    }
+    return firebase.firestore();
+  }
 
-function renderStorage(values) {
-  const tbody = document.getElementById("ttb5110_11_storage_body");
-  if (!tbody) return;
+  async function getLockedMonth(db) {
+    const snap = await db.collection("compliance_months").get();
+    const months = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    months.sort((a, b) => a.id.localeCompare(b.id));
+    const locked = months.filter(m => m.status === "locked");
+    return locked.length ? locked[locked.length - 1] : null;
+  }
 
-  tbody.innerHTML = "";
+  async function getStorageTotals(db, monthId) {
+    const totals = {
+      whiskey: 0,
+      rum: 0,
+      vodka: 0,
+      spirits_over_190: 0,
+      spirits_under_190: 0
+    };
 
-  STORAGE_ROWS.forEach(row => {
-    const tr = document.createElement("tr");
+    const snap = await db
+      .collection("compliance_events")
+      .where("eventType", "==", "storage")
+      .where("reportingMonth", "==", monthId)
+      .get();
 
-    tr.innerHTML = `
-      <td>${row.line}</td>
-      <td>${row.desc}</td>
-      <td>${row.paygov}</td>
-      <td>${row.instruction}</td>
-      <td class="value-cell">${fmt(values[row.key])}</td>
+    snap.forEach(doc => {
+      const d = doc.data();
+      const pg = d.proofGallons || 0;
+
+      if (totals.hasOwnProperty(d.spiritClass)) {
+        totals[d.spiritClass] += pg;
+      }
+    });
+
+    return totals;
+  }
+
+  function cell(val) {
+    return `
       <td>
+        ${fmt(val)}
         <button class="copy-btn"
-          title="Copy"
-          onclick="navigator.clipboard.writeText('${fmt(values[row.key])}')">
+          onclick="navigator.clipboard.writeText('${fmt(val)}')">
           Copy
         </button>
       </td>
     `;
+  }
 
-    tbody.appendChild(tr);
+  function render(body, t) {
+    body.innerHTML = "";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>1</td>
+      <td>End-of-Month On Hand</td>
+      ${cell(t.whiskey)}
+      ${cell(t.rum)}
+      ${cell(t.vodka)}
+      ${cell(t.spirits_over_190)}
+      ${cell(t.spirits_under_190)}
+    `;
+
+    body.appendChild(tr);
+  }
+
+  /* ===============================
+     INIT
+     =============================== */
+
+  waitForBody(async body => {
+    const db = getDB();
+    if (!db) {
+      render(body, {});
+      return;
+    }
+
+    const month = await getLockedMonth(db);
+    if (!month) {
+      render(body, {});
+      return;
+    }
+
+    const totals = await getStorageTotals(db, month.id);
+    render(body, totals);
   });
-}
 
-/* ============================================================
-   INIT
-   ============================================================ */
-
-(function init5110_11() {
-  // Month selection is handled by reports.js (shell)
-  // This module renders independently and safely
-  const values = getStorageValuesForMonth();
-  renderStorage(values);
 })();
