@@ -1,85 +1,117 @@
 /* ============================================================
    5110-28.js — TTB 5110.28 (Processing)
-   Scope:
-   - Processing ONLY
-   - Read-only
-   - One row = one Pay.gov entry
+   SCRIPT-LOADED, FIRESTORE VERSION
    ============================================================ */
 
-/* ===============================
-   Helpers
-   =============================== */
-const fmt = n => Number(n || 0).toFixed(2);
+(function () {
 
-/* ============================================================
-   FIELD MAP — ONLY WHAT 797 USES
-   ============================================================ */
+  const BODY_ID = "ttb5110_28_processing_body";
 
-const PROCESSING_ROWS = [
-  {
-    line: "1",
-    desc: "Spirits Received",
-    paygov: "Spirits Received",
-    instruction: "Enter this value",
-    key: "SPIRITS_RECEIVED"
-  },
-  {
-    line: "7",
-    desc: "Spirits Bottled",
-    paygov: "Spirits Bottled",
-    instruction: "Enter this value",
-    key: "SPIRITS_BOTTLED"
+  function fmt(n) {
+    return Number(n || 0).toFixed(2);
   }
-];
 
-/* ============================================================
-   DATA SOURCE (SAFE DEFAULTS)
-   ============================================================ */
+  function waitForBody(cb) {
+    const el = document.getElementById(BODY_ID);
+    if (el) return cb(el);
+    setTimeout(() => waitForBody(cb), 50);
+  }
 
-function getProcessingValuesForMonth() {
-  const values = {};
-  PROCESSING_ROWS.forEach(r => values[r.key] = 0);
-  return values;
-}
+  /* ===============================
+     FIRESTORE HELPERS (GLOBAL SDK)
+     =============================== */
 
-/* ============================================================
-   RENDERING
-   ============================================================ */
+  function getDB() {
+    if (!window.firebase || !firebase.firestore) {
+      console.warn("Firestore not available — rendering zeros");
+      return null;
+    }
+    return firebase.firestore();
+  }
 
-function renderProcessing(values) {
-  const tbody = document.getElementById("ttb5110_28_processing_body");
-  if (!tbody) return;
+  async function getLockedMonth(db) {
+    const snap = await db.collection("compliance_months").get();
+    const months = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    months.sort((a, b) => a.id.localeCompare(b.id));
+    const locked = months.filter(m => m.status === "locked");
+    return locked.length ? locked[locked.length - 1] : null;
+  }
 
-  tbody.innerHTML = "";
+  async function getProcessingTotals(db, monthId) {
+    const totals = {
+      whiskey: 0,
+      rum: 0,
+      vodka: 0,
+      spirits_over_190: 0,
+      spirits_under_190: 0
+    };
 
-  PROCESSING_ROWS.forEach(row => {
-    const tr = document.createElement("tr");
+    const snap = await db
+      .collection("compliance_events")
+      .where("eventType", "==", "processing")
+      .where("reportingMonth", "==", monthId)
+      .get();
 
-    tr.innerHTML = `
-      <td>${row.line}</td>
-      <td>${row.desc}</td>
-      <td>${row.paygov}</td>
-      <td>${row.instruction}</td>
-      <td class="value-cell">${fmt(values[row.key])}</td>
+    snap.forEach(doc => {
+      const d = doc.data();
+      const pg = d.proofGallons || 0;
+
+      if (totals.hasOwnProperty(d.spiritClass)) {
+        totals[d.spiritClass] += pg;
+      }
+    });
+
+    return totals;
+  }
+
+  function cell(val) {
+    return `
       <td>
+        ${fmt(val)}
         <button class="copy-btn"
-          title="Copy"
-          onclick="navigator.clipboard.writeText('${fmt(values[row.key])}')">
+          onclick="navigator.clipboard.writeText('${fmt(val)}')">
           Copy
         </button>
       </td>
     `;
+  }
 
-    tbody.appendChild(tr);
+  function render(body, t) {
+    body.innerHTML = "";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>1</td>
+      <td>Spirits Dumped for Processing</td>
+      ${cell(t.whiskey)}
+      ${cell(t.rum)}
+      ${cell(t.vodka)}
+      ${cell(t.spirits_over_190)}
+      ${cell(t.spirits_under_190)}
+    `;
+
+    body.appendChild(tr);
+  }
+
+  /* ===============================
+     INIT
+     =============================== */
+
+  waitForBody(async body => {
+    const db = getDB();
+    if (!db) {
+      render(body, {});
+      return;
+    }
+
+    const month = await getLockedMonth(db);
+    if (!month) {
+      render(body, {});
+      return;
+    }
+
+    const totals = await getProcessingTotals(db, month.id);
+    render(body, totals);
   });
-}
 
-/* ============================================================
-   INIT
-   ============================================================ */
-
-(function init5110_28() {
-  // Month selection handled by reports.js
-  const values = getProcessingValuesForMonth();
-  renderProcessing(values);
 })();
