@@ -62,7 +62,7 @@ function getDB() {
 async function setFilingMonthLabel() {
   const db = getDB();
   if (!db) {
-    el("filingMonthLabel").textContent = "Filing Month: Unknown";
+    el("filingMonthLabel").textContent = "Unknown";
     return;
   }
 
@@ -86,8 +86,9 @@ async function setFilingMonthLabel() {
   });
 
   el("filingMonthLabel").textContent =
-  `${label} (Locked)`;
+    `${label} (Locked)`;
 }
+
 
 /* ===============================
    INIT
