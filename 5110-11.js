@@ -1,6 +1,7 @@
 /* ============================================================
    5110-11.js — TTB 5110.11 (Storage)
-   FINAL — Beginning + End of Month (matches Pay.gov entry)
+   FINAL — Beginning + End of Month
+   Supports moonshine (<190 proof) correctly
    ============================================================ */
 
 (function () {
@@ -33,14 +34,14 @@
   }
 
   /* ===============================
-     Data fetch
+     Data Fetch
      =============================== */
   async function getTotals(db, monthId) {
     const totals = {
       whiskey_under_160: 0,
       rum: 0,
       vodka: 0,
-      spirits_under_190: 0
+      spirits_under_190: 0   // ← moonshine @165 proof lives here
     };
 
     const snap = await db
@@ -51,8 +52,23 @@
 
     snap.forEach(doc => {
       const d = doc.data();
-      if (totals[d.spiritClass] !== undefined) {
-        totals[d.spiritClass] += d.proofGallons || 0;
+
+      // Explicit, defensive mapping
+      if (d.spiritClass === "whiskey_under_160") {
+        totals.whiskey_under_160 += d.proofGallons || 0;
+      }
+      else if (d.spiritClass === "rum") {
+        totals.rum += d.proofGallons || 0;
+      }
+      else if (d.spiritClass === "vodka") {
+        totals.vodka += d.proofGallons || 0;
+      }
+      else if (
+        d.spiritClass === "spirits_under_190" ||
+        d.spiritClass === "moonshine"
+      ) {
+        // Moonshine safety net
+        totals.spirits_under_190 += d.proofGallons || 0;
       }
     });
 
@@ -60,17 +76,19 @@
   }
 
   /* ===============================
-     Render helpers
+     Render Helpers
      =============================== */
   function cell(v) {
     const val = fmt(v);
-    return `<td>
-      ${val}
-      <button class="copy-btn"
-        onclick="navigator.clipboard.writeText('${val}')">
-        Copy
-      </button>
-    </td>`;
+    return `
+      <td>
+        ${val}
+        <button class="copy-btn"
+          onclick="navigator.clipboard.writeText('${val}')">
+          Copy
+        </button>
+      </td>
+    `;
   }
 
   function render(body, bom, eom) {
@@ -103,7 +121,8 @@
       const db = getDB();
 
       if (!db || !monthId) {
-        render(body,
+        render(
+          body,
           { whiskey_under_160: 0, rum: 0, vodka: 0, spirits_under_190: 0 },
           { whiskey_under_160: 0, rum: 0, vodka: 0, spirits_under_190: 0 }
         );
