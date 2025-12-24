@@ -11,31 +11,36 @@
 
 <body>
 
-  <!-- GLOBAL HEADER -->
   <div id="global-header"></div>
 
   <main class="reports-container">
 
     <header class="reports-header">
       <h1>Monthly TTB Reports</h1>
-      <div id="reportMonthBanner" class="month-banner">
-        Filing Month: <span id="filingMonthLabel">Loading…</span>
+      <div class="month-banner">
+        Filing Month: <span id="filingMonthLabel">—</span>
       </div>
     </header>
 
     <!-- ===============================
-         PRODUCTION
+         PRODUCTION — FIXED LAYOUT
          =============================== -->
     <section class="report-card">
       <h2>TTB 5110.40 — Production</h2>
 
-      <table class="report-table">
+      <table class="report-table production-table">
         <thead>
           <tr>
             <th>Line</th>
             <th>Description</th>
-            <th>Pay.gov Destinations</th>
-            <th>Instruction</th>
+            <th>Whiskey ≤160</th>
+            <th>Whiskey &gt;160</th>
+            <th>Brandy ≤170</th>
+            <th>Brandy &gt;170</th>
+            <th>Rum</th>
+            <th>Vodka</th>
+            <th>≥190</th>
+            <th>&lt;190</th>
           </tr>
         </thead>
         <tbody id="productionTable"></tbody>
@@ -43,11 +48,10 @@
     </section>
 
     <!-- ===============================
-         PROCESSING
+         PROCESSING (unchanged)
          =============================== -->
     <section class="report-card">
       <h2>TTB 5110.28 — Processing</h2>
-
       <table class="report-table">
         <thead>
           <tr>
@@ -64,11 +68,10 @@
     </section>
 
     <!-- ===============================
-         STORAGE
+         STORAGE (unchanged)
          =============================== -->
     <section class="report-card">
       <h2>TTB 5110.11 — Storage</h2>
-
       <table class="report-table">
         <thead>
           <tr>
@@ -86,7 +89,6 @@
 
   </main>
 
-  <!-- LOAD HEADER -->
   <script>
     fetch("header.html")
       .then(r => r.text())
