@@ -1,10 +1,14 @@
 /* ============================================================
    Monthly TTB Reports — Guided Pay.gov Assistant
    READ-ONLY • COPY-ONLY • GitHub Pages safe
+   Covers:
+     - 5110.40 Production
+     - 5110.28 Processing
+     - 5110.11 Storage
    ============================================================ */
 
 /* ============================================================
-   FIREBASE IMPORTS (MATCH compliance.js EXACTLY)
+   FIREBASE IMPORTS (MATCHES compliance.js EXACTLY)
    ============================================================ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
@@ -16,8 +20,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ============================================================
-   FIREBASE INITIALIZATION
-   DO NOT DUPLICATE OR MODIFY WITHOUT CARE
+   FIREBASE INITIALIZATION (DO NOT CHANGE LIGHTLY)
    ============================================================ */
 const firebaseConfig = {
   apiKey: "AIzaSyDlubP6d8tR1x_ArJJRWvNxqhAGV720Vas",
@@ -58,7 +61,10 @@ async function getMostRecentFilingMonth() {
 
   if (!months.length) return null;
 
+  // Sort YYYY-MM
   months.sort((a, b) => a.id.localeCompare(b.id));
+
+  // Prefer non-open months (closed / ready to file)
   const nonOpen = months.filter(m => m.status !== "open");
 
   return nonOpen.length
@@ -209,6 +215,83 @@ function renderProcessingTable(totals) {
 }
 
 /* ============================================================
+   5110.11 — STORAGE TOTALS
+   ============================================================ */
+async function loadStorageTotals(monthId) {
+  const snap = await getDocs(
+    query(
+      collection(db, "compliance_events"),
+      where("eventType", "==", "storage"),
+      where("reportingMonth", "==", monthId)
+    )
+  );
+
+  const totals = {
+    openingInventory: 0,
+    received: 0,
+    removed: 0,
+    endingInventory: 0
+  };
+
+  snap.forEach(doc => {
+    const d = doc.data().derived || {};
+    totals.openingInventory += d.openingPG || 0;
+    totals.received         += d.receivedPG || 0;
+    totals.removed          += d.removedPG || 0;
+  });
+
+  totals.endingInventory =
+    totals.openingInventory +
+    totals.received -
+    totals.removed;
+
+  return totals;
+}
+
+/* ============================================================
+   5110.11 — STORAGE FIELD MAP
+   ============================================================ */
+const STORAGE_FIELDS = [
+  ["1", "Opening Inventory", "Inventory on Hand at Beginning of Month", "openingInventory", "Pay.gov calculates / carry-forward"],
+  ["2", "Received into Storage", "Received into Storage", "received", "Enter this value"],
+  ["5", "Removed from Storage", "Removed from Storage", "removed", "Enter this value"],
+  ["8", "Ending Inventory", "Inventory on Hand at End of Month", "endingInventory", "Pay.gov calculates"]
+];
+
+/* ============================================================
+   RENDER STORAGE TABLE
+   ============================================================ */
+function renderStorageTable(totals) {
+  const tbody = el("storageTable");
+  tbody.innerHTML = "";
+
+  STORAGE_FIELDS.forEach(([line, desc, paygov, key, instruction]) => {
+    const val = totals[key] || 0;
+    const isCopyable = instruction === "Enter this value";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${line}</td>
+      <td>${desc}</td>
+      <td>${paygov}</td>
+      <td><strong>${instruction}</strong></td>
+      <td>${val.toFixed(2)}</td>
+      <td>
+        ${
+          isCopyable
+            ? `<button class="copy-btn"
+                onclick="navigator.clipboard.writeText('${val.toFixed(2)}')">
+                Copy
+              </button>`
+            : ""
+        }
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ============================================================
    INIT — LOAD MONTH + RENDER ALL REPORT SECTIONS
    ============================================================ */
 (async function init() {
@@ -233,7 +316,9 @@ function renderProcessingTable(totals) {
     const procTotals = await loadProcessingTotals(month.id);
     renderProcessingTable(procTotals);
 
-    // --- Storage (5110.11) will be wired here next ---
+    // --- Storage ---
+    const storageTotals = await loadStorageTotals(month.id);
+    renderStorageTable(storageTotals);
 
   } catch (err) {
     console.error(err);
