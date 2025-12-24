@@ -1,32 +1,44 @@
-<!-- =========================================================
-     TTB 5110.40 — Production (MODULE)
-     ========================================================= -->
+/* ============================================================
+   5110-40.js — TTB 5110.40 (Production)
+   NON-MODULE, SCRIPT-LOADED VERSION
+   ============================================================ */
 
-<section class="report-card">
-  <h2>TTB 5110.40 — Production</h2>
+(function () {
 
-  <table class="report-table production-table">
-    <thead>
-      <tr>
-        <th>Line</th>
-        <th>Description</th>
-        <th>Whiskey ≤160</th>
-        <th>Whiskey &gt;160</th>
-        <th>Brandy ≤170</th>
-        <th>Brandy &gt;170</th>
-        <th>Rum</th>
-        <th>Vodka</th>
-        <th>≥190</th>
-        <th>&lt;190</th>
-      </tr>
-    </thead>
+  const BODY_ID = "ttb5110_40_production_body";
 
-    <tbody id="ttb5110_40_production_body">
-      <!-- populated by 5110-40.js -->
-    </tbody>
-  </table>
+  function fmt(n) {
+    return Number(n || 0).toFixed(2);
+  }
 
-  <p class="muted" style="margin-top:10px">
-    Copy each value into the matching column on Pay.gov Line 1.
-  </p>
-</section>
+  function waitForBody(cb) {
+    const el = document.getElementById(BODY_ID);
+    if (el) return cb(el);
+    setTimeout(() => waitForBody(cb), 50);
+  }
+
+  function render(body) {
+    body.innerHTML = "";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>1</td>
+      <td>Produced (Test)</td>
+      <td>${fmt(10)}</td>
+      <td>${fmt(0)}</td>
+      <td>${fmt(0)}</td>
+      <td>${fmt(0)}</td>
+      <td>${fmt(5)}</td>
+      <td>${fmt(0)}</td>
+      <td>${fmt(0)}</td>
+      <td>${fmt(0)}</td>
+    `;
+
+    body.appendChild(tr);
+    console.log("5110.40: test row rendered");
+  }
+
+  // INIT
+  waitForBody(render);
+
+})();
