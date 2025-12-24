@@ -3,100 +3,118 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>797 Distillery — Monthly Reports</title>
+  <title>797 Distillery — Monthly TTB Reports</title>
 
-  <!-- ============================================================
-       Global header + shared site styles
-       Keep these aligned with your other compliance pages
-       ============================================================ -->
+  <!-- =========================================================
+       GLOBAL HEADER STYLES (shared across all tools)
+       ========================================================= -->
   <link rel="stylesheet" href="header.css" />
 
-  <!-- Page-specific styles -->
+  <!-- =========================================================
+       REPORTS PAGE STYLES (tables, banners, buttons)
+       ========================================================= -->
   <link rel="stylesheet" href="reports.css" />
 </head>
 
 <body>
 
-  <!-- ============================================================
-       GLOBAL HEADER
-       This is loaded from header.html (same as compliance.html)
-       ============================================================ -->
+  <!-- =========================================================
+       GLOBAL HEADER (loaded via header.html fetch)
+       ========================================================= -->
   <div id="global-header"></div>
 
-  <main class="page">
+  <!-- =========================================================
+       MAIN REPORTS CONTAINER
+       ========================================================= -->
+  <main class="reports-container">
 
-    <!-- ============================================================
-         Page Header
-         ============================================================ -->
-    <header class="page-header">
-      <h1>Monthly Reports</h1>
-      <p class="muted">Pay.gov guided entry — read-only, with copy buttons</p>
+    <!-- =======================================================
+         PAGE HEADER + FILING MONTH BANNER
+         MUST always be visible
+         ======================================================= -->
+    <header class="reports-header">
+      <h1>Monthly TTB Reports</h1>
+
+      <!-- Filing month is injected by reports.js -->
+      <div id="reportMonthBanner" class="month-banner warning">
+        Filing Month: <span id="filingMonthLabel">Loading…</span>
+      </div>
     </header>
 
-    <!-- ============================================================
-         Locked Month Banner (most recent locked month)
-         reports.js populates this.
-         ============================================================ -->
-    <section id="lockedMonthBanner" class="banner hidden" aria-live="polite"></section>
+    <!-- =======================================================
+         TTB 5110.40 — PRODUCTION
+         ======================================================= -->
+    <section class="report-card">
+      <h2>TTB 5110.40 — Production</h2>
 
-    <!-- ============================================================
-         Report Selector
-         (If you want this in tabs later, this structure supports it.)
-         ============================================================ -->
-    <section class="panel">
-      <div class="controls">
-        <div class="field">
-          <label for="reportMonth">Filing Month (Locked)</label>
-          <select id="reportMonth"></select>
-          <div class="help muted">Defaults to the most recent locked month.</div>
-        </div>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Line</th>
+            <th>Description</th>
+            <th>Pay.gov Label</th>
+            <th>Instruction</th>
+            <th>Value (PG)</th>
+            <th></th>
+          </tr>
+        </thead>
 
-        <div class="field">
-          <label for="reportType">Form</label>
-          <select id="reportType">
-            <option value="production">TTB 5110.40 — Production</option>
-            <option value="storage">TTB 5110.11 — Storage</option>
-            <option value="processing">TTB 5110.28 — Processing (Scaffold)</option>
-          </select>
-          <div class="help muted">Processing will be scaffolded next.</div>
-        </div>
-      </div>
+        <!-- Populated by reports.js -->
+        <tbody id="productionTable"></tbody>
+      </table>
     </section>
 
-    <!-- ============================================================
-         Output Area
-         reports.js renders a guidance table here
-         ============================================================ -->
-    <section class="panel">
-      <h2 id="sectionTitle">Loading…</h2>
-      <div id="sectionSubtitle" class="muted" style="margin-top:-8px; margin-bottom:14px;"></div>
+    <!-- =======================================================
+         TTB 5110.28 — PROCESSING
+         ======================================================= -->
+    <section class="report-card">
+      <h2>TTB 5110.28 — Processing</h2>
 
-      <div class="table-wrap">
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th style="width:70px;">Line</th>
-              <th>Description</th>
-              <th>Pay.gov Label</th>
-              <th>Instruction</th>
-              <th style="width:120px; text-align:right;">Value</th>
-              <th style="width:90px;">Copy</th>
-            </tr>
-          </thead>
-          <tbody id="reportRows">
-            <tr><td colspan="6" class="muted">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Line</th>
+            <th>Description</th>
+            <th>Pay.gov Label</th>
+            <th>Instruction</th>
+            <th>Value (PG)</th>
+            <th></th>
+          </tr>
+        </thead>
 
-      <div id="notes" class="muted" style="margin-top:14px;"></div>
+        <!-- Populated by reports.js -->
+        <tbody id="processingTable"></tbody>
+      </table>
+    </section>
+
+    <!-- =======================================================
+         TTB 5110.11 — STORAGE
+         ======================================================= -->
+    <section class="report-card">
+      <h2>TTB 5110.11 — Storage</h2>
+
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Line</th>
+            <th>Description</th>
+            <th>Pay.gov Label</th>
+            <th>Instruction</th>
+            <th>Value (PG)</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <!-- Populated by reports.js -->
+        <tbody id="storageTable"></tbody>
+      </table>
     </section>
 
   </main>
 
-  <!-- ============================================================
-       Load Global Header (same as compliance.html)
-       ============================================================ -->
+  <!-- =========================================================
+       LOAD GLOBAL HEADER (same pattern as compliance landing page)
+       ========================================================= -->
   <script>
     fetch("header.html")
       .then(r => r.text())
@@ -104,11 +122,14 @@
         document.getElementById("global-header").innerHTML = html;
       })
       .catch(() => {
-        // If header fails, page still works; just no nav
+        // If header.html is missing, fail gracefully instead of breaking reports
+        document.getElementById("global-header").innerHTML = "";
       });
   </script>
 
-  <!-- Main Reports logic -->
+  <!-- =========================================================
+       REPORTS PAGE LOGIC (Firebase + calculations)
+       ========================================================= -->
   <script type="module" src="reports.js"></script>
 </body>
 </html>
