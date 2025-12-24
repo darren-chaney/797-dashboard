@@ -5,85 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>797 Distillery — Monthly TTB Reports</title>
 
-  <!-- =========================================================
-       GLOBAL HEADER STYLES (shared across all tools)
-       ========================================================= -->
   <link rel="stylesheet" href="header.css" />
-
-  <!-- =========================================================
-       REPORTS PAGE STYLES (tables, banners, buttons)
-       ========================================================= -->
   <link rel="stylesheet" href="reports.css" />
 </head>
 
 <body>
 
-  <!-- =========================================================
-       GLOBAL HEADER (loaded via header.html fetch)
-       DO NOT REMOVE
-       ========================================================= -->
+  <!-- GLOBAL HEADER -->
   <div id="global-header"></div>
 
-  <!-- =========================================================
-       MAIN REPORTS CONTAINER
-       ========================================================= -->
   <main class="reports-container">
 
-    <!-- =======================================================
-         PAGE HEADER + FILING MONTH BANNER
-         This banner MUST always be visible
-         ======================================================= -->
     <header class="reports-header">
       <h1>Monthly TTB Reports</h1>
-
-      <!-- Filing month is injected by reports.js -->
-      <div id="reportMonthBanner" class="month-banner warning">
+      <div id="reportMonthBanner" class="month-banner">
         Filing Month: <span id="filingMonthLabel">Loading…</span>
       </div>
     </header>
 
-    <!-- =======================================================
-         TTB 5110.40 — PRODUCTION (FULL PAY.GOV COLUMNS)
-         ======================================================= -->
+    <!-- ===============================
+         PRODUCTION
+         =============================== -->
     <section class="report-card">
       <h2>TTB 5110.40 — Production</h2>
 
-      <!--
-        This table matches the Pay.gov column structure for production:
-        Whiskey <=160, Whiskey >160, Brandy <=170, Brandy >170,
-        Rum, Gin, Vodka, Spirits >=190, Spirits <190, Other, Total
-      -->
-      <table class="report-table report-table-wide">
+      <table class="report-table">
         <thead>
           <tr>
             <th>Line</th>
             <th>Description</th>
-            <th>Pay.gov Label</th>
+            <th>Pay.gov Destinations</th>
             <th>Instruction</th>
-
-            <!-- Pay.gov class columns -->
-            <th>Whiskey ≤160</th>
-            <th>Whiskey &gt;160</th>
-            <th>Brandy ≤170</th>
-            <th>Brandy &gt;170</th>
-            <th>Rum</th>
-            <th>Gin</th>
-            <th>Vodka</th>
-            <th>Spirits ≥190</th>
-            <th>Spirits &lt;190</th>
-            <th>Other</th>
-            <th>Total</th>
           </tr>
         </thead>
-
-        <!-- Populated by reports.js -->
         <tbody id="productionTable"></tbody>
       </table>
     </section>
 
-    <!-- =======================================================
-         TTB 5110.28 — PROCESSING (stable placeholder table)
-         ======================================================= -->
+    <!-- ===============================
+         PROCESSING
+         =============================== -->
     <section class="report-card">
       <h2>TTB 5110.28 — Processing</h2>
 
@@ -98,15 +59,13 @@
             <th></th>
           </tr>
         </thead>
-
-        <!-- Populated by reports.js -->
         <tbody id="processingTable"></tbody>
       </table>
     </section>
 
-    <!-- =======================================================
-         TTB 5110.11 — STORAGE (stable placeholder table)
-         ======================================================= -->
+    <!-- ===============================
+         STORAGE
+         =============================== -->
     <section class="report-card">
       <h2>TTB 5110.11 — Storage</h2>
 
@@ -121,29 +80,19 @@
             <th></th>
           </tr>
         </thead>
-
-        <!-- Populated by reports.js -->
         <tbody id="storageTable"></tbody>
       </table>
     </section>
 
   </main>
 
-  <!-- =========================================================
-       LOAD GLOBAL HEADER (same pattern as compliance landing page)
-       ========================================================= -->
+  <!-- LOAD HEADER -->
   <script>
     fetch("header.html")
       .then(r => r.text())
-      .then(html => {
-        document.getElementById("global-header").innerHTML = html;
-      })
-      .catch(err => console.warn("Header failed to load:", err));
+      .then(html => document.getElementById("global-header").innerHTML = html);
   </script>
 
-  <!-- =========================================================
-       REPORTS PAGE LOGIC (Firebase + calculations)
-       ========================================================= -->
   <script type="module" src="reports.js"></script>
 </body>
 </html>
