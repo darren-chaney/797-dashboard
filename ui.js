@@ -27,16 +27,14 @@ function escapeHtml(s){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
-function mlToL(ml){ return ml / 1000; }
 function formatMl(n){
   n = Number(n || 0);
   if (n < 10) return n.toFixed(2);
   return n.toFixed(1);
 }
-function formatL(n){ return (Number(n||0)).toFixed(3); }
 
 /* ------------------------------
-   Inputs (RESTORED — REQUIRED)
+   Inputs
    ------------------------------ */
 function getInputs(){
   const sampleSizeMl = Number(readRad("sampleSize"));
@@ -117,7 +115,7 @@ function renderDraftList(){
 let currentDraft = null;
 
 /* ------------------------------
-   Normalize flavors (safe)
+   Normalize flavors
    ------------------------------ */
 function normalizeFlavors(draft){
   draft.ingredients.flavors = (draft.ingredients.flavors || []).map(f => ({
@@ -146,33 +144,33 @@ function showOutputFromDraft(draft){
   const tbody = el("ingredientTable").querySelector("tbody");
   tbody.innerHTML = "";
 
-  // Base spirit
+  /* -------- Base Spirit -------- */
   const base = draft.ingredients.baseSpirit;
   tbody.insertAdjacentHTML("beforeend", `
     <tr>
       <td><b>Base Spirit (${base.proof} proof)</b></td>
       <td>${formatMl(base.amountMl)}</td>
-      <td>${formatL(mlToL(base.amountMl))}</td>
+      <td>${formatMl(base.amountMl)}</td>
       <td class="muted">—</td>
       <td class="muted">R&D base</td>
     </tr>
   `);
 
-  // Water
+  /* -------- Water -------- */
   const water = draft.ingredients.water;
   if (water){
     tbody.insertAdjacentHTML("beforeend", `
       <tr>
         <td><b>Water (to ${water.targetProof} proof)</b></td>
         <td>${formatMl(water.amountMl)}</td>
-        <td>${formatL(mlToL(water.amountMl))}</td>
+        <td>${formatMl(water.amountMl)}</td>
         <td class="muted">—</td>
         <td class="muted">Bench proofing</td>
       </tr>
     `);
   }
 
-  // Flavors
+  /* -------- Flavors -------- */
   draft.ingredients.flavors.forEach(f=>{
     const delta = f.appliedMl - f.suggestedMl;
 
@@ -196,21 +194,22 @@ function showOutputFromDraft(draft){
       </tr>
     `);
   });
-     // Sweetener (HFCS-42) — fixed row
+
+  /* -------- HFCS -------- */
   const sw = draft.ingredients.sweetener;
   if (sw && sw.enabled){
     tbody.insertAdjacentHTML("beforeend", `
       <tr>
         <td><b>HFCS-42</b></td>
         <td>${formatMl(sw.amountMl)}</td>
-        <td>${formatL(mlToL(sw.amountMl))}</td>
+        <td>${formatMl(sw.amountMl)}</td>
         <td class="muted">—</td>
-        <td class="muted">${escapeHtml(String(sw.targetPercent || ""))}% sweetness</td>
+        <td class="muted">${sw.targetPercent}% sweetness</td>
       </tr>
     `);
   }
 
-  // Add flavor
+  /* -------- Add Flavor -------- */
   tbody.insertAdjacentHTML("beforeend", `
     <tr>
       <td colspan="5">
