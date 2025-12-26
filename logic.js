@@ -60,37 +60,67 @@ function titleCase(s){
 }
 
 /* ============================================================
-   Bench Proofing — REAL-WORLD WORKFLOW
-   Proof spirit + water FIRST to target proof.
-   Add flavors & HFCS AFTER (do NOT re-proof).
+   Bench Proofing Math (R&D ONLY)
+
+   IMPORTANT WORKFLOW (matches Darren’s real bench process):
+   - We reserve space for additives (flavors + HFCS) inside the bottle.
+   - We then proof the remaining "spirit + water" portion to the TARGET proof,
+     so that portion reads correctly on the Snap 41 BEFORE additives are added.
+   - After adding additives, the *final* proof will generally read lower.
    ============================================================ */
-function calculateProofingToTargetFixedVolume(sampleMl, baseProof, targetProof){
+function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additiveMl = 0){
   const warnings = [];
 
-  const V = toNum(sampleMl);
+  const Vfinal = toNum(finalMl);
   const bp = toNum(baseProof);
   const tp = toNum(targetProof);
+  const Vadd = Math.max(0, toNum(additiveMl) || 0);
 
-  if (!Number.isFinite(V) || V <= 0){
-    return { baseSpiritMl: 0, waterMl: 0, warnings: ["Invalid sample volume."] };
+  if (!Number.isFinite(Vfinal) || Vfinal <= 0) {
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid final sample volume."] };
   }
-  if (!Number.isFinite(bp) || bp <= 0){
-    return { baseSpiritMl: 0, waterMl: 0, warnings: ["Invalid base proof."] };
+  if (!Number.isFinite(bp) || bp <= 0) {
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid base proof."] };
   }
-  if (!Number.isFinite(tp) || tp <= 0){
-    return { baseSpiritMl: 0, waterMl: 0, warnings: ["Invalid target proof."] };
+  if (!Number.isFinite(tp) || tp <= 0) {
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid target proof."] };
   }
 
   if (tp > bp){
-    warnings.push("Target proof is higher than base proof — cannot proof up with water.");
+    warnings.push("Target proof is higher than base proof — you cannot proof up with water.");
   }
 
-  const baseSpiritMlRaw = V * (tp / bp);
-  const waterMlRaw = V - baseSpiritMlRaw;
+  if (Vadd > Vfinal){
+    warnings.push("Additives exceed final sample size. Reduce flavors/sweetener or increase sample size.");
+  }
+
+  // Space available for spirit + water inside the bottle (reserve additive space)
+  const VspiritWater = Math.max(0, Vfinal - Vadd);
+
+  // Alcohol required in the SPIRIT+WATER portion (bench-proofed portion)
+  // This makes the spirit+water portion read at target proof BEFORE additives are added.
+  const alcoholNeededMl = VspiritWater * (tp / 200);
+
+  // Base spirit volume needed to supply that alcohol
+  const baseSpiritMlRaw = alcoholNeededMl / (bp / 200);
+
+  // Water is whatever remains in the spirit+water bucket
+  const waterMlRaw = VspiritWater - baseSpiritMlRaw;
+
+  if (waterMlRaw < -0.001){
+    warnings.push(
+      "Not enough room for water at this proof after additives. Lower target proof, raise sample size, reduce additives, or use higher-proof base."
+    );
+  }
+
+  if (Vadd > 0){
+    warnings.push("Bench-proofing note: Spirit+water portion is at target proof before additives; final proof will read lower after flavors/HFCS.");
+  }
 
   return {
     baseSpiritMl: Number(Math.max(0, baseSpiritMlRaw).toFixed(1)),
     waterMl: Number(Math.max(0, waterMlRaw).toFixed(1)),
+    spiritWaterMl: Number(VspiritWater.toFixed(1)),
     warnings
   };
 }
@@ -141,7 +171,7 @@ function parseFlavorConcept(concept){
 function strengthValue(range, strength){
   if (strength === "Strong") return range.typical;
   if (strength === "Mild") return range.low + (range.typical - range.low) * 0.7;
-  return range.typical + (range.high - range.typical) * 0.88;
+  return range.typical + (range.high - range.typical) * 0.88; // Extreme
 }
 
 function applySpiritBias(category, amount, spirit){
@@ -173,20 +203,21 @@ function generateSample({
   const tp = toNum(targetProof);
 
   if (!Number.isFinite(bp) || bp < 40 || bp > 200){
-    return { ok:false, error:"Base proof must be between 40 and 200." };
+    return { ok:false, error:"Base proof must be a number between 40 and 200." };
   }
   if (!Number.isFinite(tp) || tp < 40 || tp > 120){
-    return { ok:false, error:"Target proof must be between 40 and 120." };
+    return { ok:false, error:"Target proof must be a number between 40 and 120." };
   }
 
   const parsed = parseFlavorConcept(flavorConcept);
   if (!parsed.ok) return parsed;
 
   const scaleFactor = size / 250;
+
   const explain = [];
   const warnings = [];
 
-  /* ---------- FLAVORS ---------- */
+  // --- FLAVORS ---
   const flavors = [];
   let flavorTotalMl = 0;
 
@@ -210,7 +241,7 @@ function generateSample({
     explain.push(`${c.name} → ${c.category} (${flavorStrength})`);
   }
 
-  /* ---------- SWEETENER ---------- */
+  // --- SWEETENER ---
   let sweetener = null;
   let sweetenerMl = 0;
 
@@ -230,14 +261,15 @@ function generateSample({
   const additiveMl = flavorTotalMl + sweetenerMl;
 
   if (additiveMl > size * 0.25){
-    warnings.push("High additives for this sample size. Final volume will exceed bottle capacity.");
+    warnings.push("High additives for a small sample. Proofing water may be constrained; taste carefully.");
   }
 
-  /* ---------- PROOFING (CORRECTED) ---------- */
-  const proofing = calculateProofingToTargetFixedVolume(
+  // --- PROOFING (reserve additive space, then bench-proof spirit+water portion) ---
+  const proofing = calculateProofingForFinalVolume(
     size,
     bp,
-    tp
+    tp,
+    additiveMl
   );
 
   warnings.push(...(proofing.warnings || []));
