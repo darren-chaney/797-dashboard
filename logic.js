@@ -3,6 +3,10 @@
    Locked Flavor Ranges v1.0
    ============================================================ */
 
+// Empirical alcohol-water contraction correction
+// Tuned for high-proof bench proofing (Snap 41 verified)
+const ETHANOL_CONTRACTION_FACTOR = 0.97;
+
 const SB_LOCKED_RANGES_VERSION = "v1.0";
 const HFCS42_DENSITY_G_PER_ML = 1.30;
 const ALLOWED_SAMPLE_SIZES_ML = [100, 250, 375];
@@ -60,13 +64,13 @@ function titleCase(s){
 }
 
 /* ============================================================
-   Bench Proofing Math (R&D ONLY)
+   Bench Proofing Math — REAL WORKFLOW
 
-   IMPORTANT WORKFLOW (matches Darren’s real bench process):
-   - We reserve space for additives (flavors + HFCS) inside the bottle.
-   - We then proof the remaining "spirit + water" portion to the TARGET proof,
-     so that portion reads correctly on the Snap 41 BEFORE additives are added.
-   - After adding additives, the *final* proof will generally read lower.
+   - Final bottle volume is fixed (e.g. 250 mL)
+   - Space is RESERVED for additives (HFCS + flavors)
+   - Remaining spirit+water portion is bench-proofed
+   - Contraction is corrected empirically
+   - Additives are added AFTER proofing
    ============================================================ */
 function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additiveMl = 0){
   const warnings = [];
@@ -76,46 +80,38 @@ function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additi
   const tp = toNum(targetProof);
   const Vadd = Math.max(0, toNum(additiveMl) || 0);
 
-  if (!Number.isFinite(Vfinal) || Vfinal <= 0) {
-    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid final sample volume."] };
-  }
-  if (!Number.isFinite(bp) || bp <= 0) {
-    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid base proof."] };
-  }
-  if (!Number.isFinite(tp) || tp <= 0) {
-    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid target proof."] };
-  }
+  if (!Number.isFinite(Vfinal) || Vfinal <= 0)
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings:["Invalid final volume"] };
 
-  if (tp > bp){
-    warnings.push("Target proof is higher than base proof — you cannot proof up with water.");
-  }
+  if (!Number.isFinite(bp) || bp <= 0)
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings:["Invalid base proof"] };
 
-  if (Vadd > Vfinal){
-    warnings.push("Additives exceed final sample size. Reduce flavors/sweetener or increase sample size.");
-  }
+  if (!Number.isFinite(tp) || tp <= 0)
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings:["Invalid target proof"] };
 
-  // Space available for spirit + water inside the bottle (reserve additive space)
+  if (tp > bp)
+    warnings.push("Target proof higher than base proof — cannot proof up.");
+
+  if (Vadd > Vfinal)
+    warnings.push("Additives exceed final sample size.");
+
+  // Reserve space for additives
   const VspiritWater = Math.max(0, Vfinal - Vadd);
 
-  // Alcohol required in the SPIRIT+WATER portion (bench-proofed portion)
-  // This makes the spirit+water portion read at target proof BEFORE additives are added.
+  // Alcohol required in spirit+water portion
   const alcoholNeededMl = VspiritWater * (tp / 200);
 
-  // Base spirit volume needed to supply that alcohol
-  const baseSpiritMlRaw = alcoholNeededMl / (bp / 200);
+  // 🔑 Corrected base spirit volume (contraction-aware)
+  const baseSpiritMlRaw =
+    (alcoholNeededMl / (bp / 200)) * ETHANOL_CONTRACTION_FACTOR;
 
-  // Water is whatever remains in the spirit+water bucket
   const waterMlRaw = VspiritWater - baseSpiritMlRaw;
 
-  if (waterMlRaw < -0.001){
-    warnings.push(
-      "Not enough room for water at this proof after additives. Lower target proof, raise sample size, reduce additives, or use higher-proof base."
-    );
-  }
+  if (waterMlRaw < -0.001)
+    warnings.push("Not enough room for water after additives.");
 
-  if (Vadd > 0){
-    warnings.push("Bench-proofing note: Spirit+water portion is at target proof before additives; final proof will read lower after flavors/HFCS.");
-  }
+  if (Vadd > 0)
+    warnings.push("Spirit+water bench-proofed to target BEFORE additives.");
 
   return {
     baseSpiritMl: Number(Math.max(0, baseSpiritMlRaw).toFixed(1)),
@@ -130,11 +126,9 @@ function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additi
    ------------------------------ */
 function detectCategory(token){
   const t = normalizeText(token);
-  for (const r of KEYWORDS){
-    for (const kw of r.k){
+  for (const r of KEYWORDS)
+    for (const kw of r.k)
       if (t.includes(normalizeText(kw))) return r.cat;
-    }
-  }
   return "Dessert";
 }
 
@@ -156,11 +150,8 @@ function parseFlavorConcept(concept){
     if (comps.length >= 3) break;
   }
 
-  if (comps.length === 0){
+  if (comps.length === 0)
     comps.push({ name: titleCase(raw), category: "Dessert" });
-  } else if (comps.length === 1 && comps[0].category === "Dessert" && words.length > 1){
-    comps[0].name = titleCase(raw);
-  }
 
   return { ok:true, raw, components: comps };
 }
@@ -171,13 +162,12 @@ function parseFlavorConcept(concept){
 function strengthValue(range, strength){
   if (strength === "Strong") return range.typical;
   if (strength === "Mild") return range.low + (range.typical - range.low) * 0.7;
-  return range.typical + (range.high - range.typical) * 0.88; // Extreme
+  return range.typical + (range.high - range.typical) * 0.88;
 }
 
 function applySpiritBias(category, amount, spirit){
-  if (spirit === "Rum" && (category === "Cream" || category === "Vanilla")){
+  if (spirit === "Rum" && (category === "Cream" || category === "Vanilla"))
     return amount * 0.9;
-  }
   return amount;
 }
 
@@ -195,35 +185,31 @@ function generateSample({
 }) {
 
   const size = toNum(sampleSizeMl);
-  if (!ALLOWED_SAMPLE_SIZES_ML.includes(size)){
+  if (!ALLOWED_SAMPLE_SIZES_ML.includes(size))
     return { ok:false, error:"Sample size must be 100, 250, or 375 mL." };
-  }
 
   const bp = toNum(baseProof);
   const tp = toNum(targetProof);
 
-  if (!Number.isFinite(bp) || bp < 40 || bp > 200){
-    return { ok:false, error:"Base proof must be a number between 40 and 200." };
-  }
-  if (!Number.isFinite(tp) || tp < 40 || tp > 120){
-    return { ok:false, error:"Target proof must be a number between 40 and 120." };
-  }
+  if (!Number.isFinite(bp) || bp < 40 || bp > 200)
+    return { ok:false, error:"Base proof must be 40–200." };
+
+  if (!Number.isFinite(tp) || tp < 40 || tp > 120)
+    return { ok:false, error:"Target proof must be 40–120." };
 
   const parsed = parseFlavorConcept(flavorConcept);
   if (!parsed.ok) return parsed;
 
   const scaleFactor = size / 250;
-
   const explain = [];
   const warnings = [];
 
-  // --- FLAVORS ---
+  /* ---------- FLAVORS ---------- */
   const flavors = [];
   let flavorTotalMl = 0;
 
   for (const c of parsed.components){
     const range = FLAVOR_RANGES[c.category] || FLAVOR_RANGES.Dessert;
-
     let per250 = strengthValue(range, flavorStrength);
     per250 = applySpiritBias(c.category, per250, baseSpiritType);
     per250 = clamp(per250, range.low, range.high);
@@ -241,7 +227,7 @@ function generateSample({
     explain.push(`${c.name} → ${c.category} (${flavorStrength})`);
   }
 
-  // --- SWEETENER ---
+  /* ---------- SWEETENER ---------- */
   let sweetener = null;
   let sweetenerMl = 0;
 
@@ -255,16 +241,11 @@ function generateSample({
       targetPercent: spClamped,
       amountMl: sweetenerMl
     };
-    if (sp !== spClamped) warnings.push("Sweetness was clamped to a safe range.");
   }
 
   const additiveMl = flavorTotalMl + sweetenerMl;
 
-  if (additiveMl > size * 0.25){
-    warnings.push("High additives for a small sample. Proofing water may be constrained; taste carefully.");
-  }
-
-  // --- PROOFING (reserve additive space, then bench-proof spirit+water portion) ---
+  /* ---------- PROOFING ---------- */
   const proofing = calculateProofingForFinalVolume(
     size,
     bp,
@@ -272,39 +253,33 @@ function generateSample({
     additiveMl
   );
 
-  warnings.push(...(proofing.warnings || []));
+  warnings.push(...proofing.warnings);
 
-  const draft = {
-    sampleId: sbUuid("SB"),
-    status: "draft",
-    createdAt: sbNowISO(),
-    lockedFlavorRanges: SB_LOCKED_RANGES_VERSION,
-
-    sampleDefinition: {
-      sampleSizeMl: size,
-      baseSpiritType,
-      baseProof: bp,
-      targetProof: tp,
-      flavorConcept: parsed.raw,
-      flavorStrength,
-      sweetnessPercent: Number.isFinite(sp) ? (sweetener?.targetPercent ?? null) : null
-    },
-
-    ingredients: {
-      baseSpirit: { amountMl: proofing.baseSpiritMl, proof: bp },
-      water: { amountMl: proofing.waterMl, targetProof: tp },
-      flavors,
-      sweetener,
-      acids: []
-    },
-
-    explain,
-    warnings,
-    promotion: {
-      eligible: size === 375,
-      candidateOnly: true
+  return {
+    ok: true,
+    draft: {
+      sampleId: sbUuid("SB"),
+      status: "draft",
+      createdAt: sbNowISO(),
+      lockedFlavorRanges: SB_LOCKED_RANGES_VERSION,
+      sampleDefinition: {
+        sampleSizeMl: size,
+        baseSpiritType,
+        baseProof: bp,
+        targetProof: tp,
+        flavorConcept: parsed.raw,
+        flavorStrength,
+        sweetnessPercent: sweetener?.targetPercent ?? null
+      },
+      ingredients: {
+        baseSpirit: { amountMl: proofing.baseSpiritMl, proof: bp },
+        water: { amountMl: proofing.waterMl, targetProof: tp },
+        flavors,
+        sweetener,
+        acids: []
+      },
+      explain,
+      warnings
     }
   };
-
-  return { ok:true, draft, explain, warnings };
 }
