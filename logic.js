@@ -2,18 +2,66 @@
    Sample Builder (R&D) — Logic (NO production scaler code)
    Locked Flavor Ranges v1.0
 
-   IMPORTANT WORKFLOW (matches Darren’s bench process):
-   - Additives (HFCS + flavors) take up bottle volume.
-   - We RESERVE that space first.
-   - We then proof the remaining "spirit + water" portion to the TARGET proof,
-     so it reads correctly on the Snap 41 BEFORE additives are added.
+   IMPORTANT:
+   Bench-proofing MUST match real instrument behavior (Snap 41).
+   Ethanol + water volumes do NOT add linearly (contraction).
+   So we use alcoholometric tables @ 20°C (density + ABV↔mass).
+
+   Workflow we implement (Darren’s real process):
+   1) Reserve space in the bottle for additives (HFCS + flavors).
+   2) Bench-proof the remaining "spirit+water" portion to TARGET proof.
+      (This is the portion you can read accurately on Snap 41.)
+   3) Add flavors/HFCS afterwards (final proof will shift lower).
+
+   Table source: "Dilution of ethanol" (density@20°C and ABV→mass conversion). :contentReference[oaicite:1]{index=1}
    ============================================================ */
 
 const SB_LOCKED_RANGES_VERSION = "v1.0";
-const HFCS42_DENSITY_G_PER_ML = 1.30; // for weight conversions later if needed
+const HFCS42_DENSITY_G_PER_ML = 1.30;
 const ALLOWED_SAMPLE_SIZES_ML = [100, 250, 375];
 
-// Locked ranges (per 250 mL)
+/* ============================================================
+   Alcoholometric tables @ 20°C (integer % ABV: 0..100)
+
+   density_g_per_L[abv] = density (g/L) at 20°C
+   abw_percent[abv]     = ethanol strength by mass (m/m %) corresponding to ABV
+
+   These are directly transcribed from the PDF tables. :contentReference[oaicite:2]{index=2}
+   ============================================================ */
+
+// Density (g/L) at 20°C for ethanol-water mixture by ABV (v/v)
+const DENSITY_G_PER_L_20C = [
+  998.20, 996.70, 995.73, 993.81, 992.41, 991.06, 989.73, 988.43, 987.16, 985.92,
+  984.71, 983.52, 982.35, 981.21, 980.08, 978.97, 977.87, 976.79, 975.71, 974.63,
+  973.56, 972.48, 971.40, 970.31, 969.21, 968.10, 966.97, 965.81, 964.64, 963.44,
+  962.21, 960.95, 959.66, 958.34, 956.98, 955.59, 954.15, 952.69, 951.18, 949.63,
+  948.05, 946.42, 944.76, 943.06, 941.32, 939.54, 937.73, 935.88, 934.00, 932.09,
+  930.14, 928.16, 926.16, 924.12, 922.06, 919.96, 917.84, 915.70, 913.53, 911.33,
+  909.11, 906.87, 904.60, 902.31, 899.99, 897.65, 895.28, 892.89, 890.48, 888.03,
+  885.56, 883.06, 880.54, 877.99, 875.40, 872.79, 870.15, 867.48, 864.78, 862.04,
+  859.27, 856.46, 853.62, 850.74, 847.82, 844.85, 841.84, 838.77, 835.64, 832.45,
+  829.18, 825.83, 822.39, 818.85, 815.18, 811.38, 807.42, 803.27, 798.90, 794.25,
+  789.24
+];
+
+// ABV (v/v) → ABW (m/m %) conversion
+const ABW_PERCENT_FROM_ABV = [
+  0.00, 0.79, 1.59, 2.38, 3.18, 3.98, 4.78, 5.59, 6.40, 7.20,
+  8.01, 8.83, 9.64, 10.46, 11.27, 12.09, 12.91, 13.74, 14.56, 15.39,
+  16.21, 17.04, 17.87, 18.71, 19.54, 20.38, 21.22, 22.06, 22.91, 23.76,
+  24.61, 25.46, 26.32, 27.18, 28.04, 28.91, 29.78, 30.65, 31.53, 32.41,
+  33.30, 34.19, 35.09, 35.99, 36.89, 37.80, 38.72, 39.64, 40.56, 41.49,
+  42.43, 43.37, 44.31, 45.26, 46.22, 47.18, 48.15, 49.13, 50.11, 51.10,
+  52.09, 53.09, 54.09, 55.11, 56.12, 57.05, 58.18, 59.22, 60.27, 61.32,
+  62.39, 63.46, 64.53, 65.62, 66.72, 67.82, 68.93, 70.06, 71.19, 72.33,
+  73.48, 74.64, 75.82, 77.00, 78.20, 79.40, 80.63, 81.86, 83.11, 84.38,
+  85.66, 86.97, 88.29, 89.64, 91.01, 92.41, 93.84, 95.31, 96.81, 98.38,
+  100.00
+];
+
+/* ------------------------------
+   Locked ranges (per 250 mL)
+   ------------------------------ */
 const FLAVOR_RANGES = {
   Fruit:   { low: 0.60, typical: 1.00, high: 1.40 },
   Cream:   { low: 0.15, typical: 0.30, high: 0.50 },
@@ -66,33 +114,50 @@ function titleCase(s){
 }
 
 /* ============================================================
-   Bench Proofing Math (R&D ONLY)
-
-   NOTE:
-   - This is a SIMPLE volumetric model (ethanol volumes add linearly).
-   - We are NOT applying contraction tables here.
-   - The primary requirement is: do not overflow the bottle, and the
-     SPIRIT+WATER portion is calculated to be at target proof.
-
-   Inputs:
-     finalMl     = bottle size (100/250/375)
-     baseProof   = starting spirit proof (e.g. 192)
-     targetProof = desired bench reading BEFORE additives (e.g. 70)
-     additiveMl  = flavors + HFCS reserved volume inside bottle
-
-   Output:
-     baseSpiritMl + waterMl = (finalMl - additiveMl)
+   Table helpers (linear interpolation between integer ABV)
    ============================================================ */
-function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additiveMl = 0){
+function interpFromTable(table, abvPercent){
+  const x = clamp(abvPercent, 0, 100);
+  const lo = Math.floor(x);
+  const hi = Math.min(100, lo + 1);
+  const t = x - lo;
+  const a = table[lo];
+  const b = table[hi];
+  return a + (b - a) * t;
+}
+
+function density_g_per_L_at20C(abvPercent){
+  return interpFromTable(DENSITY_G_PER_L_20C, abvPercent);
+}
+
+function abw_fraction_from_abv(abvPercent){
+  const abwPct = interpFromTable(ABW_PERCENT_FROM_ABV, abvPercent);
+  return abwPct / 100;
+}
+
+/* ============================================================
+   Bench proofing using mass + density tables @ 20°C
+
+   We want a FINAL spirit+water portion volume = Vsw (mL)
+   at a TARGET proof (tp) measured at 20°C basis.
+
+   This gives us target mixture density + ethanol mass fraction.
+   Then we compute how much of the base spirit (at bp) is needed
+   to supply the correct ethanol mass, and how much pure water
+   mass (→ volume) to add.
+
+   This properly accounts for contraction because Vsw is the
+   final contracted volume at that ABV.
+   ============================================================ */
+function calculateBenchProofedSpiritWater(Vsw_mL, baseProof, targetProof){
   const warnings = [];
 
-  const Vfinal = toNum(finalMl);
+  const Vsw = toNum(Vsw_mL);
   const bp = toNum(baseProof);
   const tp = toNum(targetProof);
-  const Vadd = Math.max(0, toNum(additiveMl) || 0);
 
-  if (!Number.isFinite(Vfinal) || Vfinal <= 0) {
-    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid final sample volume."] };
+  if (!Number.isFinite(Vsw) || Vsw <= 0) {
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid spirit+water volume."] };
   }
   if (!Number.isFinite(bp) || bp <= 0) {
     return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid base proof."] };
@@ -100,42 +165,89 @@ function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additi
   if (!Number.isFinite(tp) || tp <= 0) {
     return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid target proof."] };
   }
-
   if (tp > bp){
     warnings.push("Target proof is higher than base proof — you cannot proof up with water.");
   }
 
-  if (Vadd > Vfinal){
-    warnings.push("Additives exceed final sample size. Reduce additives or increase sample size.");
+  const abvBasePct   = clamp((bp / 2), 0, 100); // proof → %ABV
+  const abvTargetPct = clamp((tp / 2), 0, 100);
+
+  // Target mixture properties at 20°C
+  const rhoTarget = density_g_per_L_at20C(abvTargetPct);     // g/L
+  const wTarget   = abw_fraction_from_abv(abvTargetPct);     // ethanol mass fraction
+
+  // Base spirit properties at 20°C
+  const rhoBase = density_g_per_L_at20C(abvBasePct);         // g/L
+  const wBase   = abw_fraction_from_abv(abvBasePct);         // ethanol mass fraction
+
+  // Pure water density at 20°C (same as 0% ABV in the table)
+  const rhoWater = DENSITY_G_PER_L_20C[0];                   // 998.20 g/L
+
+  // Convert target volume to liters for mass computation
+  const Vsw_L = Vsw / 1000;
+
+  // Total mass of the target spirit+water portion
+  const mTotalTarget_g = rhoTarget * Vsw_L;
+
+  // Ethanol mass required in that portion
+  const mEthanolTarget_g = mTotalTarget_g * wTarget;
+
+  // Base spirit volume needed to supply that ethanol mass:
+  // ethanol mass in base = (rhoBase * Vbase_L) * wBase
+  const Vbase_L = mEthanolTarget_g / (rhoBase * wBase);
+
+  const mBase_g = rhoBase * Vbase_L;
+
+  // Remaining mass must be pure water mass
+  const mWater_g = mTotalTarget_g - mBase_g;
+
+  if (mWater_g < -0.01){
+    warnings.push("Not enough room for water at this proof (base proof too low for the target).");
   }
 
-  // Reserve additive space first (this is the key fix)
+  const Vwater_L = Math.max(0, mWater_g) / rhoWater;
+
+  return {
+    baseSpiritMl: Number((Vbase_L * 1000).toFixed(1)),
+    waterMl: Number((Vwater_L * 1000).toFixed(1)),
+    spiritWaterMl: Number(Vsw.toFixed(1)),
+    warnings
+  };
+}
+
+/* ============================================================
+   Main proofing wrapper for the app (reserves additive space)
+   ============================================================ */
+function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additiveMl = 0){
+  const warnings = [];
+
+  const Vfinal = toNum(finalMl);
+  const Vadd = Math.max(0, toNum(additiveMl) || 0);
+
+  if (!Number.isFinite(Vfinal) || Vfinal <= 0) {
+    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, warnings: ["Invalid final sample volume."] };
+  }
+
+  if (Vadd > Vfinal){
+    warnings.push("Additives exceed final sample size. Reduce flavors/sweetener or increase sample size.");
+  }
+
+  // Reserve space for additives INSIDE the bottle
   const VspiritWater = Math.max(0, Vfinal - Vadd);
 
-  // Alcohol needed IN THE SPIRIT+WATER PORTION (not the full bottle)
-  const alcoholNeededMl = VspiritWater * (tp / 200);
+  // Bench-proof the spirit+water portion to the target proof
+  const proofing = calculateBenchProofedSpiritWater(VspiritWater, baseProof, targetProof);
 
-  // Base spirit volume needed to supply that alcohol
-  const baseSpiritMlRaw = alcoholNeededMl / (bp / 200);
-
-  // Water fills the rest of the spirit+water bucket
-  const waterMlRaw = VspiritWater - baseSpiritMlRaw;
-
-  if (waterMlRaw < -0.001){
-    warnings.push(
-      "Not enough room for water at this proof after additives. Lower target proof, raise sample size, reduce additives, or use higher-proof base."
-    );
-  }
-
+  // Add workflow note if additives exist
   if (Vadd > 0){
-    warnings.push("Bench-proofing note: Spirit+water portion is at target proof BEFORE additives; final proof will read lower after HFCS/flavors.");
+    warnings.push("Bench-proofing note: Spirit+water portion is at target proof before additives; final proof will read lower after flavors/HFCS.");
   }
 
   return {
-    baseSpiritMl: Number(Math.max(0, baseSpiritMlRaw).toFixed(1)),
-    waterMl: Number(Math.max(0, waterMlRaw).toFixed(1)),
-    spiritWaterMl: Number(VspiritWater.toFixed(1)),
-    warnings
+    baseSpiritMl: proofing.baseSpiritMl,
+    waterMl: proofing.waterMl,
+    spiritWaterMl: proofing.spiritWaterMl,
+    warnings: [...(proofing.warnings || []), ...warnings]
   };
 }
 
@@ -255,7 +367,7 @@ function generateSample({
     explain.push(`${c.name} → ${c.category} (${flavorStrength})`);
   }
 
-  // --- SWEETENER (HFCS-42) ---
+  // --- SWEETENER ---
   let sweetener = null;
   let sweetenerMl = 0;
 
@@ -272,15 +384,20 @@ function generateSample({
     if (sp !== spClamped) warnings.push("Sweetness was clamped to a safe range.");
   }
 
-  // Total additives we reserve space for
   const additiveMl = flavorTotalMl + sweetenerMl;
 
   if (additiveMl > size * 0.25){
     warnings.push("High additives for a small sample. Proofing water may be constrained; taste carefully.");
   }
 
-  // --- PROOFING (reserve additive space first, then bench-proof spirit+water portion) ---
-  const proofing = calculateProofingForFinalVolume(size, bp, tp, additiveMl);
+  // --- PROOFING (reserve additive space, bench-proof spirit+water portion) ---
+  const proofing = calculateProofingForFinalVolume(
+    size,
+    bp,
+    tp,
+    additiveMl
+  );
+
   warnings.push(...(proofing.warnings || []));
 
   const draft = {
