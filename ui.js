@@ -34,7 +34,7 @@ function formatMl(n){
 }
 
 /* ------------------------------
-   Inputs
+   Inputs (RESTORED — REQUIRED)
    ------------------------------ */
 function getInputs(){
   const sampleSizeMl = Number(readRad("sampleSize"));
@@ -115,7 +115,7 @@ function renderDraftList(){
 let currentDraft = null;
 
 /* ------------------------------
-   Normalize flavors
+   Normalize flavors (safe)
    ------------------------------ */
 function normalizeFlavors(draft){
   draft.ingredients.flavors = (draft.ingredients.flavors || []).map(f => ({
@@ -144,7 +144,7 @@ function showOutputFromDraft(draft){
   const tbody = el("ingredientTable").querySelector("tbody");
   tbody.innerHTML = "";
 
-  /* -------- Base Spirit -------- */
+  // Base spirit (FIXED) — show mL in both columns
   const base = draft.ingredients.baseSpirit;
   tbody.insertAdjacentHTML("beforeend", `
     <tr>
@@ -156,7 +156,7 @@ function showOutputFromDraft(draft){
     </tr>
   `);
 
-  /* -------- Water -------- */
+  // Water (FIXED) — show mL in both columns
   const water = draft.ingredients.water;
   if (water){
     tbody.insertAdjacentHTML("beforeend", `
@@ -170,7 +170,7 @@ function showOutputFromDraft(draft){
     `);
   }
 
-  /* -------- Flavors -------- */
+  // Flavors (EDITABLE)
   draft.ingredients.flavors.forEach(f=>{
     const delta = f.appliedMl - f.suggestedMl;
 
@@ -195,7 +195,7 @@ function showOutputFromDraft(draft){
     `);
   });
 
-  /* -------- HFCS -------- */
+  // HFCS-42 (FIXED) — show mL in both columns
   const sw = draft.ingredients.sweetener;
   if (sw && sw.enabled){
     tbody.insertAdjacentHTML("beforeend", `
@@ -204,12 +204,12 @@ function showOutputFromDraft(draft){
         <td>${formatMl(sw.amountMl)}</td>
         <td>${formatMl(sw.amountMl)}</td>
         <td class="muted">—</td>
-        <td class="muted">${sw.targetPercent}% sweetness</td>
+        <td class="muted">${escapeHtml(String(sw.targetPercent || ""))}% sweetness</td>
       </tr>
     `);
   }
 
-  /* -------- Add Flavor -------- */
+  // Add flavor
   tbody.insertAdjacentHTML("beforeend", `
     <tr>
       <td colspan="5">
