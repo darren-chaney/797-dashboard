@@ -1,373 +1,311 @@
 /* ============================================================
-   Sample Builder (R&D) — Logic (NO production scaler code)
-   Locked Flavor Ranges v1.0
-
-   IMPORTANT:
-   - This tool reserves headroom for additives (flavors + HFCS) INSIDE the bottle.
-   - It then proofs the remaining "spirit + water" portion to the TARGET proof
-     so that portion should read correctly on the Snap 41 BEFORE additives are added.
-   - After additives are added, final proof will read lower.
-
-   This file adds:
-   - predictedBenchProof (what the spirit+water portion SHOULD read)
-   - exactVolumeCheck (sanity check totals)
-   - rounding compensation so totals hit the intended volumes
+   Sample Builder (R&D) — UI ONLY
+   STABLE BASELINE
+   - No math
+   - No duplicated constants
+   - Assumes logic.js is loaded FIRST
    ============================================================ */
 
-const SB_LOCKED_RANGES_VERSION = "v1.0";
-const HFCS42_DENSITY_G_PER_ML = 1.30;
-const ALLOWED_SAMPLE_SIZES_ML = [100, 250, 375];
+const LS_DRAFTS_KEY = "sb_drafts_v1";
+const LS_LAST_KEY   = "sb_last_draft_v1";
 
-// Locked ranges (per 250 mL)
-const FLAVOR_RANGES = {
-  Fruit:   { low: 0.60, typical: 1.00, high: 1.40 },
-  Cream:   { low: 0.15, typical: 0.30, high: 0.50 },
-  Vanilla: { low: 0.10, typical: 0.25, high: 0.40 },
-  Citrus:  { low: 0.20, typical: 0.40, high: 0.60 },
-  Dessert: { low: 0.40, typical: 0.75, high: 1.10 },
-  Spice:   { low: 0.05, typical: 0.10, high: 0.20 },
-  Heat:    { low: 0.01, typical: 0.03, high: 0.06 }
-};
-
-// Keyword → category mapping
-const KEYWORDS = [
-  { k: ["capsicum","chili","chile","habanero","jalapeno","pepper","heat","spicy"], cat: "Heat" },
-  { k: ["cinnamon","clove","nutmeg","spice","ginger"], cat: "Spice" },
-  { k: ["lemon","lime","orange","tangerine","citrus","grapefruit"], cat: "Citrus" },
-  { k: ["vanilla","french vanilla","bourbon vanilla"], cat: "Vanilla" },
-  { k: ["cream","whipped","sweet cream","milk","dairy"], cat: "Cream" },
-  { k: ["pie","cobbler","cake","cheesecake","cookie","dessert","frosting","donut","brownie"], cat: "Dessert" },
-  { k: ["strawberry","peach","blue","raz","raspberry","watermelon","pineapple","apple","blackberry","cherry","mango","banana","grape","berry"], cat: "Fruit" }
-];
+const el = id => document.getElementById(id);
 
 /* ------------------------------
-   Small helpers
+   Basic helpers
    ------------------------------ */
-function sbNowISO(){ return new Date().toISOString(); }
-
-function sbUuid(prefix){
-  const d = new Date();
-  const p = n=>String(n).padStart(2,"0");
-  return `${prefix}-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${Math.floor(Math.random()*900+100)}`;
+function readRad(name){
+  const n = document.querySelector(`input[name="${name}"]:checked`);
+  return n ? n.value : null;
 }
-
-function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
-
-function toNum(v){
-  const n = Number(v);
-  return Number.isFinite(n) ? n : NaN;
+function setRad(name, value){
+  const n = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (n) n.checked = true;
 }
-
-function normalizeText(s){
-  return (s||"").toLowerCase().replace(/[^\w\s-]/g," ").replace(/\s+/g," ").trim();
+function escapeHtml(s){
+  return (s || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
-
-function titleCase(s){
-  return (s||"")
-    .split(" ")
-    .filter(Boolean)
-    .map(w=>w[0]?.toUpperCase()+w.slice(1))
-    .join(" ");
+function formatMl(n){
+  n = Number(n || 0);
+  return n < 10 ? n.toFixed(2) : n.toFixed(1);
+}
+function formatL(n){
+  return (Number(n || 0)).toFixed(3);
+}
+function mlToL(ml){
+  return Number(ml || 0) / 1000;
 }
 
 /* ------------------------------
-   Predict proof from volumes (ideal mixing, R&D)
-   - baseProof is in "US proof" (2*ABV%)
-   - returns predicted proof of the MIXTURE (spirit+water only)
-   Note: ignores ethanol/water contraction; used as a diagnostic.
+   Inputs
    ------------------------------ */
-function predictedProofFromVolumes(baseSpiritMl, baseProof, waterMl){
-  const bs = toNum(baseSpiritMl);
-  const bp = toNum(baseProof);
-  const w  = toNum(waterMl);
-
-  if (!Number.isFinite(bs) || bs < 0) return NaN;
-  if (!Number.isFinite(w)  || w  < 0) return NaN;
-  if (!Number.isFinite(bp) || bp <= 0) return NaN;
-
-  const total = bs + w;
-  if (total <= 0) return NaN;
-
-  const ethanolMl = bs * (bp / 200);
-  const abv = ethanolMl / total;         // fraction
-  const proof = abv * 200;
-  return proof;
-}
-
-/* ============================================================
-   Bench Proofing Math (R&D ONLY)
-
-   WORKFLOW:
-   - Reserve additives inside bottle (Vadd).
-   - Proof the remaining "spirit+water" portion (VspiritWater) to targetProof.
-
-   Returns volumes that satisfy:
-   - baseSpiritMl + waterMl = VspiritWater (after rounding correction)
-   - predicted bench proof ~ targetProof (ideal)
-   ============================================================ */
-function calculateBenchProofingWithHeadroom(finalMl, baseProof, targetProof, additiveMl = 0){
-  const warnings = [];
-
-  const Vfinal = toNum(finalMl);
-  const bp = toNum(baseProof);
-  const tp = toNum(targetProof);
-  const Vadd = Math.max(0, toNum(additiveMl) || 0);
-
-  if (!Number.isFinite(Vfinal) || Vfinal <= 0) {
-    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, predictedBenchProof: NaN, warnings: ["Invalid final sample volume."] };
-  }
-  if (!Number.isFinite(bp) || bp <= 0) {
-    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, predictedBenchProof: NaN, warnings: ["Invalid base proof."] };
-  }
-  if (!Number.isFinite(tp) || tp <= 0) {
-    return { baseSpiritMl: 0, waterMl: 0, spiritWaterMl: 0, predictedBenchProof: NaN, warnings: ["Invalid target proof."] };
-  }
-
-  if (tp > bp){
-    warnings.push("Target proof is higher than base proof — you cannot proof up with water.");
-  }
-
-  if (Vadd > Vfinal){
-    warnings.push("Additives exceed final sample size. Reduce flavors/sweetener or increase sample size.");
-  }
-
-  // Headroom-reserved bench volume
-  const VspiritWater = Math.max(0, Vfinal - Vadd);
-
-  // Ideal ethanol needed in the bench portion
-  const ethanolNeededMl = VspiritWater * (tp / 200);
-
-  // Spirit volume to supply that ethanol
-  let baseSpiritMl = ethanolNeededMl / (bp / 200);
-  let waterMl = VspiritWater - baseSpiritMl;
-
-  // Guard
-  if (waterMl < -0.001){
-    warnings.push("Not enough room for water at this proof after additives. Reduce additives, lower target proof, or use higher proof base.");
-  }
-
-  // ---- Rounding / exact-volume correction ----
-  // We round to 0.1 mL for display & measuring, but ensure the sum still equals VspiritWater.
-  baseSpiritMl = Number(Math.max(0, baseSpiritMl).toFixed(1));
-  waterMl = Number(Math.max(0, waterMl).toFixed(1));
-
-  // After rounding, compensate water to hit exact bench volume (keeps spirit amount stable).
-  const drift = Number((VspiritWater - (baseSpiritMl + waterMl)).toFixed(1));
-  if (Math.abs(drift) >= 0.1){
-    waterMl = Number(Math.max(0, (waterMl + drift)).toFixed(1));
-  }
-
-  const predictedBenchProof = predictedProofFromVolumes(baseSpiritMl, bp, waterMl);
-
-  if (Vadd > 0){
-    warnings.push("Bench-proofing note: Spirit+water portion is at target proof before additives; final proof will read lower after flavors/HFCS.");
-  }
-
+function getInputs(){
   return {
-    baseSpiritMl,
-    waterMl,
-    spiritWaterMl: Number(VspiritWater.toFixed(1)),
-    predictedBenchProof: Number(Number.isFinite(predictedBenchProof) ? predictedBenchProof.toFixed(1) : NaN),
-    warnings
+    sampleSizeMl: Number(readRad("sampleSize")),
+    baseSpiritType: el("baseSpiritType")?.value || "Moonshine",
+    flavorConcept: el("flavorConcept")?.value || "",
+    flavorStrength: readRad("strength") || "Strong",
+    sweetnessPercent: (()=>{
+      const s = readRad("sweetness");
+      return (s === "none" || s == null) ? null : Number(s);
+    })(),
+    baseProof: Number(el("baseProof")?.value || 155),
+    targetProof: Number(el("targetProof")?.value || 60)
   };
 }
 
 /* ------------------------------
-   Categorization + Parsing
+   Storage
    ------------------------------ */
-function detectCategory(token){
-  const t = normalizeText(token);
-  for (const r of KEYWORDS){
-    for (const kw of r.k){
-      if (t.includes(normalizeText(kw))) return r.cat;
-    }
+function loadJSON(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch{
+    return fallback;
   }
-  return "Dessert";
 }
-
-function parseFlavorConcept(concept){
-  const raw = (concept||"").trim();
-  const cleaned = normalizeText(raw);
-  if (!cleaned) return { ok:false, error:"Enter a flavor concept." };
-
-  const words = cleaned.split(" ").filter(Boolean);
-  const seenCats = new Set();
-  const comps = [];
-
-  for (const w of words){
-    const cat = detectCategory(w);
-    if (!seenCats.has(cat)){
-      comps.push({ name: titleCase(w), category: cat });
-      seenCats.add(cat);
-    }
-    if (comps.length >= 3) break;
-  }
-
-  if (comps.length === 0){
-    comps.push({ name: titleCase(raw), category: "Dessert" });
-  } else if (comps.length === 1 && comps[0].category === "Dessert" && words.length > 1){
-    comps[0].name = titleCase(raw);
-  }
-
-  return { ok:true, raw, components: comps };
+function saveJSON(key, value){
+  localStorage.setItem(key, JSON.stringify(value, null, 2));
 }
 
 /* ------------------------------
-   Strength & Spirit bias
+   Draft list
    ------------------------------ */
-function strengthValue(range, strength){
-  if (strength === "Strong") return range.typical;
-  if (strength === "Mild") return range.low + (range.typical - range.low) * 0.7;
-  return range.typical + (range.high - range.typical) * 0.88; // Extreme
-}
+function renderDraftList(){
+  const drafts = loadJSON(LS_DRAFTS_KEY, []);
+  const box = el("draftList");
+  if (!box) return;
 
-function applySpiritBias(category, amount, spirit){
-  if (spirit === "Rum" && (category === "Cream" || category === "Vanilla")){
-    return amount * 0.9;
-  }
-  return amount;
-}
-
-/* ============================================================
-   Generate Sample Draft
-   ============================================================ */
-function generateSample({
-  sampleSizeMl,
-  baseSpiritType,
-  flavorConcept,
-  flavorStrength,
-  sweetnessPercent,
-  baseProof,
-  targetProof
-}) {
-
-  const size = toNum(sampleSizeMl);
-  if (!ALLOWED_SAMPLE_SIZES_ML.includes(size)){
-    return { ok:false, error:"Sample size must be 100, 250, or 375 mL." };
+  if (!drafts.length){
+    box.textContent = "No drafts yet.";
+    return;
   }
 
-  const bp = toNum(baseProof);
-  const tp = toNum(targetProof);
+  box.innerHTML = drafts.slice().reverse().slice(0,8).map(d=>`
+    <div style="padding:8px 0;border-bottom:1px solid #334155">
+      <b>${escapeHtml(d.sampleId)}</b><br>
+      <span class="muted">${escapeHtml(d.sampleDefinition?.flavorConcept || "")}</span><br>
+      <button data-load="${d.sampleId}">Load</button>
+    </div>
+  `).join("");
 
-  if (!Number.isFinite(bp) || bp < 40 || bp > 200){
-    return { ok:false, error:"Base proof must be a number between 40 and 200." };
-  }
-  if (!Number.isFinite(tp) || tp < 40 || tp > 120){
-    return { ok:false, error:"Target proof must be a number between 40 and 120." };
-  }
-
-  const parsed = parseFlavorConcept(flavorConcept);
-  if (!parsed.ok) return parsed;
-
-  const scaleFactor = size / 250;
-
-  const explain = [];
-  const warnings = [];
-
-  // --- FLAVORS ---
-  const flavors = [];
-  let flavorTotalMl = 0;
-
-  for (const c of parsed.components){
-    const range = FLAVOR_RANGES[c.category] || FLAVOR_RANGES.Dessert;
-
-    let per250 = strengthValue(range, flavorStrength);
-    per250 = applySpiritBias(c.category, per250, baseSpiritType);
-    per250 = clamp(per250, range.low, range.high);
-
-    const amt = Number((per250 * scaleFactor).toFixed(2));
-    flavorTotalMl += amt;
-
-    flavors.push({
-      name: `${c.name} Flavor`,
-      category: c.category,
-      amountMl: amt,
-      amountMlPer250: Number(per250.toFixed(3))
-    });
-
-    explain.push(`${c.name} → ${c.category} (${flavorStrength})`);
-  }
-
-  // --- SWEETENER ---
-  let sweetener = null;
-  let sweetenerMl = 0;
-
-  const sp = toNum(sweetnessPercent);
-  if (Number.isFinite(sp)){
-    const spClamped = clamp(sp, 0, 25);
-    sweetenerMl = Number((size * spClamped / 100).toFixed(1));
-    sweetener = {
-      enabled: true,
-      type: "HFCS42",
-      targetPercent: spClamped,
-      amountMl: sweetenerMl
+  box.querySelectorAll("[data-load]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const drafts = loadJSON(LS_DRAFTS_KEY, []);
+      const found = drafts.find(d=>d.sampleId === btn.dataset.load);
+      if (found){
+        loadDraftIntoUI(found);
+        showOutputFromDraft(found);
+        saveJSON(LS_LAST_KEY, found);
+      }
     };
-    if (sp !== spClamped) warnings.push("Sweetness was clamped to a safe range.");
+  });
+}
+
+/* ------------------------------
+   UI state
+   ------------------------------ */
+let currentDraft = null;
+
+/* ------------------------------
+   Normalize flavors (defensive)
+   ------------------------------ */
+function normalizeFlavors(draft){
+  draft.ingredients.flavors = (draft.ingredients.flavors || []).map(f=>({
+    id: f.id || sbUuid("flavor"),
+    name: f.name || "",
+    category: f.category || null,
+    suggestedMl: Number(f.suggestedMl ?? f.amountMl ?? 0),
+    appliedMl: Number(f.appliedMl ?? f.adjustedMl ?? f.amountMl ?? 0),
+    source: f.source || "generated"
+  }));
+}
+
+/* ------------------------------
+   Render output
+   ------------------------------ */
+function showOutputFromDraft(draft){
+  currentDraft = draft;
+  normalizeFlavors(draft);
+
+  el("outputPanel").style.display = "block";
+  el("btnSaveDraft").disabled = false;
+
+  el("sampleMeta").textContent =
+    `${draft.sampleId} • ${draft.sampleDefinition.sampleSizeMl} mL`;
+
+  const tbody = el("ingredientTable").querySelector("tbody");
+  tbody.innerHTML = "";
+
+  /* Base Spirit */
+  const base = draft.ingredients.baseSpirit;
+  tbody.insertAdjacentHTML("beforeend", `
+    <tr>
+      <td><b>Base Spirit (${base.proof} proof)</b></td>
+      <td>${formatMl(base.amountMl)}</td>
+      <td>${formatL(mlToL(base.amountMl))}</td>
+      <td class="muted">—</td>
+      <td class="muted">R&D base</td>
+    </tr>
+  `);
+
+  /* Water */
+  const water = draft.ingredients.water;
+  if (water){
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td><b>Water (to ${water.targetProof} proof)</b></td>
+        <td>${formatMl(water.amountMl)}</td>
+        <td>${formatL(mlToL(water.amountMl))}</td>
+        <td class="muted">—</td>
+        <td class="muted">Bench proofing</td>
+      </tr>
+    `);
   }
 
-  const additiveMl = Number((flavorTotalMl + sweetenerMl).toFixed(2));
+  /* Flavors */
+  draft.ingredients.flavors.forEach(f=>{
+    const delta = f.appliedMl - f.suggestedMl;
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>
+          ${f.source === "manual"
+            ? `<input data-name="${f.id}" value="${escapeHtml(f.name)}" placeholder="Flavor name">`
+            : `<b>${escapeHtml(f.name)}</b>`
+          }
+        </td>
+        <td>${formatMl(f.suggestedMl)}</td>
+        <td>
+          <input type="number" step="0.01" data-ml="${f.id}" value="${f.appliedMl}" style="width:110px">
+        </td>
+        <td class="muted">${delta === 0 ? "—" : delta.toFixed(2)}</td>
+        <td class="muted">
+          ${f.source === "manual" ? "Manual" : "Generated"}
+          • <button data-del="${f.id}">✕</button>
+        </td>
+      </tr>
+    `);
+  });
 
-  // --- PROOFING (bench portion to target, headroom reserved) ---
-  const proofing = calculateBenchProofingWithHeadroom(
-    size,
-    bp,
-    tp,
-    additiveMl
-  );
+  /* Sweetener */
+  const sw = draft.ingredients.sweetener;
+  if (sw && sw.enabled){
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td><b>HFCS-42</b></td>
+        <td>${formatMl(sw.amountMl)}</td>
+        <td>${formatL(mlToL(sw.amountMl))}</td>
+        <td class="muted">—</td>
+        <td class="muted">${sw.targetPercent}% sweetness</td>
+      </tr>
+    `);
+  }
 
-  warnings.push(...(proofing.warnings || []));
+  /* Add flavor */
+  tbody.insertAdjacentHTML("beforeend", `
+    <tr><td colspan="5">
+      <button id="btnAddFlavor">+ Add Flavor</button>
+    </td></tr>
+  `);
 
-  // Exact-volume diagnostic
-  const totalPlanned =
-    Number((proofing.baseSpiritMl + proofing.waterMl + additiveMl).toFixed(1));
-  const exactVolumeCheck = {
-    plannedTotalMl: totalPlanned,
-    targetFinalMl: Number(size.toFixed(1)),
-    deltaMl: Number((totalPlanned - size).toFixed(1))
+  el("btnAddFlavor").onclick = ()=>{
+    currentDraft.ingredients.flavors.push({
+      id: sbUuid("manual"),
+      name: "",
+      category: null,
+      suggestedMl: 0,
+      appliedMl: 0,
+      source: "manual"
+    });
+    showOutputFromDraft(currentDraft);
   };
-  if (Math.abs(exactVolumeCheck.deltaMl) >= 0.2){
-    warnings.push(`Volume check: planned total is off by ${exactVolumeCheck.deltaMl} mL (rounding).`);
+}
+
+/* ------------------------------
+   Delegated edits
+   ------------------------------ */
+document.addEventListener("input", e=>{
+  if (!currentDraft) return;
+
+  if (e.target.dataset.ml){
+    const f = currentDraft.ingredients.flavors.find(x=>x.id === e.target.dataset.ml);
+    if (f) f.appliedMl = Number(e.target.value) || 0;
   }
 
-  const draft = {
-    sampleId: sbUuid("SB"),
-    status: "draft",
-    createdAt: sbNowISO(),
-    lockedFlavorRanges: SB_LOCKED_RANGES_VERSION,
+  if (e.target.dataset.name){
+    const f = currentDraft.ingredients.flavors.find(x=>x.id === e.target.dataset.name);
+    if (f && f.source === "manual") f.name = e.target.value;
+  }
+});
 
-    sampleDefinition: {
-      sampleSizeMl: size,
-      baseSpiritType,
-      baseProof: bp,
-      targetProof: tp,
-      flavorConcept: parsed.raw,
-      flavorStrength,
-      sweetnessPercent: Number.isFinite(sp) ? (sweetener?.targetPercent ?? null) : null
-    },
+document.addEventListener("click", e=>{
+  if (!currentDraft) return;
+  if (!e.target.dataset.del) return;
 
-    // Diagnostics to compare with Snap 41
-    diagnostics: {
-      additiveMl,
-      spiritWaterMl: proofing.spiritWaterMl,
-      predictedBenchProof: proofing.predictedBenchProof,
-      exactVolumeCheck
-    },
+  currentDraft.ingredients.flavors =
+    currentDraft.ingredients.flavors.filter(f=>f.id !== e.target.dataset.del);
 
-    ingredients: {
-      baseSpirit: { amountMl: proofing.baseSpiritMl, proof: bp },
-      water: { amountMl: proofing.waterMl, targetProof: tp },
-      flavors,
-      sweetener,
-      acids: []
-    },
+  showOutputFromDraft(currentDraft);
+});
 
-    explain,
-    warnings,
-    promotion: {
-      eligible: size === 375,
-      candidateOnly: true
+/* ------------------------------
+   Draft save / load
+   ------------------------------ */
+function saveDraft(d){
+  const drafts = loadJSON(LS_DRAFTS_KEY, []);
+  const i = drafts.findIndex(x=>x.sampleId === d.sampleId);
+  if (i >= 0) drafts[i] = d;
+  else drafts.push(d);
+  saveJSON(LS_DRAFTS_KEY, drafts);
+  saveJSON(LS_LAST_KEY, d);
+  renderDraftList();
+}
+
+function loadDraftIntoUI(d){
+  setRad("sampleSize", String(d.sampleDefinition.sampleSizeMl));
+  el("baseSpiritType").value = d.sampleDefinition.baseSpiritType;
+  el("flavorConcept").value = d.sampleDefinition.flavorConcept;
+  setRad("strength", d.sampleDefinition.flavorStrength);
+  el("baseProof").value = d.sampleDefinition.baseProof;
+  el("targetProof").value = d.sampleDefinition.targetProof;
+
+  if (d.ingredients.sweetener?.enabled){
+    setRad("sweetness", String(d.ingredients.sweetener.targetPercent));
+  } else {
+    setRad("sweetness", "none");
+  }
+}
+
+/* ------------------------------
+   Init
+   ------------------------------ */
+function init(){
+  renderDraftList();
+
+  el("btnGenerate").onclick = ()=>{
+    const res = generateSample(getInputs());
+    if (!res?.ok) return alert(res?.error || "Generate failed");
+    showOutputFromDraft(res.draft);
+    saveJSON(LS_LAST_KEY, res.draft);
+  };
+
+  el("btnSaveDraft").onclick = ()=>{
+    if (currentDraft) saveDraft(currentDraft);
+  };
+
+  el("btnLoadLast").onclick = ()=>{
+    const last = loadJSON(LS_LAST_KEY, null);
+    if (last){
+      loadDraftIntoUI(last);
+      showOutputFromDraft(last);
     }
   };
-
-  return { ok:true, draft, explain, warnings };
 }
+
+document.addEventListener("DOMContentLoaded", init);
