@@ -196,6 +196,19 @@ function showOutputFromDraft(draft){
       </tr>
     `);
   });
+     // Sweetener (HFCS-42) — fixed row
+  const sw = draft.ingredients.sweetener;
+  if (sw && sw.enabled){
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td><b>HFCS-42</b></td>
+        <td>${formatMl(sw.amountMl)}</td>
+        <td>${formatL(mlToL(sw.amountMl))}</td>
+        <td class="muted">—</td>
+        <td class="muted">${escapeHtml(String(sw.targetPercent || ""))}% sweetness</td>
+      </tr>
+    `);
+  }
 
   // Add flavor
   tbody.insertAdjacentHTML("beforeend", `
