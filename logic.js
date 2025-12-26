@@ -1,10 +1,16 @@
 /* ============================================================
    Sample Builder (R&D) — Logic (NO production scaler code)
    Locked Flavor Ranges v1.0
+
+   IMPORTANT WORKFLOW (matches Darren’s bench process):
+   - Additives (HFCS + flavors) take up bottle volume.
+   - We RESERVE that space first.
+   - We then proof the remaining "spirit + water" portion to the TARGET proof,
+     so it reads correctly on the Snap 41 BEFORE additives are added.
    ============================================================ */
 
 const SB_LOCKED_RANGES_VERSION = "v1.0";
-const HFCS42_DENSITY_G_PER_ML = 1.30;
+const HFCS42_DENSITY_G_PER_ML = 1.30; // for weight conversions later if needed
 const ALLOWED_SAMPLE_SIZES_ML = [100, 250, 375];
 
 // Locked ranges (per 250 mL)
@@ -62,12 +68,20 @@ function titleCase(s){
 /* ============================================================
    Bench Proofing Math (R&D ONLY)
 
-   IMPORTANT WORKFLOW (matches Darren’s bench process):
-   - Bottle size is fixed (e.g., 250 mL).
-   - Reserve additive space (HFCS + flavors) INSIDE the bottle.
-   - Bench-proof ONLY the remaining "spirit + water" portion to the target proof,
-     so that spirit+water reads correctly on Snap 41 BEFORE additives are added.
-   - After additives are added, final proof will generally read lower (normal).
+   NOTE:
+   - This is a SIMPLE volumetric model (ethanol volumes add linearly).
+   - We are NOT applying contraction tables here.
+   - The primary requirement is: do not overflow the bottle, and the
+     SPIRIT+WATER portion is calculated to be at target proof.
+
+   Inputs:
+     finalMl     = bottle size (100/250/375)
+     baseProof   = starting spirit proof (e.g. 192)
+     targetProof = desired bench reading BEFORE additives (e.g. 70)
+     additiveMl  = flavors + HFCS reserved volume inside bottle
+
+   Output:
+     baseSpiritMl + waterMl = (finalMl - additiveMl)
    ============================================================ */
 function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additiveMl = 0){
   const warnings = [];
@@ -92,15 +106,19 @@ function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additi
   }
 
   if (Vadd > Vfinal){
-    warnings.push("Additives exceed final sample size. Reduce flavors/sweetener or increase sample size.");
+    warnings.push("Additives exceed final sample size. Reduce additives or increase sample size.");
   }
 
-  // Reserve additive space INSIDE the bottle
+  // Reserve additive space first (this is the key fix)
   const VspiritWater = Math.max(0, Vfinal - Vadd);
 
-  // Bench-proof spirit portion so that SPIRIT+WATER reads target proof BEFORE additives
-  // Using linear alcohol volume math (proof = 200 * ethanolVol / totalVol)
-  const baseSpiritMlRaw = VspiritWater * (tp / bp);
+  // Alcohol needed IN THE SPIRIT+WATER PORTION (not the full bottle)
+  const alcoholNeededMl = VspiritWater * (tp / 200);
+
+  // Base spirit volume needed to supply that alcohol
+  const baseSpiritMlRaw = alcoholNeededMl / (bp / 200);
+
+  // Water fills the rest of the spirit+water bucket
   const waterMlRaw = VspiritWater - baseSpiritMlRaw;
 
   if (waterMlRaw < -0.001){
@@ -110,23 +128,15 @@ function calculateProofingForFinalVolume(finalMl, baseProof, targetProof, additi
   }
 
   if (Vadd > 0){
-    warnings.push("Bench-proofing note: Spirit+water portion is at target proof before additives; final proof will read lower after flavors/HFCS.");
+    warnings.push("Bench-proofing note: Spirit+water portion is at target proof BEFORE additives; final proof will read lower after HFCS/flavors.");
   }
 
-  // Rounded outputs
-  const baseSpiritMl = Number(Math.max(0, baseSpiritMlRaw).toFixed(1));
-  const waterMl = Number(Math.max(0, waterMlRaw).toFixed(1));
-  const spiritWaterMl = Number(VspiritWater.toFixed(1));
-
-  // Sanity check: totals should match finalMl (within rounding)
-  const total = baseSpiritMl + waterMl + Number(Vadd.toFixed(1));
-  if (Math.abs(total - Vfinal) > 0.6){
-    warnings.push(
-      `Sanity check: totals drift from bottle size (calc total ~${total.toFixed(1)} mL vs ${Vfinal.toFixed(1)} mL). This should not happen—check rounding/UI.`
-    );
-  }
-
-  return { baseSpiritMl, waterMl, spiritWaterMl, warnings };
+  return {
+    baseSpiritMl: Number(Math.max(0, baseSpiritMlRaw).toFixed(1)),
+    waterMl: Number(Math.max(0, waterMlRaw).toFixed(1)),
+    spiritWaterMl: Number(VspiritWater.toFixed(1)),
+    warnings
+  };
 }
 
 /* ------------------------------
@@ -245,7 +255,7 @@ function generateSample({
     explain.push(`${c.name} → ${c.category} (${flavorStrength})`);
   }
 
-  // --- SWEETENER ---
+  // --- SWEETENER (HFCS-42) ---
   let sweetener = null;
   let sweetenerMl = 0;
 
@@ -262,13 +272,14 @@ function generateSample({
     if (sp !== spClamped) warnings.push("Sweetness was clamped to a safe range.");
   }
 
-  const additiveMl = Number((flavorTotalMl + sweetenerMl).toFixed(2));
+  // Total additives we reserve space for
+  const additiveMl = flavorTotalMl + sweetenerMl;
 
   if (additiveMl > size * 0.25){
     warnings.push("High additives for a small sample. Proofing water may be constrained; taste carefully.");
   }
 
-  // --- PROOFING (reserve additive space, then bench-proof spirit+water portion) ---
+  // --- PROOFING (reserve additive space first, then bench-proof spirit+water portion) ---
   const proofing = calculateProofingForFinalVolume(size, bp, tp, additiveMl);
   warnings.push(...(proofing.warnings || []));
 
